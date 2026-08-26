@@ -20,10 +20,8 @@ describe("FloorInterface", () => {
   });
 
   it("exposes exactly the documented surface and nothing else", () => {
-    // Issue #3: the real Floor was handed straight to player code, exposing
-    // yPosition, getSpawnPosY, elevatorAvailable, pressUpButton and trigger.
-    // The emitter is held rather than inherited from, so its dispatch side is
-    // not reachable either.
+    // The emitter is held rather than inherited from, so its dispatch side
+    // is not reachable either.
     const exposed = new Set<string>();
     for (
       let proto: object | null = floorInterface;
@@ -112,9 +110,7 @@ describe("FloorInterface", () => {
     });
 
     it("keeps a request a car was booked for and never sent to fetch", () => {
-      // The one thing this method is for that the event cannot do: a booked
-      // journey is never announced again, so a program that books and forgets
-      // has nowhere else to find it.
+      // A booked journey is never re-announced by the event; this is where a program finds it again.
       dispatchFloor.requestDestination(5);
       dispatchFloor.assignElevator(5, {
         goingUpIndicator: false,
@@ -137,8 +133,7 @@ describe("FloorInterface", () => {
     });
 
     it("is a fresh array of fresh entries, so player code cannot corrupt the floor", () => {
-      // The reason `buttonStates` is a snapshot: the engine's own book is a
-      // live map, and emptying what was handed out would empty the floor.
+      // Same reason `buttonStates` is a snapshot: emptying it would empty the engine's own live map.
       dispatchFloor.requestDestination(5);
       const first = dispatchInterface.pendingDestinations();
       first.length = 0;
@@ -182,8 +177,6 @@ describe("FloorInterface", () => {
     });
 
     it("calls handlers with the facade as `this`", () => {
-      // Legacy riot dispatched with `fn.apply(el, ...)` (libs/riot.js:45), and
-      // player code was handed the emitter itself.
       const seen: unknown[] = [];
       floorInterface.on("up_button_pressed", function (this: unknown): void {
         seen.push(this);
@@ -204,9 +197,7 @@ describe("FloorInterface", () => {
       floor.pressDownButton();
 
       expect(pressed).toHaveBeenCalledTimes(2);
-      // The legacy floors were riot observables (`floor.js:3`), and riot
-      // prepended the name of the event that fired whenever the registration
-      // listed more than one (`libs/riot.js:11`, `libs/riot.js:45`).
+      // A multi-event registration gets the name of whichever event fired, prepended.
       expect(pressed).toHaveBeenNthCalledWith(1, "up_button_pressed", floorInterface);
       expect(pressed).toHaveBeenNthCalledWith(2, "down_button_pressed", floorInterface);
     });
@@ -259,8 +250,6 @@ describe("FloorInterface", () => {
     });
 
     it("stops forwarding once the floor's subscriptions are dropped", () => {
-      // How World.unWind tears the facades down: it drops the floor's
-      // subscriptions, which includes the forwarding this facade registered.
       const upPressed = vi.fn();
       floorInterface.on("up_button_pressed", upPressed);
 
@@ -281,9 +270,6 @@ describe("FloorInterface", () => {
     });
 
     it("drops every player handler on offAll, and forwards again afterwards", () => {
-      // The legacy floors were riot observables (`floor.js:3`) handed straight
-      // to player code (`world.js:239`), so `floor.off("*")` — riot's
-      // unregister-everything wildcard (`libs/riot.js:18`) — worked on them.
       const dropped = vi.fn();
       floorInterface.on("up_button_pressed", dropped);
       floorInterface.on("buttonstate_change", dropped);
@@ -293,9 +279,7 @@ describe("FloorInterface", () => {
 
       expect(dropped).not.toHaveBeenCalled();
 
-      // The forwarding is registered on the floor, not on the facade's own
-      // emitter, so it survives: unlike riot's shared callback map, this cannot
-      // leave a player deaf to floor events for the rest of the run.
+      // Forwarding is registered on the floor, not the facade's emitter, so it survives offAll.
       const later = vi.fn();
       floorInterface.on("down_button_pressed", later);
       floor.pressDownButton();
@@ -305,9 +289,6 @@ describe("FloorInterface", () => {
     });
 
     it("supports the legacy one() spelling of once()", () => {
-      // The legacy floors were riot observables (`floor.js:3`) handed straight
-      // to player code, and riot published `one`, not `once`
-      // (`libs/riot.js:33`).
       const handler = vi.fn();
 
       expect(floorInterface.one("up_button_pressed", handler)).toBe(floorInterface);
@@ -324,8 +305,7 @@ describe("FloorInterface", () => {
     });
 
     it('drops every player handler on off("*") too', () => {
-      // The spelling published solutions actually use, and the one the accepted
-      // answer to upstream issue #97 gives. It must not be a silent no-op.
+      // Must not be a silent no-op — this is the spelling published solutions actually use.
       const dropped = vi.fn();
       floorInterface.on("up_button_pressed", dropped);
       floorInterface.on("buttonstate_change", dropped);
@@ -337,9 +317,6 @@ describe("FloorInterface", () => {
     });
 
     describe("hall_button_pressed", () => {
-      // Upstream issue #33: one event for both call buttons, so a solution that
-      // treats a call as a call — the usual shape — need not register the same
-      // handler twice and then work out which of the two it was given.
       it("forwards either call button, with the direction and itself", () => {
         const hallPressed = vi.fn();
         floorInterface.on("hall_button_pressed", hallPressed);
@@ -354,10 +331,8 @@ describe("FloorInterface", () => {
       });
 
       it("follows the button's own event, whichever order they were registered in", () => {
-        // The order is the forwarder's, not the player's: both events are
-        // raised from the one subscription on the real floor, specific first.
-        // Registering the general one first is the case that would give a
-        // registration-order dependency away.
+        // The order is the forwarder's, not the player's: both fire from one
+        // subscription on the real floor, specific first.
         const calls: string[] = [];
         floorInterface.on("hall_button_pressed", (direction) => {
           calls.push(`hall:${direction}`);
@@ -394,9 +369,7 @@ describe("FloorInterface", () => {
       });
 
       it("still runs when a handler of the button's own event throws", () => {
-        // The two are separate dispatches and each isolates its handlers, so a
-        // solution subscribed to both does not lose the second because the
-        // first went wrong (upstream issues #88, #83, #27).
+        // Separate dispatches, each isolating its handlers, so one throwing doesn't lose the other.
         const boom = new Error("boom");
         const hallPressed = vi.fn();
         floorInterface.on("up_button_pressed", () => {
@@ -452,9 +425,7 @@ describe("FloorInterface", () => {
         floorInterface.offAll();
         floor.pressUpButton();
 
-        // A second press of a button that is already lit raises nothing
-        // (`Floor.pressUpButton`), so the other button is what tests the other
-        // spelling.
+        // A second press of an already-lit button raises nothing.
         floorInterface.on("hall_button_pressed", dropped);
         floorInterface.off("*");
         floor.pressDownButton();
@@ -468,22 +439,12 @@ describe("FloorInterface", () => {
 
         floor.pressUpButton();
 
-        // riot prepended the name of the event that fired whenever the
-        // registration named more than one (`libs/riot.js:11`,
-        // `libs/riot.js:45`), and the order of the two is still the forwarder's
-        // rather than the order the names were written in.
+        // The order of the two is the forwarder's, not the order the names were written in.
         expect(pressed).toHaveBeenCalledTimes(2);
         expect(pressed).toHaveBeenNthCalledWith(1, "up_button_pressed", floorInterface);
         expect(pressed).toHaveBeenNthCalledWith(2, "hall_button_pressed", "up", floorInterface);
       });
 
-      // A nested press is not a contrived case: `Floor` has no re-entrancy
-      // guard on purpose, and a passenger refused by a full car presses again
-      // while `*_button_pressed` is still in flight. The emitter's own guard is
-      // per event name, so before the pair was made atomic these two tests
-      // recorded ["down", "hall:down", "hall:down"] and
-      // ["down", "hall:down", "down"] respectively — a general event with no
-      // specific one before it, and a specific one with no general one after.
       describe("when a handler presses the same button again", () => {
         /** Registers all three handlers; `repressFrom` presses again, once. */
         const recordPresses = (repressFrom: "down_button_pressed" | "hall_button_pressed") => {
@@ -494,8 +455,7 @@ describe("FloorInterface", () => {
               return;
             }
             repressed = true;
-            // Clearing first because a button that is already lit raises
-            // nothing, which would leave nothing nested to observe.
+            // Clearing first, since an already-lit button would raise nothing to observe.
             floor.buttonStates.down = "";
             floor.pressDownButton();
           };
@@ -518,9 +478,7 @@ describe("FloorInterface", () => {
         };
 
         it("drops the repress whole, from the button's own handler", () => {
-          // The specific event alone behaved this way before the general one
-          // existed, and still does: the repress is refused as already in
-          // flight. What matters is that the general event is refused with it.
+          // The repress is refused as already in flight, and the general event with it.
           expect(recordPresses("down_button_pressed")).toEqual(["down", "hall:down"]);
         });
 
@@ -529,10 +487,7 @@ describe("FloorInterface", () => {
         });
 
         it("still delivers a press of the other button", () => {
-          // The mark is per direction, so the two calls stay independent: a
-          // handler that presses the *other* button is heard exactly as it was
-          // before this event existed, and each general event still follows its
-          // own specific one.
+          // The mark is per direction, so the two calls stay independent.
           const calls: string[] = [];
           let pressedUp = false;
           floorInterface.on("down_button_pressed", () => {
@@ -555,19 +510,8 @@ describe("FloorInterface", () => {
         });
 
         it("still delivers a press of the other button from the general handler", () => {
-          // The same independence, reached from the general event — which is the
-          // case the per-direction mark alone could not carry. It admits the
-          // nested `up` call, being a different direction, but the emitter
-          // guards by event *name*, and `hall_button_pressed` is one name for
-          // both directions: the nested general event was refused as already in
-          // flight, so this recorded ["down", "hall:down", "up"] — a specific
-          // event with no general one after it, the very split the mark exists
-          // to prevent. Hence the per-call key in `#forwardCall`.
-          //
-          // Worth a test of its own because a solution reads far more naturally
-          // this way round: a handler of `hall_button_pressed` is the one place
-          // a program sees both calls, so it is where a program that answers a
-          // call by making another would put that logic.
+          // The guard keys on the call, not the event name, so the nested `up`
+          // call isn't refused just because both directions share a name.
           const calls: string[] = [];
           let pressedUp = false;
           floorInterface.on("down_button_pressed", () => {
@@ -590,10 +534,7 @@ describe("FloorInterface", () => {
         });
 
         it("drops a repress of the same button from the general handler", () => {
-          // The other half of the key: narrowing the guard to one call must not
-          // widen it back to nothing. A `hall_button_pressed` handler that
-          // presses the button it was just told about is the recursion the guard
-          // is for, and it is still refused — both events of it, not one.
+          // Narrowing the guard to one call must not widen it back to nothing.
           const calls: string[] = [];
           let repressed = false;
           floorInterface.on("down_button_pressed", () => {
@@ -616,9 +557,6 @@ describe("FloorInterface", () => {
     });
 
     describe("destination_requested", () => {
-      // The call a building with no hall buttons makes instead of the other
-      // three, so it takes a floor built for one: `Floor` keeps a request book
-      // only when it was told its passengers announce destinations.
       let dispatchFloor: Floor;
       let dispatchInterface: FloorInterface;
 
@@ -659,9 +597,6 @@ describe("FloorInterface", () => {
       });
 
       it("says nothing about someone joining a journey a car is booked for", () => {
-        // The grouping destination dispatch exists for: the second passenger
-        // bound for the fifth floor rides along with the first, and a program
-        // that answered the first request has nothing left to decide.
         const requested = vi.fn();
         dispatchInterface.on("destination_requested", requested);
 
@@ -673,9 +608,7 @@ describe("FloorInterface", () => {
       });
 
       it("asks again when the booked car turns up full", () => {
-        // The anti-livelock path. A refused passenger has no lit button to
-        // press again, so the request has to be reissued or the level becomes
-        // unwinnable the moment an elevator fills up.
+        // Anti-livelock: a refused passenger has no lit button to press again, so the request reissues itself.
         const requested = vi.fn();
         dispatchInterface.on("destination_requested", requested);
 
@@ -700,8 +633,6 @@ describe("FloorInterface", () => {
       });
 
       it("is not what a call button raises", () => {
-        // The two ways of calling a car are alternatives, not layers: a floor
-        // whose passengers press buttons never announces a destination.
         const requested = vi.fn();
         const dispatchRequested = vi.fn();
         floorInterface.on("destination_requested", requested);
@@ -714,8 +645,7 @@ describe("FloorInterface", () => {
         expect(requested).not.toHaveBeenCalled();
         expect(dispatchRequested).not.toHaveBeenCalled();
 
-        // The control, so that the silence above is the button rather than a
-        // forwarder that never fires at all.
+        // Control: confirms the silence above is the button, not a dead forwarder.
         dispatchFloor.requestDestination(5);
         expect(dispatchRequested).toHaveBeenCalledTimes(1);
       });
@@ -726,9 +656,6 @@ describe("FloorInterface", () => {
 
         dispatchFloor.requestDestination(5);
 
-        // riot prepended the name of the event that fired whenever the
-        // registration named more than one (`libs/riot.js:11`,
-        // `libs/riot.js:45`), so the destination follows the name here.
         expect(heard).toHaveBeenCalledTimes(1);
         expect(heard).toHaveBeenCalledWith("destination_requested", 5, dispatchInterface);
       });
@@ -763,8 +690,7 @@ describe("FloorInterface", () => {
 
         expect(dropped).not.toHaveBeenCalled();
 
-        // The control: a handler registered after the drop is heard, so the
-        // silence above is `offAll` rather than a forwarder that never fires.
+        // Control: a handler registered after the drop is still heard.
         const kept = vi.fn();
         dispatchInterface.on("destination_requested", kept);
         dispatchFloor.requestDestination(9);
@@ -788,11 +714,8 @@ describe("FloorInterface", () => {
       });
 
       it("delivers a journey to this same floor after the dispatch unwinds", () => {
-        // The case the engine really produces: a handler books a car, the car
-        // turns up full, `destinationRefused` withdraws the booking and asks
-        // again — all while this dispatch is still running. Re-entering would
-        // recur; dropping it would leave the floor waiting on a booking the
-        // program was never told had gone.
+        // A handler books a car that turns up full, and `destinationRefused`
+        // asks again while this dispatch is still running.
         const seen: string[] = [];
         let nested = false;
         dispatchInterface.on("destination_requested", (destinationFloor) => {
@@ -807,15 +730,13 @@ describe("FloorInterface", () => {
 
         dispatchFloor.requestDestination(5);
 
-        // The second dispatch begins after the first has left, not inside it.
+        // The second dispatch begins after the first has left.
         expect(seen).toEqual(["enter:5", "leave:5", "enter:5", "leave:5"]);
         expect(errorHandler).not.toHaveBeenCalled();
       });
 
       it("stops at one re-delivery, however often a handler reissues", () => {
-        // The bound. Each re-delivery is a dispatch of its own, so a handler
-        // that answers a request by making it again would otherwise start
-        // another one every time this one unwound, forever.
+        // Each re-delivery is its own dispatch, so this could otherwise recur forever.
         const requested = vi.fn(() => {
           dispatchFloor.requestDestination(5);
         });
@@ -828,10 +749,7 @@ describe("FloorInterface", () => {
       });
 
       it("says nothing about a journey booked while the dispatch unwound", () => {
-        // A re-delivery is re-checked against the floor first. A program that
-        // books a car after the nested request was refused has answered it, and
-        // saying it again would be a duplicate nothing could tell from a real
-        // request.
+        // A re-delivery is re-checked against the floor first, so an answered nested request stays silent.
         let nested = false;
         const requested = vi.fn((destinationFloor: number) => {
           if (nested) {
@@ -850,8 +768,6 @@ describe("FloorInterface", () => {
       });
 
       it("says nothing about a journey nobody is waiting on any more", () => {
-        // The other half of that check: the people who asked have boarded, so
-        // there is no request left to re-deliver.
         let nested = false;
         const requested = vi.fn((destinationFloor: number) => {
           if (nested) {
@@ -871,11 +787,8 @@ describe("FloorInterface", () => {
       });
 
       it("delivers a journey to another floor raised from inside a dispatch", () => {
-        // The other half of that key, and the case a program really produces:
-        // answering a request moves a car, a car that turns up full refuses a
-        // passenger bound somewhere else, and their journey is asked for
-        // afresh while this dispatch is still running. Guarded by event name
-        // it would be dropped, and nobody would ever be told about it again.
+        // A car that turns up full refuses a passenger bound elsewhere, whose
+        // journey is asked for afresh while this dispatch is still running.
         const seen: number[] = [];
         dispatchInterface.on("destination_requested", (destinationFloor) => {
           seen.push(destinationFloor);

@@ -23,11 +23,7 @@ interface FakeWorld extends ControllableWorld {
   emitUserCodeError(e: unknown): void;
 }
 
-/**
- * Builds a world stub.
- *
- * @returns A world that records calls and can replay `usercode_error`.
- */
+/** Builds a world stub that records calls and can replay `usercode_error`. */
 function createFakeWorld(): FakeWorld {
   const errorHandlers: ((e: unknown) => void)[] = [];
   return {
@@ -63,11 +59,7 @@ interface FakeCodeObj extends UserCodeObject {
   update: ReturnType<typeof vi.fn<UpdateFn>>;
 }
 
-/**
- * Builds a player-code stub.
- *
- * @returns A `{ init, update }` object whose members are spies.
- */
+/** Builds a `{ init, update }` player-code stub whose members are spies. */
 function createFakeCodeObj(): FakeCodeObj {
   return { init: vi.fn<InitFn>(), update: vi.fn<UpdateFn>() };
 }
@@ -99,8 +91,6 @@ describe("World controller", () => {
   });
 
   it("runs twice as many ticks for twice the time scale, each still tickSeconds long", () => {
-    // A scaled tick is not a bigger tick: the tick itself is fixed, so what
-    // timeScale changes is how many of them a real frame's time buys.
     controller.timeScale = 2.0;
     controller.start(fakeWorld, fakeCodeObj, frameRequester.register, true);
     frameRequester.trigger();
@@ -156,7 +146,6 @@ describe("World controller", () => {
     });
 
     it("never hands a real Floor to player code", () => {
-      // Issue #3: the controller used to forward world.floors straight through.
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
       const codeObj = createFakeCodeObj();
 
@@ -175,19 +164,8 @@ describe("World controller", () => {
     });
 
     it("gives every elevator its own events rather than the last one's", () => {
-      // Upstream issues #111 and #138: "only the last elevator responds to my
-      // handlers", reported by two different people, which usually means either
-      // a real bug or a documentation failure. It is the second. Each interface
-      // carries its own emitter and dispatches with itself as `this`, so a
-      // handler registered on the first elevator hears the first elevator --
-      // which is what the two assertions below are for.
-      //
-      // What the reporters hit is `var` in the loop that registers the
-      // handlers: `var` gives the whole function one binding, so by the time
-      // any handler runs, the variable holds the elevator the loop finished on
-      // and every handler acts on that one. `forEach` below, and `let`, give
-      // each iteration its own. This test exists so that nobody ever repairs
-      // the engine for a fault that is not in it.
+      // Regression guard: each elevator interface dispatches with itself as `this`, not
+      // whatever binding a shared loop variable happened to end on.
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 3 }, "issue-111");
       const heardBy: number[] = [];
       const heardItself: boolean[] = [];
@@ -201,9 +179,7 @@ describe("World controller", () => {
           });
         },
         update() {
-          // Nothing to do per frame: the handlers registered above are what is
-          // under test, and leaving the elevators alone is what lets them go
-          // idle and fire.
+          // Leaving elevators alone lets them go idle and fire.
         },
       };
 
@@ -229,9 +205,8 @@ describe("World controller", () => {
     it("splits a long frame into ticks of exactly tickSeconds, carrying the remainder over", () => {
       const tickSeconds = 0.25;
       const stepController = createWorldController(tickSeconds);
-      // 600 ms of real time at timeScale 1 is 0.6 simulated seconds: two whole
-      // ticks and a 0.1 s remainder. The remainder is not flushed as a shorter
-      // final tick — it stays in the accumulator for whatever frame comes next.
+      // 600 ms is 0.6 simulated seconds: two whole ticks plus a 0.1 s remainder that
+      // carries into the accumulator rather than running as a shorter final tick.
       const requester = createFrameRequester(600.0);
       stepController.start(fakeWorld, fakeCodeObj, requester.register, true);
       requester.trigger();
@@ -240,8 +215,7 @@ describe("World controller", () => {
       let steps = fakeWorld.update.mock.calls.map((call) => call[0]);
       expect(steps).toEqual([0.25, 0.25]);
 
-      // Another 600 ms brings the accumulator to 0.1 + 0.6 = 0.7 s: two more
-      // ticks, not three, with 0.2 s left owed.
+      // Accumulator is now 0.1 + 0.6 = 0.7 s: two more ticks, with 0.2 s left owed.
       requester.trigger();
       steps = fakeWorld.update.mock.calls.map((call) => call[0]);
       expect(steps).toEqual([0.25, 0.25, 0.25, 0.25]);
@@ -250,8 +224,7 @@ describe("World controller", () => {
     it("clamps a very long frame to MAX_TICKS_PER_FRAME ticks", () => {
       const tickSeconds = 0.25;
       const stepController = createWorldController(tickSeconds);
-      // Comfortably past MAX_TICKS_PER_FRAME * tickSeconds = 25 simulated
-      // seconds, so the cap -- not the frame length -- decides the tick count.
+      // Comfortably past MAX_TICKS_PER_FRAME * tickSeconds, so the cap decides the tick count.
       const requester = createFrameRequester(1_000_000.0);
       stepController.start(fakeWorld, fakeCodeObj, requester.register, true);
       requester.trigger();
@@ -263,13 +236,6 @@ describe("World controller", () => {
     });
 
     it("gives every tick exactly tickSeconds, never a fractional remainder", () => {
-      // The old dtMax-substepping loop absorbed whatever was left of a frame
-      // into a final, undersized step, which floating-point frame lengths (the
-      // fitness suite's own 1000/60 ms, among others) could push a few 1e-18
-      // above a whole multiple of dtMax and buy an entire spurious extra step.
-      // The accumulator design has no "final step" to absorb anything into —
-      // every tick is exactly tickSeconds or it does not run yet — so there is
-      // nothing left here for that regression to recur in.
       const tickSeconds = 1.0 / 60.0;
       const stepController = createWorldController(tickSeconds);
       const requester = createFrameRequester(1000.0 / 60.0);
@@ -362,18 +328,13 @@ describe("World controller", () => {
 
       expect(controller.isPaused).toBe(true);
       expect(reported).toHaveBeenCalledWith(boom);
-      // Everything the world reports came out of one of the player's handlers:
-      // the facades are the only things holding the world's reporter.
       expect(log).toHaveBeenCalledWith("Usercode error in an event handler", boom);
       log.mockRestore();
     });
 
     it("pauses on the first error but still forwards the rest of the dispatch", () => {
-      // Observable.triggerSafe reports each failing handler separately, so one
-      // player-code dispatch can raise usercode_error several times with no
-      // frame in between. The first one pauses the simulation - that is the
-      // bound on what per-handler isolation buys - and the pause does not
-      // swallow the reports that follow it.
+      // triggerSafe reports each failing handler separately, so one dispatch can raise
+      // usercode_error several times; the pause on the first must not swallow the rest.
       const first = new Error("first");
       const second = new Error("second");
       const reported = vi.fn();
@@ -392,21 +353,7 @@ describe("World controller", () => {
     });
 
     describe("a floor number that is not a number", () => {
-      // `ElevatorInterface.goToFloor` throws on one rather than queueing a
-      // destination the car can never arrive at, and nothing inside the facade
-      // catches that. These are the checks that it lands somewhere: the facade
-      // is only ever called from player code, and each of the three ways player
-      // code runs is wrapped - `codeObj.init` and `codeObj.update` by the
-      // try/catch blocks in `start`, and every player event handler by the
-      // per-handler isolation `triggerSafe` gives it, which arrives here as the
-      // world's own `usercode_error`.
-
-      /**
-       * Runs a real world for two frames and reports what came back.
-       *
-       * @param codeObj - The player program to drive it with.
-       * @returns Whatever the controller reported.
-       */
+      /** Runs a real world for two frames and reports what came back. */
       function runTwoFrames(codeObj: UserCodeObject): ReturnType<typeof vi.fn> {
         const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
         const reported = vi.fn();
@@ -468,9 +415,6 @@ describe("World controller", () => {
       });
 
       it("pauses and reports one a hand-assigned destinationQueue brought in", () => {
-        // That path cannot throw - the engine calls `checkDestinationQueue`
-        // too - so it reports through the world instead, and the elevator is
-        // still there to be used afterwards.
         const reported = runTwoFrames({
           init(elevators): void {
             at(elevators, 0).destinationQueue = [Number.NaN];

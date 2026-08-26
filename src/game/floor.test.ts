@@ -2,23 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Floor, type FloorElevator, type FloorErrorHandler } from "./floor.ts";
 
-/**
- * An elevator stand-in.
- *
- * `serves` answers `true` to everything, which is what an unzoned car does and
- * what every spec below assumes; the specs that care build their own literal.
- */
+/** An elevator stand-in whose `serves` answers `true` to everything, matching an unzoned car. */
 function indicators(up: boolean, down: boolean): FloorElevator {
   return { goingUpIndicator: up, goingDownIndicator: down, serves: () => true };
 }
 
-/**
- * An elevator stand-in whose zone is exactly the floors named.
- *
- * Both indicators are dark, because a booking is answered by name: a
- * destination-dispatch floor never reads them, and a car that got picked up by
- * one of these specs on its indicators would be a bug these specs would miss.
- */
+/** An elevator stand-in whose zone is exactly the floors named; both indicators are dark. */
 function servingOnly(...floors: number[]): FloorElevator {
   return {
     goingUpIndicator: false,
@@ -159,11 +148,7 @@ describe("Floor", () => {
     });
 
     it("clears nothing when the elevator does not serve this floor", () => {
-      // The floor is number 2, and this car's zone is the two below it. Both
-      // indicators are lit, so without the service check every lamp here would
-      // go out for a car nobody standing here may board -- and a passenger
-      // whose lamp was cleared by a car that will not take them is a passenger
-      // the building has stopped looking for.
+      // Both indicators are lit, but the elevator's zone excludes this floor.
       floor.pressUpButton();
       floor.pressDownButton();
       const buttonStateChange = vi.fn();
@@ -248,8 +233,6 @@ describe("Floor", () => {
     });
 
     it("groups a second passenger onto a car that is already coming", () => {
-      // The whole point of the mechanic: the program is told about the trip,
-      // not about each traveler, and cannot book two cars for one journey.
       dispatch.requestDestination(7);
       dispatch.assignElevator(7, servingOnly(2, 7));
       requested.mockClear();
@@ -371,22 +354,14 @@ describe("Floor", () => {
     });
 
     it("says nothing when the refusal leaves nobody waiting", () => {
-      // A guard rather than a case: a refusal does not decrement the count, so
-      // no engine path reaches this. The branch is here because the method is
-      // public on the engine floor and cheaper to make total than to reason
-      // about at every call site.
+      // No engine path reaches this; kept because the public method must stay total.
       dispatch.destinationRefused(7);
 
       expect(requested).not.toHaveBeenCalled();
     });
 
     it("holds a booking the program never honors, and says nothing more", () => {
-      // The stall destination dispatch can still reach, and the reason a
-      // program has to be able to read the book. A booking is cleared by
-      // boarding or by refusal, and both need the booked car to open its doors
-      // here. A program that books a car and then sends it elsewhere leaves a
-      // booking nothing will clear; the floor is not told where the car went,
-      // so it cannot tell this from a car that is simply on its way.
+      // A car sent elsewhere leaves a booking nothing clears -- indistinguishable from one still on its way.
       dispatch.requestDestination(7);
       dispatch.assignElevator(7, servingOnly(2, 7));
       requested.mockClear();
@@ -398,9 +373,6 @@ describe("Floor", () => {
     });
 
     it("takes a second car for a booking the first never honored", () => {
-      // The way out, and it is the program's: the request is still in the book
-      // for anyone who reads it, and booking another car both replaces the dead
-      // booking and announces the replacement.
       const rescue = servingOnly(2, 7);
       dispatch.requestDestination(7);
       dispatch.assignElevator(7, servingOnly(2, 7));
@@ -454,11 +426,8 @@ describe("Floor", () => {
       });
 
       it("announces the book before anyone is told what happened to it", () => {
-        // A handler reads the floor rather than a snapshot, so the floor has to
-        // already read the new way by the time it is handed one -- and it has
-        // to be handed one before the request that moved the book is passed on,
-        // or a panel redrawn from inside a `destination_requested` handler
-        // draws a book one passenger behind.
+        // A handler reads live state, so the book must already reflect the
+        // change before the event that caused it is announced.
         const order: string[] = [];
         const seen: (readonly [number, number])[][] = [];
         changed.mockImplementation((floor) => {
@@ -482,10 +451,7 @@ describe("Floor", () => {
       });
 
       it("announces the traveler the request event keeps quiet about", () => {
-        // The reason this event exists. `destination_requested` is deliberately
-        // silent about the second person bound for a floor a car is already
-        // coming for, so a panel counting from it would be one short until the
-        // car arrived and would never learn otherwise.
+        // `destination_requested` stays silent about a passenger joining a booked trip.
         dispatch.requestDestination(7);
         dispatch.assignElevator(7, servingOnly(2, 7));
         changed.mockClear();
@@ -510,9 +476,7 @@ describe("Floor", () => {
       });
 
       it("has already written the booking down by the time it announces it", () => {
-        // Announced first, the panel would redraw with the journey still
-        // reading unanswered and would only catch up on the next thing to move
-        // the book.
+        // Booking is written before the event fires, so a handler reading the floor sees it already answered.
         const elevator = servingOnly(2, 7);
         const seen: (FloorElevator | null)[] = [];
         dispatch.requestDestination(7);
@@ -536,8 +500,6 @@ describe("Floor", () => {
       });
 
       it("announces every boarding, not only the one that empties the book", () => {
-        // Both, because a chip that says how many people are waiting is wrong
-        // the moment one of them steps into a car.
         dispatch.requestDestination(7);
         dispatch.requestDestination(7);
         dispatch.assignElevator(7, servingOnly(2, 7));
@@ -562,10 +524,7 @@ describe("Floor", () => {
       });
 
       it("has already withdrawn the booking by the time it announces it", () => {
-        // A full car turns a passenger away and the panel redraws. Announced
-        // before the booking is dropped, the chip would redraw still marked
-        // answered, and since the program does not rebook it nothing would move
-        // the book again -- so it would read that way for the rest of the run.
+        // Booking is cleared before the event fires, so a handler reading the floor sees it already withdrawn.
         const seen: (FloorElevator | null)[] = [];
         dispatch.requestDestination(7);
         dispatch.assignElevator(7, servingOnly(2, 7));
@@ -642,9 +601,6 @@ describe("Floor", () => {
     });
 
     it("keeps running the remaining handlers of an event after one throws", () => {
-      // Issue #88 (also #83, #27): the legacy tryTrigger wrapped the whole
-      // dispatch in one try/catch, so the first handler to throw silently
-      // killed every handler registered after it.
       const boom = new Error("boom");
       const second = vi.fn();
       const third = vi.fn();

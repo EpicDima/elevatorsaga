@@ -165,11 +165,8 @@ describe("Level requirements", () => {
     });
 
     it("describes itself, grouping the digits of the numbers it is counting", () => {
-      // `2,675` rather than `2675`, because the numbers go through
-      // `Intl.NumberFormat` now and that is what it gives for English. The
-      // grouping is the improvement, not a side effect: these are quantities a
-      // player reads off the bar at a glance, and the same numbers come out as
-      // `2 675` in Russian.
+      // Grouped via Intl.NumberFormat, not string-built: the same number
+      // renders as `2,675` in English and `2 675` in Russian.
       expect(requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45).description).toBe(
         "Transport <span class='emphasis-color'>2,675</span> people in " +
           "<span class='emphasis-color'>1,800</span> seconds or less and let no one take more " +
@@ -201,10 +198,8 @@ describe("Level requirements", () => {
     });
 
     it("decides as soon as either limit is reached, not when the crowd is delivered", () => {
-      // A run that has already spent its moves, or already left someone
-      // undelivered too long, is lost with passengers still to come: the
-      // condition has to say so then, because the alternative is a bar that
-      // reads "in progress" over a run whose outcome is settled.
+      // A run that has spent its moves or overrun the wait limit is lost
+      // regardless of how many passengers are still incoming.
       const levelReq = requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30);
       expect(levelReq.evaluate({ ...fakeWorld, moveCount: 450 })).toBe(false);
       expect(levelReq.evaluate({ ...fakeWorld, maxWaitTime: 30 })).toBe(false);
@@ -292,11 +287,9 @@ describe("Level requirements", () => {
     });
 
     it("reports a spawn rate to the last digit it was given", () => {
-      // The router accepts any finite rate in [0.01, 10] and does not round it,
-      // so all three of these are live URLs. `Intl.NumberFormat` shows three
-      // decimals unless told otherwise, which would print 0.063 and 10 -- and
-      // 10 is what a rate clamped down from 100000 prints, so two runs nothing
-      // alike would be described by one line.
+      // Intl.NumberFormat rounds to three decimals by default, which would
+      // print 0.0625 and 9.9999 as indistinguishable from other rates
+      // entirely; the format used here must not round.
       expect(requireSandbox({ ...SANDBOX, spawnRate: 0.0625 }).description).toContain(
         "<span class='emphasis-color'>0.0625</span> people per second",
       );
@@ -309,8 +302,8 @@ describe("Level requirements", () => {
     });
 
     it("reports a spawn rate the router clamped, not the one that was asked for", () => {
-      // The whole point of putting the numbers in the bar: a hash that said
-      // spawnrate=100000 runs at 10, and this is where the player finds out.
+      // A hash that asked for spawnrate=100000 actually runs at 10; this bar
+      // is where the player finds out.
       expect(requireSandbox({ ...SANDBOX, spawnRate: 10 }).description).toContain(
         "<span class='emphasis-color'>10</span> people per second",
       );
@@ -333,8 +326,8 @@ describe("createSandboxLevel", () => {
   });
 
   it("describes the same building it asks the world for", () => {
-    // The bar is the only place a sandbox player can see what they are running,
-    // so the numbers in it have to be the numbers the world was built from.
+    // The bar is the only place a sandbox player sees what they're running,
+    // so its numbers must match the ones the world was built from.
     const level = createSandboxLevel({ ...SANDBOX, floorCount: 31, spawnRate: 2.25 });
     expect(level.options.floorCount).toBe(31);
     expect(level.options.spawnRate).toBe(2.25);
@@ -357,15 +350,11 @@ describe("createSandboxLevel", () => {
 
 describe("levels", () => {
   it("keeps the full legacy list, in order", () => {
-    // Nineteen, not the twenty this list held until the endless demo came off
-    // the end of it -- see `requireSandbox`'s own comment for why.
     expect(levels).toHaveLength(19);
   });
 
   it("ends the list with the moves-and-wait level", () => {
-    // The numbers are the ones the reference program was measured against --
-    // a level whose limits drifted from the run that sized them is a
-    // level nobody can be sure is winnable.
+    // These numbers are the ones the reference program was measured against.
     const level = levels.at(-1);
     expect(level?.options).toEqual({ floorCount: 8, elevatorCount: 6, spawnRate: 0.9 });
     expect(level?.condition.description).toBe(
@@ -385,9 +374,6 @@ describe("levels", () => {
   });
 
   it("gives every entry a condition that can actually be met", () => {
-    // The list held one that could not until the endless demo was taken off
-    // it: `evaluate` returned `null` forever, so the tile could be opened and
-    // never finished. Every entry now names something to reach.
     for (const level of levels) {
       expect(level.condition.requirements.length).toBeGreaterThan(0);
     }
@@ -400,12 +386,9 @@ describe("the language a description comes out in", () => {
   });
 
   it("declines every noun the sentence counts", () => {
-    // Three numbers, three different endings, none of which an English
-    // template could have produced by gluing a word onto a number: 23
-    // пассажира, 30 секунд, 2,0 секунды. The delivery limit is the interesting one
-    // -- it is the same 2 as an integer would be, but written with a tenth it
-    // takes a different form of the noun, which is why the catalog is handed
-    // the number together with the way it is spelled.
+    // Russian declines each noun by its exact numeral form, not just its
+    // value: 2 and 2.0 take different endings, so the catalog is handed the
+    // number together with how it's spelled.
     setLocale("ru");
 
     expect(requireUserCountWithinTimeWithMaxWaitTime(23, 30, 2).description).toBe(
@@ -416,10 +399,9 @@ describe("the language a description comes out in", () => {
   });
 
   it("declines the nouns of the moves-and-wait sentence too", () => {
-    // The one sentence that counts all three of them. 100 and 450 are both
-    // `many` in Russian and take «пассажиров» and «перемещений»; the delivery
-    // limit is written with a tenth, which is `other`, so it takes «секунды»
-    // rather than the «секунд» a bare 30 would have taken.
+    // Covers all three declined nouns in one sentence: 100 and 450 take the
+    // Russian "many" form, while the fractional wait limit takes "other" and
+    // a different ending.
     setLocale("ru");
 
     expect(requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30).description).toBe(
@@ -430,12 +412,9 @@ describe("the language a description comes out in", () => {
   });
 
   it("agrees the sandbox nouns that decline with the numbers in front of them", () => {
-    // The sentence the router's numbers land in, assembled out of five
-    // separately counted pieces: 20 этажей, 2 лифта, and a rate written 1,5
-    // here and 1.5 in English. The fifth, «вместимостью», is the same word in
-    // all four Russian forms, so nothing on this line can catch it being
-    // counted wrongly -- the English spec above, where the label is "of
-    // capacity" or "of capacities", is what does that.
+    // Five separately declined pieces in one sentence; «вместимостью»
+    // (capacity) doesn't decline in Russian, so the English spec above is
+    // what actually catches it being counted wrong.
     setLocale("ru");
 
     expect(requireSandbox(SANDBOX).description).toBe(
@@ -448,11 +427,9 @@ describe("the language a description comes out in", () => {
   });
 
   it("separates the capacities with a word rather than a comma", () => {
-    // Russian writes decimals with a comma, so «вместимостью 6, 9» is also how
-    // six point nine is written -- in a sentence that goes on to say «1,5
-    // пассажира в секунду», which is the same punctuation meaning the other
-    // thing two words later. The conjunction is not decoration here; it is what
-    // makes the number of elevators in the building readable.
+    // Russian uses a comma as the decimal separator, so a comma-joined list
+    // of capacities would read as more decimals a few words before an actual
+    // one; the conjunction disambiguates them.
     setLocale("ru");
 
     expect(requireSandbox({ ...SANDBOX, elevatorCapacities: [6, 9] }).description).toContain(
@@ -463,9 +440,8 @@ describe("the language a description comes out in", () => {
   });
 
   it("counts the noun by the digits the rate is printed with", () => {
-    // A rate of 1.0004 is «1,0004 пассажира», not «1 пассажир». Rounding it to
-    // three decimals would print «1» and, worse, would then be right to say
-    // «пассажир» -- the sentence would be grammatical and about another run.
+    // A rate of 1.0004 must stay «1,0004 пассажира»: rounding it to 1 would
+    // also flip which noun form is grammatically correct.
     setLocale("ru");
 
     expect(requireSandbox({ ...SANDBOX, spawnRate: 1.0004 }).description).toContain(
@@ -477,10 +453,8 @@ describe("the language a description comes out in", () => {
   });
 
   it("is settled when the description is read, not when the module was loaded", () => {
-    // `levels` is a module-level constant, built as the page loads and
-    // before anybody has chosen a language. A description computed there would
-    // be whatever was active at import time for the rest of the session, so
-    // every one of them is a getter -- and this is the spec that says so.
+    // `levels` is built at import time, before any language is chosen, so
+    // each description must be a getter rather than a field computed then.
     const level = at(levels, 0);
     expect(level.condition.description).toContain("Transport");
 

@@ -11,13 +11,7 @@ import type { RandomSeed, RandomSource } from "./random.ts";
 /** Draws enough values to say something about a stream. */
 const SAMPLE_SIZE = 20000;
 
-/**
- * Takes the first `count` values of a stream.
- *
- * @param random - Stream to draw from.
- * @param count - How many values to take.
- * @returns The values, in order.
- */
+/** Takes the first `count` values of `random`, in order. */
 function take(random: RandomSource, count: number): number[] {
   return Array.from({ length: count }, () => random());
 }
@@ -44,8 +38,6 @@ describe("createRandomSource", () => {
   });
 
   it("separates neighboring integer seeds, which a batch run reaches for first", () => {
-    // Seeds are hashed rather than used as the generator state, so 1, 2 and 3
-    // are not three windows onto one stream a fixed distance apart.
     const streams = [1, 2, 3].map((seed) => take(createRandomSource(seed), 100));
     for (const [i, stream] of streams.entries()) {
       for (const [j, other] of streams.entries()) {
@@ -57,8 +49,6 @@ describe("createRandomSource", () => {
   });
 
   it("treats a number seed and its string form alike", () => {
-    // So that a seed printed next to the statistics still replays the run after
-    // a trip through a URL, an input field or a log line.
     expect(take(createRandomSource(4711), 100)).toEqual(take(createRandomSource("4711"), 100));
   });
 
@@ -71,10 +61,7 @@ describe("createRandomSource", () => {
   });
 
   it("spreads its output evenly across the unit interval", () => {
-    // What the simulation actually needs of it: `randomInt` slices this into
-    // buckets, so a lumpy stream would bias passenger weights and floors. The
-    // seed is fixed, so the margin below is a fact about this stream, not a
-    // coin toss the suite makes on every run.
+    // The seed is fixed, so this checks a fact about the stream, not run-to-run luck.
     const buckets = Array.from({ length: 10 }, () => 0);
     const random = createRandomSource("uniformity");
     for (let i = 0; i < SAMPLE_SIZE; i++) {
@@ -82,8 +69,7 @@ describe("createRandomSource", () => {
       buckets[bucket] = (buckets[bucket] ?? 0) + 1;
     }
     const expected = SAMPLE_SIZE / buckets.length;
-    // Three standard deviations of the binomial sampling error a genuinely
-    // uniform stream would still show, sqrt(n * p * (1 - p)) with p = 1/10.
+    // 3 standard deviations of binomial sampling error, sqrt(n * p * (1 - p)) with p = 1/10.
     const tolerance = 3 * Math.sqrt(SAMPLE_SIZE * 0.1 * 0.9);
     for (const count of buckets) {
       expect(Math.abs(count - expected)).toBeLessThan(tolerance);
@@ -100,8 +86,7 @@ describe("createRandomSource", () => {
   });
 
   it("does not repeat itself over a run's worth of draws", () => {
-    // A full level run makes some thousands of draws; the generator's
-    // period is 2^32, so none of them should be a rerun of an earlier one.
+    // Period is 2^32, far more than a run's few thousand draws consume.
     const values = new Set(take(createRandomSource("period"), 10000));
     expect(values.size).toBe(10000);
   });
@@ -115,19 +100,12 @@ describe("createRandomSource", () => {
 
 describe("deriveRandomSource", () => {
   it("gives the same seed and label the same stream", () => {
-    // The whole reason a derived stream is worth having: it is replayable from
-    // the seed the run as a whole is replayed from.
     expect(take(deriveRandomSource("seed", "slots"), 1000)).toEqual(
       take(deriveRandomSource("seed", "slots"), 1000),
     );
   });
 
   it("runs beside the seed's own stream rather than inside it", () => {
-    // The property the split exists for. That neither stream can consume the
-    // other's values follows from each keeping its own state; what is checked
-    // here is that they do not hand out the same ones either, so that a run's
-    // two streams stay tellable apart. The seed is fixed, so this is a fact
-    // about these two streams rather than a coin toss made on every run.
     const base = take(createRandomSource("seed"), 200);
     const derived = take(deriveRandomSource("seed", "slots"), 200);
     expect(derived).not.toEqual(base);
@@ -141,26 +119,18 @@ describe("deriveRandomSource", () => {
   });
 
   it("gives two seeds under one label two unrelated streams", () => {
-    // The half that makes the derived stream part of the run rather than a
-    // constant: without the seed reaching the hash, every world would stand its
-    // passengers in the same corners, and the tests above would not notice.
     const first = take(deriveRandomSource("seed", "slots"), 200);
     const second = take(deriveRandomSource("other-seed", "slots"), 200);
     expect(first.filter((value) => second.includes(value))).toEqual([]);
   });
 
   it("keeps the label and the seed from running together", () => {
-    // Concatenated without a separator these two would hash the same string
-    // and hand back one stream, so a seed could collide with a label a later
-    // version of the engine adds.
     expect(take(deriveRandomSource("b", "a"), 100)).not.toEqual(
       take(deriveRandomSource("", "ab"), 100),
     );
   });
 
   it("treats a number seed and its string form alike", () => {
-    // Same reason as for the base stream: a seed survives a trip through a URL
-    // or an input field, and every stream it drives has to survive with it.
     expect(take(deriveRandomSource(4711, "slots"), 100)).toEqual(
       take(deriveRandomSource("4711", "slots"), 100),
     );
@@ -204,8 +174,6 @@ describe("generateRandomSeed", () => {
 
 describe("systemRandom", () => {
   it("is the global Math.random, and the only thing that still is", () => {
-    // Kept as one named export so that the places willing to be unreproducible
-    // are greppable rather than scattered.
     const global = vi.spyOn(Math, "random").mockReturnValue(0.25);
     expect(systemRandom()).toBe(0.25);
     expect(global).toHaveBeenCalledTimes(1);

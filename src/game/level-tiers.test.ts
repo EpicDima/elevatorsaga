@@ -15,15 +15,7 @@ import {
   type TierPredicate,
 } from "./level-tiers.ts";
 
-/**
- * Builds a bare `TierPredicate` stub for tests that exercise
- * `requireAll`/`evaluateLevelTier`'s own logic, not any one real
- * requirement -- an empty `requirements` list is honest here, since a stub
- * reads no field at all.
- *
- * @param result - What the stub always returns.
- * @returns The stub.
- */
+/** Builds a bare `TierPredicate` stub that reads no field, for tests exercising `requireAll`/`evaluateLevelTier`'s own logic. */
 function stubPredicate(result: boolean): TierPredicate {
   return Object.assign(() => result, { requirements: [] });
 }
@@ -163,10 +155,7 @@ describe("requireAll", () => {
   });
 
   it("short-circuits, the same way Array.prototype.every does", () => {
-    // A later predicate that would fail the run on its own must never be
-    // asked, once an earlier one has already said no -- proving this combinator
-    // is exactly `.every` under the hood rather than something that scores
-    // every predicate and only decides at the end.
+    // A predicate after the first failure must never be called.
     const failsFirst = Object.assign(
       vi.fn(() => false),
       { requirements: [] },
@@ -217,10 +206,7 @@ describe("evaluateLevelTier", () => {
 
   it("is gold on a win that clears gold, checked ahead of silver", () => {
     const tiers: LevelTierRequirements = {
-      // A `tiers` value from outside this module is not required to nest --
-      // gold does not imply silver here on purpose, so that gold winning
-      // regardless of silver's answer is a property of the evaluator, not an
-      // accident of a well-behaved fixture.
+      // Gold does not imply silver here on purpose.
       silver: stubPredicate(false),
       gold: stubPredicate(true),
     };

@@ -17,17 +17,10 @@ interface FakeWorld extends ControllableWorld {
 
 /**
  * A minimal {@link ControllableWorld} for driving {@link driveInstantly}
- * without a real building, seed or passenger stream.
+ * without a real building. `driveInstantly` never ends a level itself, so a
+ * fixture must flip `levelEnded` from inside `update`, like a real caller would.
  *
- * Standing in for the `stats_changed`-driven verdict a real caller (see
- * `src/pages/game/index.ts`'s `#startRun`) reaches on its own: `driveInstantly` never
- * decides a level is over by itself, so a fixture that wants to end one
- * has to flip `levelEnded` the same way a caller would, from inside
- * `update`.
- *
- * @param endAfterTicks - Sets `levelEnded` once `update` has been called
- * this many times, or leaves the level undecided forever when omitted.
- * @returns The fake world.
+ * @param endAfterTicks - Ends the level after this many `update` calls; omit for an undecided level.
  */
 function createFakeWorld(endAfterTicks: number | null = null): FakeWorld {
   const world: FakeWorld = {
@@ -44,16 +37,14 @@ function createFakeWorld(endAfterTicks: number | null = null): FakeWorld {
       }
     },
     init(): void {
-      // Nothing: none of the fixtures below register elevator or floor handlers.
+      // Nothing.
     },
     updateDisplayPositions(): void {
-      // Nothing to redraw in a headless test.
+      // Nothing.
     },
     on(event: "usercode_error", handler: (e: unknown) => void): unknown {
-      // Nothing in these fixtures makes the world itself raise this — only
-      // `WorldController` does, when `codeObj.init`/`update` throws — so no
-      // subscription here is ever exercised; `handler` is kept only to give
-      // this stub something to do with it besides discard it.
+      // Only `WorldController` raises this, never the world itself, so this
+      // subscription is never exercised by these fixtures.
       return { event, handler };
     },
     trigger(event: "stats_display_changed"): unknown {
@@ -63,11 +54,7 @@ function createFakeWorld(endAfterTicks: number | null = null): FakeWorld {
   return world;
 }
 
-/**
- * Player code that does nothing at all.
- *
- * @returns A valid but inert code object.
- */
+/** Player code that does nothing at all. */
 function inertCodeObj(): UserCodeObject {
   return {
     init(): void {
@@ -80,18 +67,13 @@ function inertCodeObj(): UserCodeObject {
 }
 
 /**
- * Player code whose `update` always throws, standing in for a broken program.
- *
- * `init` is left inert rather than also throwing, so a test can tell the two
- * failure sites apart by how many times its `usercode_error` handler fired.
- *
- * @param message - The thrown error's message.
- * @returns A code object that fails on its first tick.
+ * Player code whose `update` always throws. `init` stays inert, so a test
+ * can tell the two failure sites apart by how many times `usercode_error` fired.
  */
 function updateThrowingCodeObj(message: string): UserCodeObject {
   return {
     init(): void {
-      // Nothing: this fixture only needs `update` to fail.
+      // Nothing.
     },
     update(): void {
       throw new Error(message);
@@ -100,18 +82,9 @@ function updateThrowingCodeObj(message: string): UserCodeObject {
 }
 
 /**
- * A `now` stand-in that reports a burst as already over its budget from its
- * second call onward.
- *
- * `driveInstantly`'s own burst loop calls `now()` once at the start of a
- * burst and once more after every triggered frame; returning a value that
- * grows by just over {@link INSTANT_RUN_BURST_BUDGET_MS} on every call makes
- * the second of those calls always read as "over budget", which forces a
- * burst to stop after exactly one call to the frame requester — the same
- * outcome a genuinely slow frame would produce, without waiting on real
- * wall-clock time.
- *
- * @returns The stand-in.
+ * A `now` stand-in that reports a burst as over budget from its second call
+ * onward, forcing a burst to stop after exactly one call to the frame
+ * requester without waiting on real wall-clock time.
  */
 function createBudgetExceedingNow(): () => number {
   let calls = 0;
@@ -149,10 +122,8 @@ describe("driveInstantly", () => {
   });
 
   it("keeps making progress across yielded bursts until the level ends", () => {
-    // Ends partway through the second burst that actually ticks the world —
-    // the very first call to the frame requester only registers the
-    // controller's updater and does no simulated work, exactly as the
-    // animated path's first animation frame does not either.
+    // The first call to the frame requester only registers the controller's
+    // updater and does no simulated work, like the animated path's first frame.
     const world = createFakeWorld(150);
     const scheduleYield = vi.fn((callback: () => void) => {
       callback();
@@ -165,12 +136,10 @@ describe("driveInstantly", () => {
 
     expect(world.ticks).toBe(150);
     expect(world.levelEnded).toBe(true);
-    // Each tick is TICK_SECONDS of simulated time; 150 of them is 1.5s
-    // simulated, regardless of how many bursts of wall-clock time it took.
+    // Each tick is TICK_SECONDS of simulated time.
     expect(world.elapsedSeconds).toBeCloseTo(1.5);
-    // One yield between the registration-only first frame and the first
-    // ticking one, and one more between that frame and the one that reaches
-    // the verdict — two, for three calls to the frame requester in total.
+    // One yield before the first ticking frame, one more before the frame
+    // that reaches the verdict: two, for three frame-requester calls total.
     expect(scheduleYield).toHaveBeenCalledTimes(2);
   });
 
@@ -190,9 +159,7 @@ describe("driveInstantly", () => {
     handle.cancel();
     const ticksBeforeStaleFire = world.ticks;
 
-    // Stands in for a `setTimeout` that was already queued before `cancel()`
-    // ran — abandoning a crunch does not un-schedule it, it only has to make
-    // whatever still fires a no-op.
+    // Stands in for an already-queued setTimeout: cancel() must make it a no-op, not un-schedule it.
     pending?.();
 
     expect(world.ticks).toBe(ticksBeforeStaleFire);
@@ -204,11 +171,8 @@ describe("driveInstantly", () => {
     const scheduleYield = vi.fn();
     const onUserCodeError = vi.fn();
 
-    // Subscribing off the handle `driveInstantly` returns, instead of
-    // through `onController`, would already be too late for this exact
-    // error: `update` throws on the very first ticking frame, which happens
-    // synchronously inside this call, before there is a handle to subscribe
-    // to. `onController` runs before a single tick has, which is not too late.
+    // Subscribing via the returned handle would be too late: `update` throws
+    // synchronously on the first tick, before a handle exists to subscribe to.
     const handle = driveInstantly(world, updateThrowingCodeObj("boom"), {
       scheduleYield,
       onController: (controller) => {
@@ -219,12 +183,9 @@ describe("driveInstantly", () => {
     expect(onUserCodeError).toHaveBeenCalledTimes(1);
     expect(onUserCodeError).toHaveBeenCalledWith(expect.any(Error));
     expect(handle.controller.isPaused).toBe(true);
-    // A controller a thrown error has paused never produces another tick, so
-    // nothing driven by `world.update` — a verdict, the ceiling — can ever
-    // fire either; the level is left exactly as undecided as it was.
+    // A paused controller never ticks again, so no verdict can ever fire.
     expect(world.levelEnded).toBe(false);
-    // Stopped by noticing its own frames have stopped doing anything, not by
-    // running out of budget: no burst here ever got the chance to overrun.
+    // No burst here ever got the chance to overrun its budget.
     expect(scheduleYield).not.toHaveBeenCalled();
   });
 
@@ -235,9 +196,8 @@ describe("driveInstantly", () => {
       now: createBudgetExceedingNow(),
     });
 
-    // The default scheduler is a real `setTimeout(callback, 0)`; one macrotask
-    // turn is enough for both yielded continuations the `now` stand-in forces
-    // to run in turn and the level to reach its verdict.
+    // The default scheduler is a real setTimeout(callback, 0); one macrotask
+    // turn is enough to reach the verdict.
     await new Promise((resolve) => {
       setTimeout(resolve, 50);
     });
@@ -249,11 +209,7 @@ describe("driveInstantly", () => {
 
 describe("INSTANT_RUN_MAX_SIMULATED_SECONDS", () => {
   it("stays comfortably above the longest built-in level's own time limit", () => {
-    // Level 18 (`levels[17]` in `levels.ts`) resolves its own
-    // condition at exactly 1800 simulated seconds — the longest limit any
-    // built-in level carries. A ceiling at or below that would be
-    // indistinguishable from the level's own verdict rather than a
-    // last resort for one that never arrives.
+    // Level 18 resolves at exactly 1800 simulated seconds, the longest limit any built-in level carries.
     expect(INSTANT_RUN_MAX_SIMULATED_SECONDS).toBeGreaterThan(1800);
   });
 });

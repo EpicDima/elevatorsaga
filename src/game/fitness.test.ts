@@ -27,11 +27,7 @@ const options: FitnessLevelOptions = {
 
 const level: FitnessLevel = { options, condition: requireNothing() };
 
-/**
- * Player code that does nothing at all.
- *
- * @returns A valid but inert code object.
- */
+/** Player code that does nothing at all. */
 function inertCodeObj(): UserCodeObject {
   return {
     init(): void {
@@ -43,12 +39,7 @@ function inertCodeObj(): UserCodeObject {
   };
 }
 
-/**
- * Player code that sweeps the lone elevator up and down, so that the scenario
- * actually delivers somebody and its metrics say something.
- *
- * @returns A code object that drives the elevators.
- */
+/** Player code that sweeps the lone elevator up and down, so the scenario delivers somebody. */
 function drivingCodeObj(): UserCodeObject {
   return {
     init(elevators): void {
@@ -65,14 +56,7 @@ function drivingCodeObj(): UserCodeObject {
   };
 }
 
-/**
- * Player source that sweeps every elevator through the whole building.
- *
- * A *string*, because {@link doFitnessSuite} compiles what the player typed, and
- * a driving program rather than an inert one because the metrics of a program
- * that never moves a car are all zero whatever building it is put in — which
- * would make every comparison below trivially true.
- */
+/** Player source, as a string, that sweeps every elevator through the whole building. */
 const SWEEPING_PROGRAM = `{
   init: function (elevators, floors) {
     elevators.forEach(function (elevator) {
@@ -86,37 +70,10 @@ const SWEEPING_PROGRAM = `{
   update: function (dt, elevators, floors) {}
 }`;
 
-/**
- * How long one case that actually scores a program is allowed to take.
- *
- * A suite call simulates two hundred seconds of building for each of
- * {@link fitnessLevels}' three scenarios times every seed it was given, so the
- * cases below cost anywhere from six of those to thirty-six. Measured alone and
- * uninstrumented that is a few hundred milliseconds and the five-second default
- * looks like room to spare, but it is not: coverage multiplies the figure some
- * fivefold, vitest runs the files in parallel, and a CI runner shares out two
- * cores. All three at once is what happened -- the widest case here took 674 ms
- * alone, 8.5 s under coverage in a full run, and timed out on GitHub -- and
- * what a timeout then reports is a busy machine rather than a benchmark that
- * has stopped scoring.
- *
- * Deliberately far above the worst measurement rather than just clear of it,
- * for the reason `tutorial-sweep.test.ts`'s sweeps carry the same number: the
- * figure a timeout has to beat is not how long the work takes but how long
- * anyone is willing to wait before being told a test has hung.
- */
+/** Timeout for a case that runs a full suite; well above the slowest measured run under CI load. */
 const SUITE_TIMEOUT_MS = 30_000;
 
-/**
- * Reads the averaged runs out of a suite result, failing if it errored.
- *
- * Narrows the union, so a test can index the results without a cast; a suite
- * that reports an error where a test expected numbers has failed regardless of
- * what the assertion after it would have said.
- *
- * @param result - What the suite reported.
- * @returns The averaged runs.
- */
+/** Reads the averaged runs out of a suite result, throwing if it errored. */
 function expectRuns(result: FitnessSuiteResult): AveragedFitnessRun[] {
   if (!Array.isArray(result)) {
     throw new Error(`Fitness suite failed: ${result.error}`);
@@ -124,14 +81,7 @@ function expectRuns(result: FitnessSuiteResult): AveragedFitnessRun[] {
   return result;
 }
 
-/**
- * Reads an averaged metric that the scenario is expected to have reported.
- *
- * @param result - One scenario's averaged metrics.
- * @param property - The metric to read.
- * @returns Its value.
- * @throws {Error} When the scenario reported no such metric.
- */
+/** Reads an averaged metric, throwing if the scenario didn't report it. */
 function propertyOf(result: Record<string, number>, property: string): number {
   const value = result[property];
   if (value === undefined) {
@@ -170,9 +120,6 @@ describe("requireNothing", () => {
 
 describe("fitnessLevels", () => {
   it("keeps the three legacy scenarios", () => {
-    // The buildings written out, not just their names: they are the benchmark
-    // itself, they are what makes two scores comparable, and now that this is a
-    // function rather than a constant they are rebuilt on every call.
     expect(fitnessLevels().map((c) => c.options)).toEqual([
       { description: "Small scenario", floorCount: 4, elevatorCount: 2, spawnRate: 0.6 },
       {
@@ -193,10 +140,6 @@ describe("fitnessLevels", () => {
   });
 
   it("changes only the names when the language changes", () => {
-    // A report scored in one language has to be comparable with a report scored
-    // in another, so the language may reach the descriptions and nothing else.
-    // What the buildings are is the test above's job; this one only holds one
-    // call against another, so a `t()` where a spawn rate goes would show up.
     const buildings = (): unknown[] =>
       fitnessLevels().map((c) => ({ ...c.options, description: "" }));
     const english = buildings();
@@ -207,9 +150,6 @@ describe("fitnessLevels", () => {
   });
 
   it("names its scenarios in the language asked for, not the one it was imported in", () => {
-    // The trap this function exists to avoid: as a module constant the three
-    // names were rendered when the module was first imported, which is before
-    // anything has chosen a locale, so every report would have been English.
     setLocale("ru");
 
     expect(fitnessLevels().map((c) => c.options.description)).toEqual([
@@ -235,38 +175,15 @@ describe("calculateFitness", () => {
   it("keeps the world's maxima out of a report of averages", () => {
     const result = calculateFitness(level, drivingCodeObj(), 1000.0 / 60.0, 3000);
 
-    // `makeAverageResult` averages every property it is handed, and the mean of
-    // six worst cases is neither a worst case nor a typical one -- it would sit
-    // in the report under a name promising a maximum. The world has two of them
-    // (`maxWaitTime`, `maxPickupTime`) and neither may be copied across.
     expect(Object.keys(result).filter((property) => property.startsWith("max"))).toEqual([]);
   });
 
   it("transports nobody when the code never moves an elevator", () => {
     const result = calculateFitness(level, inertCodeObj(), 1000.0 / 60.0, 200);
     expect(result.transportedCount).toBe(0);
-    // A program that never moves a car divides no load by no moves. `toBe(0)`
-    // and not `toBeCloseTo`, because NaN would satisfy neither but only this
-    // says so: a report is what a benchmark run is judged on, and a metric that
-    // arrives as NaN is worse than one that is missing.
+    // toBe, not toBeCloseTo — NaN must fail this, not slip through as close to 0.
     expect(result.avgLoadFactorOnMove).toBe(0);
-    // The wait before pickup reads zero for a subtler reason, and it is worth
-    // saying which: a car nobody drives is still a car standing in the lobby,
-    // so a passenger who appears on floor 0 gets in on the frame they spawn on
-    // -- the floor button they press re-offers the car that is already there --
-    // and every wait the mean is taken over is therefore zero. Exactly two
-    // passengers appear in these 200 frames, and `spawnUserRandomly` puts each
-    // of them in the lobby two times in three -- half the time floor 0 is
-    // chosen outright, and a third of the other half comes back as floor 0 from
-    // a three-floor draw. That two thirds is a fact about this level and
-    // not about the game: the general figure is `(floors + 1) / (2 * floors)`,
-    // which is 5/8 in a four-floor building. So the mean is taken over two
-    // boardings in 44% of runs, one in 44%, and none at all in 11%, where it
-    // reads zero because nothing was averaged. Measured over 200000 unseeded
-    // runs -- 44.41 / 44.52 / 11.07, which is binomial(2, 2/3) to within a
-    // chi-square of 0.64 on two degrees of freedom -- and it read zero in every
-    // one of them. Everybody who really waited is in `maxPickupTime`, which the
-    // test above keeps out of a report of averages.
+    // A car already parked in the lobby picks up an idle passenger instantly.
     expect(result.avgPickupTime).toBe(0);
   });
 
@@ -278,27 +195,10 @@ describe("calculateFitness", () => {
   });
 
   it("reports a wait for a car that is a part of the whole journey", () => {
-    // Seeded, unlike its neighbors, because this one compares two means that
-    // are not taken over the same passengers: everybody picked up is in the
-    // first and only those delivered are in the second, so at the moment the
-    // run is cut off the difference between them is not a ride time but the
-    // rides still in progress -- two to four of them, typically, out of some
-    // twenty-nine. Measured, that leaves a wide margin and not a narrow one:
-    // over 100000 unseeded runs neither assertion below failed once, and the
-    // ratio they turn on -- `avgPickupTime / avgWaitTime`, against a threshold
-    // of 1 -- had a median of 0.45, a 99th percentile of 0.54, and never once
-    // reached 0.68. Quoting the largest value seen would be quoting noise: the
-    // maximum of a 2000-run sample lands anywhere between 0.57 and 0.67
-    // depending on the sample, which is why an earlier reading of this comment
-    // could not be reproduced. So the seed is here for reproducibility -- the
-    // same traffic to look at again when a figure surprises somebody -- rather
-    // than to keep a coin toss from landing badly. Nor is `"pickup-seed"` a
-    // lucky draw: the ratio it produces is 0.53, in the top 2% of that
-    // distribution, which is the hard end of it.
+    // Seeded for a reproducible margin between pickup time and total wait time.
     const result = calculateFitness(level, drivingCodeObj(), 1000.0 / 60.0, 3000, "pickup-seed");
 
-    // The point of the split: the report now says how much of the figure a
-    // player is judged on was spent standing on a floor rather than riding.
+    // avgPickupTime is the part of avgWaitTime spent waiting rather than riding.
     expect(result.avgPickupTime).toBeGreaterThan(0);
     expect(result.avgPickupTime).toBeLessThan(result.avgWaitTime ?? 0);
   });
@@ -342,10 +242,7 @@ describe("calculateFitness", () => {
   });
 
   it("caps a very long frame at MAX_TICKS_PER_FRAME ticks", () => {
-    // calculateFitness's controller always ticks at TICK_SECONDS, however long
-    // a "frame" of the suite's own fake frame requester lasts; the excess
-    // beyond MAX_TICKS_PER_FRAME ticks is dropped, not queued, the same as a
-    // real browser stall would be.
+    // Excess beyond MAX_TICKS_PER_FRAME ticks is dropped, not queued.
     const dts: number[] = [];
     const codeObj: UserCodeObject = {
       init(): void {

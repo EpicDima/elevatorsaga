@@ -1,71 +1,4 @@
-/**
- * The claim the whole learning track rests on, measured rather than asserted:
- * every level's answer wins, and every level's starting code loses wherever a
- * threshold exists that can make it lose — see {@link STARTING_CODE_WINS} for
- * the one place none does.
- *
- * A level in {@link "./tutorial.ts"!tutorialLevels} is a promise about the
- * simulation — "this mistake cannot pass, this fix can" — and nothing but the
- * simulation can keep it. Spawn timing, elevator acceleration, boarding, the
- * wait clock and the thresholds in {@link "./levels.ts"!levels} all
- * feed into it, and every one of them is somebody's legitimate next commit. The
- * failure this file exists to catch is quiet: the physics shifts by a few
- * percent, a level the player is told is impossible starts passing, and the only
- * symptom is that the lesson has become a lie. Nothing else in the suite would
- * notice.
- *
- * **The harness is the application, not the benchmark.** Each run is a real
- * {@link "./world.ts"!World} at the real seed, driven by a real
- * {@link "./world-controller.ts"!WorldController} at the step `src/main.ts`
- * uses, through a real {@link "./frame-requester.ts"!createFrameRequester}, with
- * the condition evaluated on every `stats_changed` and the run stopped at the
- * first non-null verdict — which is `App.#startRun`, line for line. The fitness
- * benchmark in {@link "./fitness.ts"!fitnessSuite} would have been the shorter
- * road and the wrong one: it runs a fixed number of seconds and never consults
- * a condition, so it can say how well a program did but not whether it won, and
- * "did it win" is the entire question here.
- *
- * **Ten seeds, not one.** A level proven on its pinned seed alone is a level
- * proven against one stream of passengers; the pin exists so the player's run is
- * reproducible, not so the measurement can be cheap. The other nine are the
- * plan's: `1`–`6` and three that exercise the string half of
- * {@link "./random.ts"!RandomSeed}.
- *
- * **Every language, not the default one.** A level hands out one program per
- * locale: the two programs are catalog messages, because the `//` comments in
- * them are prose written to the player and translated like any other, so
- * `level.solutionCode` answers in whatever language was last set. Read only
- * under {@link "../i18n/locale.ts"!DEFAULT_LOCALE}, this file measured the
- * English programs and left the Russian ones — the program a Russian player is
- * handed in the editor, and the one shown to them as the answer — never once
- * simulated.
- *
- * The gap could be argued away and should not be. `catalog.test.ts` holds the
- * two locales' code identical once the comments are emptied, and
- * `tutorial.test.ts` parses both programs of every level in every language, so a
- * Russian program that lost a level would have to get past both. But that is an
- * inference across two other files' invariants about *text*, and what a level
- * promises is about a *run*: this mistake cannot pass, this fix can, in the
- * language the player is reading. Measuring it costs another 328 runs and about
- * three tenths of a second — the whole file is some 660 runs of at most a few
- * simulated minutes each and spends about seven tenths of a second on them — so
- * there is nothing to be saved by trimming either list.
- *
- * The four hundred seeds of `tutorial-sweep.test.ts` are left in one language
- * for the same arithmetic read the other way: that file spends some two and a
- * half seconds simulating and is already the slowest of the fifty, so a second
- * language there costs seven times what it costs here and buys the same
- * sentence. What it counts is how *often* a program wins, which cannot differ
- * between two programs whose code is identical; whether the Russian programs
- * run at all is a question ten seeds answer as well as four hundred, and they
- * answer it here.
- *
- * **With margin.** A level whose answer scrapes past with three seconds to spare
- * is a level that will break, and it should be retuned now rather than discovered
- * later, so the margin is asserted rather than left to the next reader to
- * measure. {@link judgeWithClockShift} explains how that is done without this
- * file having to know what any particular threshold is.
- */
+/** Proves each learning-track level's answer wins and its starting code loses, across seeds and locales. */
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -79,95 +12,37 @@ import { TICK_SECONDS, createWorldController } from "./world-controller.ts";
 import { createWorld } from "./world.ts";
 
 afterEach(() => {
-  // Every spec below names a language and leaves it named, and the level table
-  // answers in whatever language was set last.
+  // Resets the locale so later specs don't inherit whichever language ran last.
   setLocale(DEFAULT_LOCALE);
 });
 
 /** Milliseconds per frame, at the rate most displays run at. */
 const FRAME_MILLISECONDS = 1000.0 / 60.0;
 
-/**
- * Simulated seconds after which an undecided run is called a broken level.
- *
- * Not a time limit on the levels — every condition here resolves on its own well
- * inside it — but a bound on the loop that drives them: a condition that never
- * resolves would otherwise spin the test runner for good, with no output, which
- * is the least debuggable way for a suite to fail.
- */
+/** Simulated seconds after which an undecided run is treated as broken, so a stuck test fails loudly. */
 const MAX_SIMULATED_SECONDS = 240.0;
 
-/**
- * The seeds every level is measured on, besides its own.
- *
- * Six numbers and three strings, because {@link RandomSeed} accepts both and
- * they take different paths into the generator: a number is hashed as its
- * decimal spelling, a string as itself.
- */
+/** The seeds every level is measured on, besides its own: numbers and strings both, since each hashes differently into the generator. */
 const EXTRA_SEEDS: readonly RandomSeed[] = [1, 2, 3, 4, 5, 6, "abc", "xyz", "42a"];
 
-/**
- * Seconds of margin a level is required to hold, on both sides.
- *
- * Three is not a derived number; it is roughly a fifth of the shortest budget
- * any level is judged on, which is enough that a physics change big enough to
- * cross it is a change somebody meant to make. The measured margins are far
- * wider — the tightest of the seven ordinary levels is level 6, which clears by
- * 11.33 seconds on seed 5, and level 7 is next at 11.75 on seed 4 — so this
- * bound is a tripwire, not a target.
- *
- * It said 6.6 seconds until that was re-measured and found to belong to nothing
- * in the file: it was level 5's worst margin back when its wait limit was 26
- * (6.55 seconds on seed 3), and the limit moved to 37 without the sentence
- * following it. Quoted with the level and the seed now, because a bare number
- * here is exactly what went stale — a margin no longer attached to the run that
- * produced it cannot be re-checked, only believed.
- */
+/** Seconds of margin a level is required to clear by, in both directions: a tripwire, not a tight bound. */
 const MARGIN_SECONDS = 3.0;
 
 /**
- * The margin level 8 is held to instead, and the reason it is smaller.
- *
- * Level 8 is played in level 1's building because being level 1 is the
- * point of it — the graduation level is the game's own first level — and at
- * 0.3 passengers a second the fifteenth passenger does not exist before about
- * 46.7 seconds of the 60 available. The slack is arithmetic, not programming:
- * no program can widen it, and every way of widening the building widens it by
- * no longer being level 1. The answer clears by 1.8 seconds on its slowest
- * measured seed, so the bar is set just under that, and the smallness is
- * recorded here rather than hidden by lowering the bound for all eight.
+ * The smaller margin level 8 is held to instead of {@link MARGIN_SECONDS}.
+ * Level 8 replays level 1's building, whose passenger rate leaves little slack before the timer runs out; no program can widen it.
  */
 const TIGHT_MARGIN_SECONDS = 1.5;
 
-/** Levels whose margin is structurally limited; see {@link TIGHT_MARGIN_SECONDS}. */
+/** Levels held to {@link TIGHT_MARGIN_SECONDS} instead of the usual margin. */
 const TIGHT_MARGIN_LEVEL_IDS: ReadonlySet<string> = new Set(["tutorial-8"]);
 
-/**
- * A clock shift no condition built on time or waiting can ignore.
- *
- * Used to prove the margin assertions are still assertions; see the test that
- * spends it.
- */
+/** A clock shift large enough that no time- or wait-based condition can ignore it. */
 const ABSURD_SHIFT_SECONDS = 1000.0;
 
 /**
- * Seeds on which a level's starting code is measured to *win*, by level.
- *
- * Level 5 is the only entry, and it is the only level that could have one: it is
- * judged on waiting rather than on throughput, and on four hundred seeds the
- * ranges overlap. The nine-floor sweep's best run delivers all fifteen having
- * made nobody wait longer than 25.03 s, while the answer's worst makes somebody
- * wait 35.88 s, so no wait limit both accepts every answer and rejects every
- * sweep — the level's own entry in {@link "./tutorial.ts"!tutorialLevels} works
- * through the numbers. Its limit of 37 is the end of that trade the track
- * chose: never reject the answer, and let the sweep through on the seeds where
- * it happens to do well. `42a` is such a seed — 15 delivered, worst wait
- * 32.28 s — and the pinned seed, the only one anybody plays, is not.
- *
- * Recorded rather than tolerated, because `toBe(true)` here is as strict as the
- * `toBe(false)` it replaces: if the sweep stops winning this seed, or starts
- * winning another, this file says so and somebody looks at why. It serves the
- * margin test too, since grace can only ever turn a loss into a win.
+ * Seeds on which a level's starting code is measured to win, by level id.
+ * Only tutorial-5 has an entry: it grades on waiting time rather than throughput, and on some seeds the starting sweep happens to clear the wait limit.
  */
 const STARTING_CODE_WINS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
   ["tutorial-5", new Set(["42a"])],
@@ -186,29 +61,7 @@ interface RunOutcome {
 }
 
 /**
- * Judges a world's statistics with both clocks moved by a fixed amount.
- *
- * The trick this file's margin assertions rest on. A condition is a black box —
- * `evaluate` is all there is, and the threshold inside it is not readable — so
- * "won with three seconds to spare" cannot be computed by comparing numbers.
- * Shifting the clocks measures it instead, and does so for any condition built
- * out of elapsed time or waiting time, without knowing which of the two it uses
- * or what it compares against.
- *
- * Both directions are sound, and both are one-way:
- *
- * - **Stricter (`shift > 0`).** The run is judged as though it were `shift`
- *   seconds further along than it is. If it still wins, then it reached the
- *   required count while the true clock read at most `limit - shift`, and the
- *   longest true wait was at most `limit - shift` — so it also wins unshifted,
- *   with `shift` seconds in hand.
- * - **More lenient (`shift < 0`).** The run is given `|shift|` extra seconds
- *   before the clocks are believed. If it still loses, the count was not reached
- *   even by `limit + |shift|`, so it loses unshifted too.
- *
- * The tests therefore assert something strictly stronger than "the answer wins
- * and the starting code loses", and the plain statement follows.
- *
+ * Judges a world's statistics with both clocks shifted by a fixed amount, to measure margin without reading the condition's own threshold.
  * @param condition - The bar being applied.
  * @param stats - The world's true statistics.
  * @param shiftSeconds - Added to both clocks; positive is harsher.
@@ -220,13 +73,9 @@ function judgeWithClockShift(
   shiftSeconds: number,
 ): boolean | null {
   return condition.evaluate({
-    // Every other field of `stats` passes through unshifted -- only elapsed
-    // time and waiting time are the clocks this file's margin tests move, and
-    // no condition here is built out of the rest of them.
+    // Only the two clocks are shifted; other fields pass through unchanged.
     ...stats,
-    // Clamped at zero because a negative clock is not a lenient world, it is a
-    // nonsensical one, and `requireUserCountWithMaxWaitTime` would read it as a
-    // run in which nobody has ever waited.
+    // Clamped at zero: a negative clock would read as nobody ever having waited.
     elapsedTime: Math.max(0, stats.elapsedTime + shiftSeconds),
     maxWaitTime: Math.max(0, stats.maxWaitTime + shiftSeconds),
   });
@@ -234,18 +83,13 @@ function judgeWithClockShift(
 
 /**
  * Plays one program in one level's building on one seed, and reports the verdict.
- *
- * @param level - The level supplying the building, the bar and the seed's role.
- * @param code - The player program to run, as the player would be given it.
+ * @param level - The level supplying the building, the bar, and the seed's role.
+ * @param code - The player program to run.
  * @param seed - The passengers to run against.
- * @param shiftSeconds - Handicap applied to both clocks; see
- * {@link judgeWithClockShift}. Zero plays the level exactly as the player does.
- * @param locale - The language `code` was read in. Nothing here reads it but
- * the failure messages, and they need it: "the program threw" is a different
- * report depending on which language's copy of the program threw.
+ * @param shiftSeconds - Handicap applied to both clocks; zero plays the level as the player does.
+ * @param locale - The language `code` was read in, used only in failure messages.
  * @returns What the run came to.
- * @throws When the program throws, or when the run reaches
- * {@link MAX_SIMULATED_SECONDS} undecided.
+ * @throws When the program throws, or the run never resolves.
  */
 function playLevel(
   level: TutorialLevel,
@@ -258,19 +102,16 @@ function playLevel(
   const world = createWorld(level.options, seed);
   const worldController = createWorldController(TICK_SECONDS);
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
-  // One object rather than two `let` bindings: both are written from inside
-  // callbacks, which the compiler's flow analysis does not follow, so a plain
-  // local would still be narrowed to `null` at the loop below and the comparison
-  // reported as constant. A property read cannot be narrowed across the calls
-  // that drive the run, which is exactly the honesty wanted here.
+  // A property, not two `let` bindings: both are written inside callbacks the
+  // compiler's flow analysis doesn't follow, so a plain local would still be
+  // narrowed to `null` here.
   const run: { verdict: boolean | null; userCodeError: unknown } = {
     verdict: null,
     userCodeError: null,
   };
 
-  // A program that throws is neither a win nor a loss, and silently reading it
-  // as a loss is how a level could keep "passing" on a broken answer: the
-  // controller pauses the world and the run would simply stop advancing.
+  // A throw is neither a win nor a loss; reading it as a loss would let a
+  // level "pass" on a broken answer.
   worldController.on("usercode_error", (e) => {
     run.userCodeError ??= e;
   });
@@ -284,8 +125,7 @@ function playLevel(
       return;
     }
     run.verdict = status;
-    // Exactly what the app does when a level resolves: freeze the world so
-    // nothing after the deciding moment can change the numbers being read.
+    // What the app itself does when a level resolves, so later ticks can't change the numbers being read.
     world.levelEnded = true;
     worldController.setPaused(true);
   });
@@ -319,51 +159,24 @@ function playLevel(
   };
 }
 
-/**
- * Every seed a level is measured on: its own first, then the shared nine.
- *
- * @param level - The level.
- * @returns The seeds.
- */
+/** Every seed a level is measured on: its own seed first, then the shared extras. */
 function seedsFor(level: TutorialLevel): readonly RandomSeed[] {
   return [level.seed, ...EXTRA_SEEDS];
 }
 
-/**
- * The margin a level is required to clear by.
- *
- * @param level - The level.
- * @returns Seconds of margin.
- */
+/** The margin a level is required to clear by. */
 function marginFor(level: TutorialLevel): number {
   return TIGHT_MARGIN_LEVEL_IDS.has(level.id) ? TIGHT_MARGIN_SECONDS : MARGIN_SECONDS;
 }
 
-/**
- * The verdict the starting code was measured to reach on a seed.
- *
- * @param level - The level.
- * @param seed - The seed being played.
- * @returns `true` where the win is recorded in {@link STARTING_CODE_WINS}.
- */
+/** Whether this level's starting code is recorded as winning on this seed. */
 function startingCodeWins(level: TutorialLevel, seed: RandomSeed): boolean {
   return STARTING_CODE_WINS.get(level.id)?.has(String(seed)) ?? false;
 }
 
 /**
  * A run, spelled out for a failure message.
- *
- * The numbers are the ones needed to retune the level without re-running
- * anything: whoever reads this failure wants to know how far off it was, not
- * merely that it was. The language comes first for the same reason, and it is
- * the thing to reach for first when only one of the two is failing: a level that
- * loses in one language and wins in the other is not a level that needs
- * retuning, it is a program whose translation has changed a line.
- *
- * @param locale - The language the program was read in.
- * @param seed - The seed the run used.
- * @param outcome - What the run came to.
- * @returns A one-line description.
+ * A level that fails in one language but not another points to a translation bug, not a level that needs retuning.
  */
 function describeRun(locale: Locale, seed: RandomSeed, outcome: RunOutcome): string {
   return (
@@ -406,9 +219,8 @@ for (const level of tutorialLevels) {
     });
 
     it("cannot be passed by the starting code with seconds to spare, except where recorded, in every language", () => {
-      // The starting code losing by a hair would mean the level teaches by
-      // accident: a slightly faster elevator, or a seed nobody measured, and the
-      // mistake starts passing.
+      // A near-miss loss here would mean the level teaches by accident: a
+      // slightly faster elevator or an unmeasured seed, and the mistake starts passing.
       const margin = marginFor(level);
       for (const locale of LOCALES) {
         setLocale(locale);
@@ -443,18 +255,9 @@ for (const level of tutorialLevels) {
     });
 
     it("is judged by a bar the margin can actually move", () => {
-      // Guards the two tests above from quietly becoming duplicates of the two
-      // before them. They measure margin by shifting the clocks, which does
-      // nothing to a condition that reads neither of them --
-      // `requireUserCountWithinMoves` is one, and it is as plausible a bar for a
-      // future level as any. Were that to happen the margin tests would still
-      // pass, and would be measuring nothing at all. A shift no threshold on
-      // either clock can survive has to lose; if it wins, the shift is inert.
-      //
-      // One language, unlike the four above, and deliberately: what is under
-      // test here is the level's condition, which is built in `tutorial.ts` out
-      // of numbers and knows nothing about any catalog. The program is only
-      // the thing that makes the world produce statistics to judge.
+      // Guards the margin tests above from silently measuring nothing: a
+      // condition that ignores both clocks should still lose to this shift.
+      // One language only, since the condition itself doesn't depend on the catalog.
       const outcome = playLevel(
         level,
         level.solutionCode,

@@ -1,9 +1,4 @@
-/**
- * Base class for everything with a position in the world: elevators and users.
- *
- * Ported from the legacy `movable.js`. The legacy `newGuard` call is gone —
- * ES classes already throw when called without `new`.
- */
+/** Base class for everything with a position in the world: elevators and users. */
 
 import { t } from "../i18n/index.ts";
 import { DEFAULT_INTERPOLATOR, type Interpolator } from "./math.ts";
@@ -12,11 +7,7 @@ import { Observable, type EventArgsMap, type EventName } from "./observable.ts";
 /** A world-space `[x, y]` pair, written into by {@link Movable.getWorldPosition}. */
 export type WorldPosition = [x: number, y: number];
 
-/**
- * Events every {@link Movable} emits.
- *
- * Subclass event maps must not redeclare these names.
- */
+/** Events every {@link Movable} emits; subclass event maps must not redeclare these names. */
 export type MovableEvents = {
   /** The logical position changed. */
   new_state: [movable: Movable];
@@ -29,17 +20,8 @@ export type MovableTask = (dt: number) => void;
 
 /**
  * Thrown when a movable is given new work while a task is already running.
- *
- * The legacy code threw the object literal `{message, obj}`; a real `Error`
- * carries the same message and keeps the value throwable under lint rules that
- * (correctly) reject non-`Error` throws.
- *
- * The message is translated in the constructor, so it is the language the page
- * was in when the mistake was made. A module constant would be quicker and
- * would be wrong: it would be filled in when this module is imported, which is
- * before the page has chosen a locale, and every player would read this one in
- * English. Player code reaches it through `elevator.wait` and the movement
- * helpers, so what it says ends up in the code status bar.
+ * The message is translated in the constructor rather than a module constant,
+ * so it reflects the locale the page is in when the mistake happens, not at import time.
  */
 export class MovableBusyError extends Error {
   /** The movable that was already busy. */
@@ -52,12 +34,7 @@ export class MovableBusyError extends Error {
   }
 }
 
-/**
- * Scratch buffer reused by {@link Movable.updateDisplayPosition}.
- *
- * The legacy code kept a single module-level array to avoid allocating on
- * every frame for every user and elevator; that is preserved.
- */
+/** Scratch buffer reused by {@link Movable.updateDisplayPosition} to avoid allocating every frame. */
 const tmpPosStorage: WorldPosition = [0, 0];
 
 /**
@@ -88,15 +65,8 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
 
   /**
    * Emits one of the events {@link Movable} itself owns.
-   *
-   * `Movable` is generic over the events its subclasses add, which makes the
-   * indexed access `(MovableEvents & E)["new_state"]` unresolvable at the
-   * declaration site. This helper keeps those emits statically checked against
-   * {@link MovableEvents} while the public {@link Observable.trigger} stays
-   * fully typed for callers.
-   *
-   * @param event - One of the {@link MovableEvents} names.
-   * @param args - Arguments for that event.
+   * Needed because `(MovableEvents & E)["new_state"]` cannot be resolved at the declaration
+   * site while `Movable` is generic over `E`.
    */
   protected emitMovable<K extends EventName<MovableEvents>>(
     event: K,
@@ -121,12 +91,7 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
     }
   }
 
-  /**
-   * Moves to a new position, keeping the current value for `null` coordinates.
-   *
-   * @param newX - New x, or `null` to keep the current x.
-   * @param newY - New y, or `null` to keep the current y.
-   */
+  /** Moves to a new position, keeping the current value for `null` coordinates. */
   moveTo(newX: number | null, newY: number | null): void {
     if (newX !== null) {
       this.x = newX;
@@ -137,32 +102,19 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
     this.emitMovable("new_state", this);
   }
 
-  /**
-   * Moves to a new position without the `null` checks of {@link moveTo}.
-   *
-   * @param newX - New x.
-   * @param newY - New y.
-   */
+  /** Moves to a new position without the `null` checks of {@link moveTo}. */
   moveToFast(newX: number, newY: number): void {
     this.x = newX;
     this.y = newY;
     this.emitMovable("new_state", this);
   }
 
-  /**
-   * Whether a task is currently running.
-   *
-   * @returns `true` while a task occupies this movable.
-   */
+  /** Whether a task is currently running. */
   isBusy(): boolean {
     return this.currentTask !== null;
   }
 
-  /**
-   * Throws when this movable is already busy.
-   *
-   * @throws {@link MovableBusyError} when a task is already running.
-   */
+  /** Throws {@link MovableBusyError} when this movable is already busy. */
   makeSureNotBusy(): void {
     if (this.isBusy()) {
       console.error("Attempt to use movable while it was busy", this);
@@ -171,15 +123,8 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
   }
 
   /**
-   * Occupies this movable for a number of simulated seconds.
-   *
-   * The legacy parameter was named `millis`, but `dt` is in seconds and
-   * `interfaces.js` calls `elevator.wait(1, ...)` meaning one second. The
-   * strictly-greater-than comparison is kept: the task ends on the first step
-   * that takes the accumulated time *past* `seconds`.
-   *
-   * @param seconds - Simulated seconds to wait.
-   * @param cb - Called once the wait completes.
+   * Occupies this movable for `seconds` simulated seconds.
+   * Completes on the first step where accumulated time passes `seconds`, not equals it.
    */
   wait(seconds: number, cb?: () => void): void {
     this.makeSureNotBusy();
@@ -195,16 +140,7 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
     };
   }
 
-  /**
-   * Occupies this movable while it slides to a new position.
-   *
-   * @param newX - Target x, or `null` to keep the current x.
-   * @param newY - Target y, or `null` to keep the current y.
-   * @param timeToSpend - Simulated seconds the move takes.
-   * @param interpolator - Blend function; defaults to
-   * {@link "./math.ts"!DEFAULT_INTERPOLATOR}.
-   * @param cb - Called once the movable has arrived.
-   */
+  /** Occupies this movable while it slides to a new position over `timeToSpend` seconds. */
   moveToOverTime(
     newX: number | null,
     newY: number | null,
@@ -221,7 +157,6 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
     this.currentTask = (dt: number): void => {
       timeSpent = Math.min(timeToSpend, timeSpent + dt);
       if (timeSpent === timeToSpend) {
-        // Epsilon issues possibly?
         this.moveToFast(targetX, targetY);
         this.currentTask = null;
         if (cb) {
@@ -236,7 +171,6 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
 
   /**
    * Advances the running task, if any.
-   *
    * @param dt - Simulated seconds since the previous step.
    */
   update(dt: number): void {
@@ -245,11 +179,7 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
     }
   }
 
-  /**
-   * Writes the absolute position into `storage`, walking the parent chain.
-   *
-   * @param storage - Two-element buffer that receives `[x, y]`.
-   */
+  /** Writes the absolute position into `storage`, walking the parent chain. */
   getWorldPosition(storage: WorldPosition): void {
     let resultX = this.x;
     let resultY = this.y;
@@ -263,11 +193,7 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
     storage[1] = resultY;
   }
 
-  /**
-   * Re-parents this movable while keeping its world position unchanged.
-   *
-   * @param movableParent - New parent, or `null` to detach.
-   */
+  /** Re-parents this movable while keeping its world position unchanged. */
   setParent(movableParent: Movable | null): void {
     const objWorld: WorldPosition = [0, 0];
     if (movableParent === null) {
@@ -277,7 +203,6 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
         this.moveToFast(objWorld[0], objWorld[1]);
       }
     } else {
-      // Parent is being set a non-null movable
       this.getWorldPosition(objWorld);
       const parentWorld: WorldPosition = [0, 0];
       movableParent.getWorldPosition(parentWorld);

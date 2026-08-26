@@ -21,12 +21,7 @@ import {
   spawnUserRandomly,
 } from "./world.ts";
 
-/**
- * Collects every user a world spawns.
- *
- * @param world - World to watch.
- * @returns The array the world's spawns are appended to.
- */
+/** Collects every user a world spawns. */
 function collectUsers(world: World): User[] {
   const users: User[] = [];
   world.on("new_user", (user) => {
@@ -35,69 +30,28 @@ function collectUsers(world: World): User[] {
   return users;
 }
 
-/**
- * A stream stuck at zero, which sends every draw to the bottom of its range.
- *
- * For a spawn that means the lightest passenger, starting in the lobby and
- * heading for floor 1.
- */
+/** A stream stuck at zero, which sends every draw to the bottom of its range. */
 const ALWAYS_ZERO: RandomSource = () => 0;
 
-/**
- * A three-floor building whose passengers all appear in the lobby.
- *
- * For the wait-before-pickup cases, which need a passenger who is actually left
- * standing: {@link ALWAYS_ZERO} puts every spawn in the lobby heading for floor
- * 1, and the third floor exists so the caller can legally send the one car away
- * from them. The spawn rate is the caller's because it decides how many
- * passengers there are — the accumulator starts above its own threshold, so the
- * first passenger appears on the first frame whatever it is set to, and the
- * next one `1 / rate` seconds later.
- *
- * @param spawnRate - Passengers per second.
- * @returns The world.
- */
+/** A three-floor building whose passengers all appear in the lobby; the third floor lets a test send the one car away from a waiting passenger. */
 function waitingWorld(spawnRate: number): World {
   return createWorld({ spawnRate, floorCount: 3, elevatorCount: 1 }, ALWAYS_ZERO);
 }
 
 /**
- * A two-floor building whose one car stands where its passengers appear.
- *
- * For the delivery cases, which hand a passenger straight to `exited_elevator`
- * and need one who has genuinely boarded: {@link ALWAYS_ZERO} puts every spawn
- * in the lobby, where the single car is parked with its doors open, so a
- * passenger is picked up on the frame they appear on. Left to draw its own
- * stream a two-floor building spawns above the lobby often enough that a run
- * could be faking the delivery of somebody who never got in.
- *
- * @param spawnRate - Passengers per second, on the same terms as
- * {@link waitingWorld}'s.
- * @returns The world.
+ * A two-floor building whose one car stands where its passengers appear, so every spawn
+ * is picked up on the frame it appears; a delivery in a test is guaranteed to be a real one.
  */
 function deliveryWorld(spawnRate: number): World {
   return createWorld({ spawnRate, floorCount: 2, elevatorCount: 1 }, ALWAYS_ZERO);
 }
 
-/**
- * A walk-off stream that fails the test if anybody draws from it.
- *
- * Every passenger built below is left standing on a floor, so none of them ever
- * reaches a destination and none of them needs a walk-off duration. Handing
- * them a stream that throws rather than a harmless one turns "the walk-off draw
- * moved to spawn time" — which would put a timing-shiftable draw back into the
- * sequence a seed replays — from an invisible change into a failing test.
- */
+/** A walk-off stream that fails the test if anybody draws from it. */
 const WALK_OFF_UNUSED: RandomSource = () => {
   throw new Error("A passenger drew a walk-off duration without having been delivered");
 };
 
-/**
- * Wraps a stream so the test can see what was taken from it.
- *
- * @param random - Stream to wrap.
- * @returns The wrapper and the list it appends every drawn value to.
- */
+/** Wraps a stream so the test can see what was taken from it. */
 function recordDraws(random: RandomSource): { random: RandomSource; values: number[] } {
   const values: number[] = [];
   return {
@@ -114,22 +68,7 @@ function recordDraws(random: RandomSource): { random: RandomSource; values: numb
 const RUNAWAY_SPAWN_LIMIT = 10_000;
 
 /**
- * Advances a world whose spawn loop might not terminate, failing if it does not.
- *
- * A runaway spawn loop is a synchronous `while` inside one call, so vitest's
- * per-test timeout cannot interrupt it: a regression would wedge the entire test
- * run with no output rather than fail one test, which is the worst way for a
- * guard against hanging to report that it has stopped working. The world
- * dispatches `new_user` with `trigger`, which lets a handler's exception
- * propagate, so throwing from one is the only lever a test has to break out of
- * that loop from the inside.
- *
- * The limit is far above any legitimate frame these tests ask for: the busiest is
- * 123.456 passengers a second over a five-second step, some six hundred spawns,
- * and the rates this helper mainly exists for spawn nobody at all.
- *
- * @param world - World to advance.
- * @param dt - Simulated seconds to advance by.
+ * Advances a world whose spawn loop might not terminate, failing the test instead of hanging the run.
  * @throws {Error} When one update spawns more than {@link RUNAWAY_SPAWN_LIMIT}.
  */
 function updateWithoutRunawaySpawning(world: World, dt: number): void {
@@ -151,17 +90,8 @@ function updateWithoutRunawaySpawning(world: World, dt: number): void {
 }
 
 /**
- * Counts the spawns the unguarded spawn loop made, frame by frame.
- *
- * A transcription of `World.update`'s arithmetic as it stood before the rate was
- * resolved at construction, the `1.001 / spawnRate` head start included, so that
- * the guarded engine can be held against the exact sequence of doubles it used
- * to produce. Any drift in the timing of a rate the guard passes through shows
- * up as a different count on the frame it first happens.
- *
- * @param spawnRate - Passengers per second.
- * @param steps - Simulated seconds each frame advances by.
- * @returns The running spawn total after each frame.
+ * Counts the spawns an unguarded loop would make, frame by frame, so the guarded engine's
+ * counts can be checked against the exact sequence of doubles that arithmetic produces.
  */
 function unguardedSpawnCounts(spawnRate: number, steps: readonly number[]): number[] {
   let elapsedSinceSpawn = 1.001 / spawnRate;
@@ -177,13 +107,8 @@ function unguardedSpawnCounts(spawnRate: number, steps: readonly number[]): numb
 }
 
 /**
- * Builds a world with exactly one user waiting on floor 0.
- *
- * The world's randomness is pinned to zero so the spawn lands on floor 0
- * heading up, and the elevator is parked at the top so it neither re-arrives
- * nor picks the user up on its own.
- *
- * @returns The world and its lone user.
+ * Builds a world with exactly one user waiting on floor 0; the elevator is parked at the
+ * top so it neither re-arrives nor picks the user up on its own.
  */
 function createWorldWithWaitingUser(): { world: World; user: User } {
   const world = createWorld({ spawnRate: 0.5, floorCount: 3, elevatorCount: 1 }, ALWAYS_ZERO);
@@ -259,9 +184,6 @@ describe("createElevators", () => {
   });
 
   it("cycles the zone list when it is shorter than the elevator count", () => {
-    // The same rule as the capacities, and stated here rather than assumed:
-    // two conventions for two lists on the same options object is one more
-    // than anybody can remember.
     const elevators = createElevators(3, 4, 50, undefined, undefined, [
       [0, 1],
       [0, 2, 3],
@@ -294,27 +216,20 @@ describe("createElevators", () => {
   });
 
   it("parks the elevators without counting that as a move", () => {
-    // Issues #117 and #20: sliding the elevator into its shaft before placing
-    // it on floor 0 made the very first state change look like a floor change,
-    // so every elevator was born having already "moved" once.
     const elevators = createElevators(3, 4, 50);
     expect(elevators.map((e) => e.moveCount)).toEqual([0, 0, 0]);
   });
 
   it("puts the elevators at the bottom floor's y position", () => {
-    // Pins the geometry, so the ordering fix above cannot quietly move an
-    // elevator: y is the bottom floor of a 4 floor, 50 unit building.
+    // y is the bottom floor of a 4-floor, 50-unit building.
     const elevators = createElevators(2, 4, 50);
     expect(elevators.map((e) => e.y)).toEqual([150, 150]);
     expect(elevators.map((e) => e.x)).toEqual([200.0, 200.0 + 20 + 40]);
   });
 
   it("hands every elevator the stream their boarding slots come from", () => {
-    // Without it they would fall back to the unseeded default and a replay
-    // would put its passengers in different corners of the same cars. The
-    // value sits at the top of the offset's range, so each scan starts on the
-    // last slot - and the unseeded default is watched as well, since one car in
-    // four would land on that slot by chance anyway.
+    // 0.99 puts every scan at the last slot; Math.random is watched too, since
+    // one car in four would land there by chance anyway.
     const global = vi.spyOn(Math, "random");
     const elevators = createElevators(2, 4, 50, [4], () => 0.99);
     for (const elevator of elevators) {
@@ -357,10 +272,7 @@ describe("createRandomUser", () => {
   });
 
   it("draws weight, then the child roll, then the gender roll, and nothing else", () => {
-    // The number of draws and their order are part of what a seed reproduces,
-    // so they are pinned rather than left to a reading of the function.
-    // `legacy-1.x:world.js:32-36` drew them this way; each value below is one
-    // only its own consumer reacts to, so a reordering shows up in the result.
+    // Draw order is pinned: reordering would silently change what a seed reproduces.
     const draws = recordDraws(scriptedRandom([0.99, 0.5, 0]));
     const user = createRandomUser(draws.random, WALK_OFF_UNUSED);
     expect(draws.values).toEqual([0.99, 0.5, 0]);
@@ -415,10 +327,7 @@ describe("spawnUserRandomly", () => {
   });
 
   it("spends one draw fewer on a passenger who starts in the lobby", () => {
-    // The short-circuit in `legacy-1.x:world.js:47`: the origin floor is only
-    // drawn for a passenger who is not starting in the lobby. How many draws a
-    // spawn costs decides what every later spawn of the same run sees, so it is
-    // pinned here rather than inferred.
+    // Skips the origin-floor draw when already in the lobby.
     const floors = createFloors(3, 50, () => undefined);
 
     const fromLobby = recordDraws(scriptedRandom([0, 0.5, 0.5, 0, 0 /* lobby */, 0.5]));
@@ -435,24 +344,8 @@ describe("spawnUserRandomly", () => {
   });
 
   it("draws the same whether the profile is omitted or spelled out", () => {
-    // What this pins, exactly: the default is `"mixed"` and choosing between the
-    // two trip functions costs nothing from the stream. Those are the two ways
-    // adding the parameter could have moved an existing level's passengers
-    // without touching a line of the drawing itself.
-    //
-    // It deliberately does **not** prove the `"mixed"` lines were lifted into
-    // `drawMixedTrip` character for character -- it cannot, since both sides of
-    // the comparison run that same function, so any edit to it moves both
-    // equally. That property is held by the golden counts over four hundred
-    // seeds in `tutorial-sweep.test.ts`, by `tutorial-solutions.test.ts` and
-    // `level-tiers-solutions.test.ts`, and by "spends one draw fewer on a
-    // passenger who starts in the lobby" above. All five were confirmed to fail
-    // against a deliberately reordered draw; this one was not, which is why the
-    // distinction is written down rather than assumed.
-    //
-    // Two hundred passengers rather than one, because the branches inside a
-    // mixed trip cost different numbers of draws: a single spawn exercises one
-    // of them, and a wrong count shows up as a cumulative offset.
+    // Two hundred iterations because a mixed trip's draw count varies by branch, so a
+    // wrong count would only show up as a cumulative offset over many draws.
     const floors = createFloors(6, 50, () => undefined);
     const omitted = recordDraws(createRandomSource("profile-parity"));
     const explicit = recordDraws(createRandomSource("profile-parity"));
@@ -463,8 +356,7 @@ describe("spawnUserRandomly", () => {
     }
 
     expect(explicit.values).toEqual(omitted.values);
-    // Guards the assertion above against passing on two empty lists, which is
-    // what it would do if `recordDraws` ever stopped recording.
+    // Guards against both draw lists being empty, which would pass vacuously.
     expect(omitted.values.length).toBeGreaterThanOrEqual(200 * 5);
   });
 
@@ -480,8 +372,6 @@ describe("spawnUserRandomly", () => {
       expect(user.destinationFloor).toBeLessThan(floorCount);
     }
 
-    // The invariant stated as a player would see it: in three hundred spawns
-    // not one down button lit anywhere in the building, the lobby's included.
     for (const floor of floors) {
       expect(floor.buttonStates.down).toBe("");
     }
@@ -513,9 +403,6 @@ describe("spawnUserRandomly", () => {
 
     for (let i = 0; i < 300; ++i) {
       const user = spawnUserRandomly(floorCount, 50, floors, random, WALK_OFF_UNUSED, "lunch");
-      // What makes lunch lunch, and what makes it the hardest of the three to
-      // dispatch: one end of every trip is the lobby, but which end is not
-      // settled, so a car committed to a direction is wrong for half the crowd.
       expect(Math.min(user.currentFloor, user.destinationFloor)).toBe(0);
       expect(Math.max(user.currentFloor, user.destinationFloor)).toBeGreaterThan(0);
       if (user.currentFloor === 0) {
@@ -525,22 +412,17 @@ describe("spawnUserRandomly", () => {
       }
     }
 
-    // Both directions actually occur; a profile that had quietly collapsed into
-    // one of the single-direction peaks would still satisfy everything above.
+    // Confirms both directions occur; the checks above alone would pass even
+    // if lunch collapsed into one direction.
     expect(up).toBeGreaterThan(0);
     expect(down).toBeGreaterThan(0);
   });
 
   it("spends a flat number of draws under a peak, whichever passenger it is", () => {
-    // A mixed trip costs two draws to four depending on the branches it takes,
-    // which is what the file header's audit calls five to eight in all. A peak
-    // has no branch, so the only thing that still varies is whether the
-    // passenger was drawn as a child -- which skips the gender roll. Pinned
-    // here for the same reason the mixed counts are: how many draws a spawn
-    // costs decides what every later spawn of the same run sees.
+    // A mixed trip costs two to four draws depending on branches; a peak has
+    // no branch, so only the child roll varies the count.
     const floors = createFloors(4, 50, () => undefined);
-    // Weight, child roll (not a child), gender roll, spawn offset, then the
-    // trip: one draw for the two single-direction peaks, two for lunch.
+    // weight, child roll, gender roll, spawn offset; then the trip.
     const adult = [0, 0.5, 0.5, 0];
 
     const upPeak = recordDraws(scriptedRandom([...adult, 0.5]));
@@ -555,8 +437,7 @@ describe("spawnUserRandomly", () => {
     spawnUserRandomly(4, 50, floors, lunch.random, WALK_OFF_UNUSED, "lunch");
     expect(lunch.values).toHaveLength(6);
 
-    // The child branch is the one thing a peak still varies by, and it takes
-    // one draw fewer -- the gender roll never happens.
+    // A child roll skips the gender draw, one fewer.
     const child = recordDraws(scriptedRandom([0, 0 /* child */, 0, 0.5]));
     spawnUserRandomly(4, 50, floors, child.random, WALK_OFF_UNUSED, "up-peak");
     expect(child.values).toHaveLength(4);
@@ -631,20 +512,8 @@ describe("World", () => {
     });
 
     describe("a rate that is not a rate", () => {
-      // The spawn loop subtracts `1 / spawnRate` until the accumulated time is
-      // no longer greater than it, which only ends while that interval is a
-      // positive number: a negative rate makes it negative, so every iteration
-      // moves the accumulator further from the threshold, and an infinite rate
-      // makes it zero, so the accumulator does not move at all. Either way one
-      // call to update() never returns, and since that is a plain synchronous
-      // loop there is no error, no stack and no next frame -- the tab freezes
-      // and the game merely looks broken.
-
-      // Every rate in this block that is not a rate is reported to the console
-      // by design, so the block silences it. The two tests that care about the
-      // warning assert on the mock; the rest have nothing to say about it, and
-      // leaving four warnings in the output of a passing suite only teaches the
-      // reader to skip past output that is sometimes worth reading.
+      // A negative or infinite rate can make the spawn loop's while never
+      // exit, freezing the tab with no error and no stack.
       beforeEach(() => {
         vi.spyOn(console, "warn").mockImplementation(() => undefined);
       });
@@ -680,10 +549,8 @@ describe("World", () => {
       it.each([Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
         "does not hang, and spawns nobody, for a rate of %s",
         (spawnRate) => {
-          // Positive but unrunnable, and the one case a `spawnRate > 0` test
-          // would have let through: `1 / Infinity` is `+0` and `1 / -Infinity`
-          // is `-0`, so the subtraction leaves the accumulator exactly where it
-          // was and the loop never reaches its own exit.
+          // 1/Infinity and 1/-Infinity both round to zero, so the subtraction
+          // never moves the accumulator.
           const world = createWorld({ spawnRate }, "infinite-rate");
           const spawned = collectUsers(world);
 
@@ -694,27 +561,15 @@ describe("World", () => {
       );
 
       it("keeps going, and says so once, rather than throwing", () => {
-        // The house rule for a value the engine cannot use: report it and carry
-        // on. Throwing from the constructor would abort createWorld, and the
-        // app calls that while starting a run, so a single bad option would
-        // leave the page with no building at all.
         const world = createWorld({ spawnRate: -2, floorCount: 3, elevatorCount: 1 }, "reported");
-        // Through the bounded helper like every other test here: this one runs
-        // a rate that used to hang too, so a regression must fail it rather
-        // than take the test run down with it.
         updateWithoutRunawaySpawning(world, 0.1);
 
         expect(console.warn).toHaveBeenCalledTimes(1);
-        // Names the value, so the reader of the console knows which option to
-        // go and look at rather than only that something was wrong.
         expect(String(vi.mocked(console.warn).mock.calls[0]?.[0])).toContain("-2");
         expect(world.elapsedTime).toBeCloseTo(0.1, 10);
       });
 
       it("stays quiet about a rate of zero", () => {
-        // Zero is a coherent request -- an empty building is a thing a test or
-        // a demo may well want -- and it already gets exactly what it asked
-        // for, so there is nothing to report.
         createWorld({ spawnRate: 0 });
 
         expect(console.warn).not.toHaveBeenCalled();
@@ -722,21 +577,12 @@ describe("World", () => {
     });
 
     it("leaves the spawn timing of every positive rate exactly as it was", () => {
-      // The point of the guard is that it changes nothing for a rate that is
-      // one. Held against a transcription of the unguarded loop rather than
-      // against counts worked out by hand, so the comparison is over the exact
-      // float arithmetic -- including the 1.001 head start and the accumulator
-      // that carries across frames -- and not over a rounded idea of it.
       const steps = [0.1, 1.8, 0.2, 5.0, ...Array.from({ length: 120 }, () => 1.0 / 60.0)];
 
       for (const spawnRate of [0.001, 0.01, 0.5, 0.6, 1, 1.9, 3, 10, 123.456]) {
         const world = createWorld({ spawnRate, floorCount: 3, elevatorCount: 1 }, "timing");
         const spawned = collectUsers(world);
 
-        // Bounded like the tests above even though every rate here is one the
-        // loop finishes on, so that adding an extreme rate to the list -- the
-        // obvious next edit to this test -- fails it instead of wedging the
-        // whole run. Costs one handler registration per frame.
         const counts = steps.map((dt) => {
           updateWithoutRunawaySpawning(world, dt);
           return spawned.length;
@@ -766,9 +612,6 @@ describe("World", () => {
     });
 
     it("reports no elevator moves before anything has moved", () => {
-      // Issues #117 and #20: `moveCount` is what the "elevator moves" levels
-      // are scored on, so a world whose elevators have not gone anywhere had to
-      // report zero. It reported one move per elevator on the first frame.
       const world = createWorld({ spawnRate: 0.001, floorCount: 4, elevatorCount: 2 });
       world.update(0.1);
       expect(world.moveCount).toBe(0);
@@ -783,11 +626,7 @@ describe("World", () => {
     });
 
     it("averages the load its elevators carried over the floors they crossed", () => {
-      // Set on the elevators directly, the way the move-count case above does:
-      // what is under test is the division, and driving real passengers into
-      // real cars to arrive at a chosen numerator would test the boarding code
-      // instead. Four crossings carrying 2.0 between them and one carrying
-      // nothing is 2.0 over 5 moves.
+      // 4 crossings carrying 2.0 total, 1 crossing carrying 0, is 2.0 over 5 moves.
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 2 });
       at(world.elevators, 0).moveCount = 4;
       at(world.elevators, 0).loadFactorSumOnMove = 2.0;
@@ -798,10 +637,6 @@ describe("World", () => {
     });
 
     it("reports no load rather than NaN while nothing has moved", () => {
-      // A building whose cars have not moved yet is an ordinary state that
-      // lasts as long as the player leaves it alone, so the zero denominator
-      // here is reached in normal play rather than only at start-up -- and an
-      // unguarded division would put NaN in the statistics panel.
       const world = createWorld({ spawnRate: 0.001, floorCount: 4, elevatorCount: 2 });
       world.update(0.1);
       expect(world.moveCount).toBe(0);
@@ -809,14 +644,10 @@ describe("World", () => {
     });
 
     it("sums the stop counts of all elevators", () => {
-      // Assigned after a frame rather than before one, which is the difference
-      // between this and the move-count case above: the first passenger appears
-      // on the first frame whatever the spawn rate is, and a passenger who
-      // appears beside a parked car has it open its doors there and then. That
-      // stop is real and belongs in the count -- it is only not the arithmetic
-      // under test here, and which floor they appear on is the seed's business.
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 2 });
       world.update(0.1);
+      // stopCount is overwritten directly, so any real stop from the update
+      // above doesn't matter.
       at(world.elevators, 0).stopCount = 5;
       at(world.elevators, 1).stopCount = 2;
       world.update(0.1);
@@ -824,13 +655,9 @@ describe("World", () => {
     });
 
     it("counts everyone who got in or out against the stops that were made", () => {
-      // Both ends of a journey, which is what the field's own note says it
-      // counts: one boarding and one delivery over four door openings is 0.5.
-      //
-      // The car is sent to the top and left there, the way the wait-for-a-car
-      // cases below do it, so that the passenger is boarded by this test rather
-      // than by the simulation; its own stop is then overwritten, once it has
-      // parked, so the divisor is a number the test chose.
+      // One boarding and one delivery over four door openings is 0.5. The car is parked at
+      // the top, as the wait-for-a-car tests below do, so the passenger boards via this test
+      // rather than the simulation, and stopCount is overwritten so the divisor is chosen here.
       const world = waitingWorld(0.5);
       const spawned = collectUsers(world);
       const elevator = at(world.elevators, 0);
@@ -851,10 +678,7 @@ describe("World", () => {
     });
 
     it("reports nobody per stop rather than NaN before any doors have opened", () => {
-      // The same zero denominator the load factor is guarded against, reached
-      // the same way: cars start parked with their doors shut. The car is put
-      // upstairs and the passengers all appear in the lobby, because a car
-      // parked where somebody appears opens its doors for them immediately.
+      // Same zero-denominator guard as the load factor above.
       const world = waitingWorld(0.001);
       at(world.elevators, 0).setFloorPosition(2);
       world.update(0.1);
@@ -863,11 +687,7 @@ describe("World", () => {
     });
 
     it("averages the ride from the moment of boarding to the moment of delivery", () => {
-      // The third span, and the one the other two do not account for between
-      // them: one second standing on the floor, three riding, four altogether.
-      // Boarded and delivered by hand so the three figures come out of chosen
-      // moments rather than out of the elevator's braking curve, and the car is
-      // sent away first so the simulation does not board the passenger itself.
+      // One second waiting, three riding, four total.
       const world = waitingWorld(0.5);
       const spawned = collectUsers(world);
       at(world.elevators, 0).goToFloor(2);
@@ -884,10 +704,7 @@ describe("World", () => {
     });
 
     it("averages the ride over deliveries, not over boardings", () => {
-      // A passenger still in the car has no ride time yet, in the way a
-      // passenger still on a floor has no journey time. Two board, one is
-      // delivered after two seconds and the other stays aboard: the mean is the
-      // delivered one's two seconds and not one second over two boardings.
+      // Two board; only the delivered one's 2s counts, not both boardings.
       const world = waitingWorld(0.5);
       const spawned = collectUsers(world);
       at(world.elevators, 0).goToFloor(2);
@@ -903,11 +720,7 @@ describe("World", () => {
     });
 
     it("reads a delivery with no boarding behind it as a ride the whole journey long", () => {
-      // The fallback the ride is measured from. Nothing in the engine reaches
-      // the delivery event without boarding first, so this is what a path that
-      // one day did would report: the two seconds spent standing on the floor
-      // counted as time in the car -- an overstatement a reader can see for
-      // what it is -- rather than a NaN spreading through the panel.
+      // No boarding path skips pickupTimestamp, so the fallback treats the whole 2s as ride time.
       const world = waitingWorld(0.5);
       const spawned = collectUsers(world);
       at(world.elevators, 0).goToFloor(2);
@@ -922,15 +735,8 @@ describe("World", () => {
     });
 
     it("stops the wait for a car at the moment a car takes them", () => {
-      // The split upstream #52, #77 and PR #82 all ask for, in one assertion:
-      // `maxWaitTime` is the whole commute and keeps running while a passenger
-      // rides, `maxPickupTime` is the part they spent standing on a floor and
-      // stops the moment they are taken. One second waiting, five riding.
-      //
-      // The car is sent to the top first, and that is what makes the wait
-      // exist at all: a passenger who spawns in the lobby beside a standing
-      // car is picked up on the frame they appear on, and waits zero seconds --
-      // correctly, but there is nothing to measure in it.
+      // 1s waiting, then 5s riding: maxWaitTime keeps growing through the ride
+      // but maxPickupTime stops at boarding.
       const world = waitingWorld(0.05);
       const spawned = collectUsers(world);
       at(world.elevators, 0).goToFloor(2);
@@ -948,10 +754,7 @@ describe("World", () => {
     });
 
     it("averages the wait for a car over the passengers a car came for", () => {
-      // Over boardings and not over deliveries, which are different sets: a
-      // passenger riding in a car has been picked up and has not been
-      // delivered. At one passenger every two seconds, the first waits one
-      // second and the second waits three, for a mean of two.
+      // One passenger every 2s: first waits 1s, second waits 3s, mean 2.
       const world = waitingWorld(0.5);
       const spawned = collectUsers(world);
       at(world.elevators, 0).goToFloor(2);
@@ -969,18 +772,9 @@ describe("World", () => {
     });
 
     it("counts the last frame of a wait that a car really ends", () => {
-      // What the boarding handler adds over the per-frame sweep, which is the
-      // one thing the two tests above cannot tell apart because they board
-      // their passengers by hand between frames. A car that arrives inside
-      // update() takes its passenger after the clock has already been advanced,
-      // and the sweep that runs afterwards skips anybody already picked up --
-      // so that last frame of waiting is recorded at the boarding or nowhere.
-      //
-      // `avgPickupTime` is the second reading of the same moment and is written
-      // only there, so over a single boarding the two figures are the same
-      // subtraction. Exact equality rather than toBeCloseTo: a maximum left to
-      // the sweep alone would be short by exactly one frame, and rounding it
-      // away is how that would go unnoticed.
+      // A car arriving inside update() boards its passenger after the clock
+      // advances, so the last frame is recorded here, not by the per-frame
+      // sweep; exact equality catches a max that is short by one frame.
       const world = waitingWorld(0.05);
       at(world.elevators, 0).goToFloor(2);
       world.update(0.1);
@@ -997,11 +791,8 @@ describe("World", () => {
     });
 
     it("goes on counting the wait of a passenger nobody ever comes for", () => {
-      // The case that makes this statistic worth having, and the reason it is
-      // not derived from boardings alone. A passenger left standing has no
-      // boarding moment, so a figure built only out of boardings would never
-      // mention them: the run would report a healthy average with somebody
-      // still on the floor they spawned on.
+      // A never-picked-up passenger has no boarding event, so this stat must
+      // update independent of boarding.
       const world = waitingWorld(0.05);
       at(world.elevators, 0).goToFloor(2);
       world.update(0.1);
@@ -1018,17 +809,13 @@ describe("World", () => {
     });
 
     it("stops extending the longest wait once a passenger has been delivered", () => {
-      // A delivered passenger spends another 1 to 1.5 simulated seconds walking
-      // off to the right before the world drops them, and stays in world.users
-      // for all of it. Those seconds were still being folded into maxWaitTime
-      // every frame, so the worst wait the player is scored on included time
-      // spent walking away after the journey had already ended.
+      // A delivered passenger walks off-screen for another 1-1.5s while still
+      // in world.users; that time must not count toward maxWaitTime.
       const world = deliveryWorld(0.5);
       const spawned = collectUsers(world);
       world.update(0.1);
       world.update(1.0);
 
-      // What User.handleExit does on arrival: flag the walk-off and announce it.
       const user = at(spawned, 0);
       user.done = true;
       user.trigger("exited_elevator", at(world.elevators, 0));
@@ -1041,8 +828,8 @@ describe("World", () => {
     });
 
     it("still extends the longest wait for passengers who are still waiting", () => {
-      // Guards the fix above from over-reaching: only the delivered passenger is
-      // excluded, everyone still in the building keeps accruing wait time.
+      // Only the delivered passenger is excluded; everyone else keeps
+      // accruing wait time.
       const world = deliveryWorld(1);
       const spawned = collectUsers(world);
       world.update(0.1);
@@ -1061,9 +848,8 @@ describe("World", () => {
     });
 
     it("says which passenger the longest wait belongs to", () => {
-      // Upstream #135: the panel reports a longest wait and the player has no
-      // way to tell whose it is. `users` is in spawn order, so the answer is
-      // the first one still in the building -- and only that one.
+      // users is in spawn order, so the answer is the first one still in the
+      // building.
       const world = deliveryWorld(1);
       const spawned = collectUsers(world);
       world.update(0.1);
@@ -1074,8 +860,8 @@ describe("World", () => {
     });
 
     it("hands the flag on when that passenger is delivered", () => {
-      // The wait the panel reports is the wait in progress, so the moment the
-      // worst of them steps out the mark has to move to whoever is now worst.
+      // The mark moves to the new longest waiter the moment the old one is
+      // delivered.
       const world = deliveryWorld(1);
       const spawned = collectUsers(world);
       world.update(0.1);
@@ -1092,9 +878,8 @@ describe("World", () => {
     });
 
     it("marks nobody while everybody left in the world is walking off", () => {
-      // A delivered passenger stays in `users` for another second and a half,
-      // and their wait has stopped being reported, so nothing may be marked --
-      // not the last one to arrive, and not the last one to be marked either.
+      // A delivered passenger stays in users for another 1.5s with no wait
+      // reported, so nobody should be marked.
       const world = deliveryWorld(0.5);
       const spawned = collectUsers(world);
       world.update(0.1);
@@ -1111,10 +896,9 @@ describe("World", () => {
     });
 
     it("announces the handover, because the passengers it moves between are still", () => {
-      // The passenger who has waited longest is, by definition, the one least
-      // likely to be moving, and a presenter only redraws what announces
-      // itself. A handover must cost one announcement each way and no more,
-      // however many frames pass on either side of it.
+      // The longest-waiting passenger is the one least likely to be moving, so its handover
+      // must announce itself; that should cost one announcement each way, however many
+      // frames pass on either side of it.
       const world = deliveryWorld(1);
       const spawned = collectUsers(world);
       world.update(0.1);
@@ -1207,8 +991,8 @@ describe("World", () => {
     });
 
     it("lets a user board an elevator already parked at their floor", () => {
-      // The user's own call button press re-arrives the idle elevator standing
-      // at floor 0, so they board within the very update that spawned them.
+      // The spawn's own call-button press re-arrives the idle elevator, so
+      // boarding happens in the same update.
       const world = createWorld({ spawnRate: 0.5, floorCount: 3, elevatorCount: 1 }, ALWAYS_ZERO);
       const spawned = collectUsers(world);
 
@@ -1219,12 +1003,7 @@ describe("World", () => {
   });
 
   describe("indicator changes", () => {
-    /**
-     * Builds a world whose lone elevator is parked at floor 0 with only the
-     * down indicator lit, and one passenger waiting there to travel up.
-     *
-     * @returns The world, its elevator, its facade and the waiting passenger.
-     */
+    /** Builds a world with one elevator (down indicator only) and a passenger waiting to go up. */
     function createWorldWithRefusedUser(): {
       world: World;
       elevator: Elevator;
@@ -1241,8 +1020,6 @@ describe("World", () => {
     }
 
     it("picks up a refused passenger once the matching indicator is lit", () => {
-      // Issues #59, #74, #98: the elevator stands empty at the passenger's
-      // floor with the wrong indicator lit, so it never takes them.
       const { elevator, elevInterface, user } = createWorldWithRefusedUser();
       expect(user.currentFloor).toBe(0);
       expect(user.destinationFloor).toBe(1);
@@ -1254,11 +1031,7 @@ describe("World", () => {
     });
 
     it("clears the call button of the floor the elevator is standing at", () => {
-      // The other half of the re-offer. `entrance_available` is what
-      // world.js:128 bound handleElevAvailability to, so the floor is
-      // reconsidered exactly as on a real arrival - not just the passengers.
-      // Solutions that track pending calls from buttonStates or from the
-      // button events see the call answered.
+      // The floor's own button state is re-checked too, not just waiting passengers.
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
       const elevInterface = at(world.elevatorInterfaces, 0);
       at(world.elevators, 0).setFloorPosition(1);
@@ -1273,11 +1046,6 @@ describe("World", () => {
     });
 
     it("costs nothing when player code rewrites the indicators every frame", () => {
-      // The re-offer is wired to indicatorstate_change, and every
-      // entrance_available makes the world sweep every floor and every user
-      // looking for someone to board. Player code that simply assigns the
-      // indicators once per frame - the obvious way to write directional
-      // service - used to pay for a full sweep on each of those frames.
       const { world, elevInterface } = createWorldWithRefusedUser();
       const sweep = vi.spyOn(Floor.prototype, "elevatorAvailable");
 
@@ -1291,21 +1059,15 @@ describe("World", () => {
     });
 
     it("stays put while a passenger the re-offer let in is still walking in", () => {
-      // Upstream issue #105 ("Elevator moves while passengers enter"). Every
-      // legacy boarding path was covered by the one second dwell the facade
-      // installs from `stopped` (`interfaces.js:64`, `elevator.wait(1, ...)`),
-      // which outlasts the one second a passenger takes to walk in
-      // (`user.js:67`). The re-offer is a boarding path the legacy code did not
-      // have, so without its own dwell the car can accept a passenger and drive
-      // off in the very same frame, dragging them through the shaft.
+      // The re-offer is a boarding path with its own one-second dwell, so a
+      // car it just filled cannot also depart within the same frame.
       const { world, elevator, elevInterface, user } = createWorldWithRefusedUser();
       const parkedY = elevator.y;
 
       elevInterface.goingUpIndicator(true);
       expect(user.parent).toBe(elevator);
       expect(user.isBusy()).toBe(true);
-      // The player's update() would typically ask for the next floor in the
-      // same frame that flipped the indicator.
+      // The player's update() would typically ask for the next floor in the same frame.
       elevInterface.goToFloor(2);
 
       world.update(1.0 / 60.0);
@@ -1353,7 +1115,6 @@ describe("World", () => {
 
   describe("floorInterfaces", () => {
     it("builds one facade per floor and keeps the real floors to itself", () => {
-      // Issue #3: player code used to be handed the real Floor objects.
       const world = createWorld({ spawnRate: 0.001, floorCount: 4, elevatorCount: 1 });
       expect(world.floorInterfaces).toHaveLength(4);
       expect(world.floorInterfaces.map((f) => f.floorNum())).toEqual([0, 1, 2, 3]);
@@ -1363,9 +1124,8 @@ describe("World", () => {
     });
 
     it("reuses the same facades instead of rebuilding them every frame", () => {
-      // Player code stores handlers on these, so they have to be stable.
-      // Compared by identity: two facades over the same floor are structurally
-      // equal, so toEqual would pass even if the world rebuilt them all.
+      // Compared by identity: structurally equal facades would still pass
+      // player code that stored handlers on the originals.
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
       const before = [...world.floorInterfaces];
       world.update(0.1);
@@ -1387,9 +1147,6 @@ describe("World", () => {
     });
 
     it("runs the world's own floor handlers before player code", () => {
-      // The world re-arrives a standing elevator on a button press. That has to
-      // have happened by the time player code sees the event, exactly as when
-      // player code registered directly on the Floor after the world did.
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
       at(world.elevators, 0).setFloorPosition(1);
       let queueWhenNotified: number[] = [];
@@ -1419,15 +1176,9 @@ describe("World", () => {
 
   describe("refused passengers", () => {
     it("keeps the call button lit when the indicators change mid-arrival", () => {
-      // Issue #110. The world notifies the floor of an arriving elevator before
-      // it notifies the passengers standing on it, and the floor clears every
-      // call button the elevator's indicators currently advertise. Player code
-      // routinely retargets an elevator from a floor button handler, and those
-      // handlers fire from inside this very dispatch - here, from the re-press
-      // of a passenger who could not fit. The passengers offered after that
-      // point see the new indicators, and the one whose direction is no longer
-      // served was turned away without pressing their button again, leaving the
-      // floor looking as though nobody was waiting on it.
+      // The floor clears a call button before offering the elevator to waiting passengers, so
+      // a handler that retargets the elevator mid-dispatch (e.g. a re-press) can leave a later
+      // passenger turned away with their button already cleared.
       const world = createWorld(
         {
           spawnRate: 0.001,
@@ -1442,7 +1193,6 @@ describe("World", () => {
       elevator.setFloorPosition(1);
       elevator.userEntering({ weight: 70 });
 
-      // Two passengers on floor 1 heading in opposite directions.
       const goingDown = new User(70);
       goingDown.appearOnFloor(floor, 0);
       const goingUp = new User(70);
@@ -1456,9 +1206,8 @@ describe("World", () => {
 
       elevator.trigger("entrance_available", elevator);
 
-      // The full elevator turned the first passenger away and they re-pressed,
-      // which switched the elevator to down only; the second was then refused
-      // for direction with their button already cleared.
+      // The full elevator refuses the first passenger, whose re-press flips
+      // the elevator to down-only, so the second is refused with no button lit.
       expect(goingDown.parent).toBe(null);
       expect(goingUp.parent).toBe(null);
       expect(floor.buttonStates.down).toBe("activated");
@@ -1466,11 +1215,8 @@ describe("World", () => {
     });
 
     it("routes the re-press through button repressing, as any other call is", () => {
-      // The rest of the #110 claim: the re-press is a real call, so it reaches
-      // World.#handleButtonRepressing and a suitable elevator standing at the
-      // floor is re-arrived by it. Same setup as above, plus a second elevator
-      // parked there that serves the direction the first one just stopped
-      // serving.
+      // The re-press is a real call, answered by a second elevator serving the
+      // direction the first stopped serving.
       const world = createWorld(
         {
           spawnRate: 0.001,
@@ -1509,30 +1255,9 @@ describe("World", () => {
     });
 
     it("dispatches the re-press even though it nests inside the call that caused it", () => {
-      // Floor is an Observable, not a PlayerObservable, so it has no
-      // re-entrancy guard - deliberately, and this is the path that needs it to
-      // stay that way. The nested dispatch here carries the same event name and
-      // the same floor as the one still in flight, so a per-event guard would
-      // swallow it exactly.
-      //
-      // The chain: a down call arrives; player code answers it by lighting the
-      // down indicator; that re-offers the entrance (38e7390); the first
-      // passenger fills the capacity-1 car; the second cannot fit and presses
-      // the button again, from inside the outer down_button_pressed.
-      //
-      // What a guard would cost is the nested World.#handleButtonRepressing,
-      // which is the whole mechanism by which a passenger who was turned away
-      // gets a standing car re-offered to them. It re-offers nothing in this
-      // particular case - the car is full - but the dispatch has to reach the
-      // world's handler all the same, so the count below is of dispatches, not
-      // of outcomes.
-      //
-      // It used to be counted off the world's stream instead, because the
-      // handler draws a randomInt(0, elevatorCount - 1) before it looks and a
-      // dropped draw would shift every later spawn. That draw now comes from
-      // the world's derived button-repress stream, so the second assertion is
-      // the one that says so: the press storm below takes nothing at all from
-      // the stream the passengers come out of.
+      // Floor has no re-entrancy guard, deliberately: a re-press nested inside the very
+      // button-press dispatch that caused it must still reach the world's repress handler,
+      // even though the player-facing facade would swallow the same nested event.
       const random = vi.fn(() => 0);
       const world = createWorld(
         {
@@ -1550,15 +1275,13 @@ describe("World", () => {
       elevInterface.goingUpIndicator(false);
       elevInterface.goingDownIndicator(false);
 
-      // Two passengers on floor 1, both heading down; the first in the world's
-      // list is the one who gets the single seat.
+      // Both passengers want to go down; the first in the list gets the single seat.
       const first = new User(70);
       const second = new User(70);
       world.users.push(first, second);
       first.appearOnFloor(floor, 0);
       second.appearOnFloor(floor, 0);
-      // Clear the call the way an arriving elevator would, so the press below
-      // is a fresh one that really dispatches.
+      // Clears the call so the press below is a fresh dispatch, not a no-op.
       floor.elevatorAvailable({
         goingUpIndicator: false,
         goingDownIndicator: true,
@@ -1566,16 +1289,13 @@ describe("World", () => {
       });
       expect(floor.buttonStates.down).toBe("");
 
-      // Typical player code: serve the direction that was called for.
       const seen: unknown[] = [];
       at(world.floorInterfaces, 1).on("down_button_pressed", (pressed) => {
         seen.push(pressed);
         elevInterface.goingDownIndicator(true);
       });
 
-      // Counted off the Floor rather than off a facade: this is the event the
-      // world's own handler is subscribed to, so one dispatch here is one
-      // handleButtonRepressing.
+      // Counted on Floor, not the facade: that's what the world's own handler subscribes to.
       let dispatches = 0;
       floor.on("down_button_pressed", () => {
         dispatches++;
@@ -1587,32 +1307,20 @@ describe("World", () => {
       expect(first.parent).toBe(elevator);
       expect(second.parent).toBe(null);
       expect(floor.buttonStates.down).toBe("activated");
-      // One dispatch for each handleButtonRepressing - the outer one and the
-      // nested one. Guarding Floor would leave one.
+      // One dispatch each for the outer and nested press; a re-entrancy guard
+      // would leave only one.
       expect(dispatches).toBe(2);
-      // And neither of them, nor the two boarding slots the same press storm
-      // draws, came out of the world's own stream. That is what makes the
-      // count above a question about dispatching rather than about replay.
+      // Neither draw came from the world's own stream, so this is purely
+      // about dispatching, not replay.
       expect(random).not.toHaveBeenCalled();
-      // Player code still sees the call once: the facade the event is forwarded
-      // to is a PlayerObservable, and its guard absorbs the nested forward.
-      // That is the split - the world's own handler runs, the player's does
-      // not - and it is why the guard cannot simply be moved down onto Floor.
+      // Player code still sees the call once: the facade is a
+      // PlayerObservable, whose re-entrancy guard absorbs the nested forward.
       expect(seen).toEqual([at(world.floorInterfaces, 1)]);
     });
   });
 
   describe("stopping en route", () => {
-    /**
-     * Sets up the building from upstream issue #124.
-     *
-     * One passenger stands on floor 1 wanting to go down, the car is parked on
-     * floor 2, and its indicators advertise exactly the direction that
-     * passenger wants — so nothing about the passenger, the call or the
-     * signage can be what turns them away.
-     *
-     * @returns The world, the elevator, its facade and the waiting passenger.
-     */
+    /** Builds a world with a passenger on floor 1 wanting to go down, and a matching car parked on floor 2. */
     function createWorldWithPassengerOnTheWay(): {
       world: World;
       elevator: Elevator;
@@ -1631,11 +1339,7 @@ describe("World", () => {
       return { world, elevator, elevInterface, waiting };
     }
 
-    /**
-     * Runs the world long enough for the car to travel and come to rest.
-     *
-     * @param world - The world to advance.
-     */
+    /** Runs the world long enough for the car to travel and come to rest. */
     function run(world: World): void {
       for (let frame = 0; frame < 600; frame++) {
         world.update(1.0 / 60.0);
@@ -1643,13 +1347,8 @@ describe("World", () => {
     }
 
     it("leaves a passenger standing when stop() halts the car between floors", () => {
-      // Upstream issue #124, "User doesn't enter the elevator when it stops
-      // enroute": the reporter stops the car from a passing_floor handler and
-      // expects the passenger on that floor to board. This reproduces it, and
-      // it is not a defect - it is what stop() is. The car is traveling at
-      // speed when the handler runs, so the nearest position it can physically
-      // reach is the one it would coast to, which is past the floor. Boarding
-      // is offered on arrival at a floor, and the car never arrives at one.
+      // Stopping mid-flight coasts the car past the floor it was passing, so
+      // boarding -- offered only on arrival -- never triggers.
       const { world, elevator, elevInterface, waiting } = createWorldWithPassengerOnTheWay();
       const passed: [number, string][] = [];
       elevInterface.on("passing_floor", (floorNum, direction) => {
@@ -1669,10 +1368,7 @@ describe("World", () => {
     });
 
     it("boards that same passenger when the car is sent to their floor", () => {
-      // The other half of the #124 answer, and the reason the first test is
-      // about position and nothing else: same building, same passenger, same
-      // indicators, one line different. What the reporter wanted is spelled
-      // goToFloor.
+      // Same building and passenger; only the destination differs.
       const { world, elevator, elevInterface, waiting } = createWorldWithPassengerOnTheWay();
 
       elevInterface.goToFloor(1);
@@ -1751,8 +1447,7 @@ describe("World", () => {
     });
 
     it("re-arrives the booked car and no other standing there", () => {
-      // Where the button version has to draw an offset to pick a car fairly,
-      // this one is told which car, and the fairness question never arises.
+      // Unlike the button version, the car is named, so there's no fairness draw to make.
       const world = createDispatchWorld(3);
       for (const elevator of world.elevators) {
         elevator.setFloorPosition(1);
@@ -1786,10 +1481,8 @@ describe("World", () => {
     });
 
     it("ignores a booked car that is not level with the floor", () => {
-      // `currentFloor` is the floor the car last arrived at, so a car that has
-      // set off again still reports the floor it left. Re-offering it there
-      // would restart an arrival sequence for a car that is no longer at the
-      // door, which is why the button version checks this too.
+      // currentFloor is the floor last arrived at; a car already moving again
+      // still reports it, so isOnAFloor must be checked too.
       const world = createDispatchWorld(1);
       const elevator = at(world.elevators, 0);
       elevator.setFloorPosition(1);
@@ -1814,11 +1507,8 @@ describe("World", () => {
     });
 
     it("takes nothing from the world's own generator", () => {
-      // Half of the claim, and the cheap half: nothing on this path reaches
-      // the generator the world was handed, or the global one. The stream it
-      // would actually be tempting to draw from is derived from the seed
-      // rather than taken from either of these, and is invisible here -- see
-      // the test below, which is the one that watches it.
+      // Confirms the booking path draws from neither the world's stream nor
+      // the global one; the derived button-repress stream is checked below.
       const random = vi.fn(() => 0);
       const world = createWorld(
         { floorCount: 3, elevatorCount: 2, spawnRate: 0.001, destinationDispatch: true },
@@ -1838,15 +1528,9 @@ describe("World", () => {
     });
 
     it("leaves the button-repress stream exactly where it found it", () => {
-      // The other half, and the one that matters: the button version draws an
-      // offset to choose between the cars standing at a floor, this one is told
-      // which car, and a draw taken here would shift every hall call the rest
-      // of the run makes -- silently, since a derived stream answers to no spy.
-      //
-      // So it is watched through what it decides. Twenty repressings with three
-      // eligible cars is a twenty-long sequence over three values; one draw
-      // spent on a booking shifts all of it. Same seed, same building, the only
-      // difference being whether a car was booked first.
+      // A draw here would silently shift every later hall-call choice, since a
+      // derived stream answers to no spy -- so it's watched through effect:
+      // twenty repressings compared between a run that books first and one that doesn't.
       const repressChoices = (book: boolean): number[] => {
         const world = createWorld(
           { floorCount: 3, elevatorCount: 3, spawnRate: 0.001, destinationDispatch: true },
@@ -1865,10 +1549,9 @@ describe("World", () => {
         const offers = world.elevatorInterfaces.map((car) => vi.spyOn(car, "goToFloor"));
         const chosen: number[] = [];
         for (let press = 0; press < 20; press++) {
-          // Being re-offered the floor sends a car on its way, which takes it
-          // out of the running for the next press, so the building is stood
-          // back up between presses. Both runs are stood back up the same way,
-          // leaving the stream as the only thing that can differ.
+          // Being re-offered the floor sends a car on its way, taking it out of the running
+          // for the next press, so the building is stood back up the same way between
+          // presses in both runs, leaving the stream as the only thing that can differ.
           for (const car of world.elevatorInterfaces) {
             car.destinationQueue.length = 0;
           }
@@ -1980,11 +1663,9 @@ describe("World", () => {
     });
 
     it("reports every failure of one dispatch, in handler order", () => {
-      // What per-handler isolation actually buys. WorldController pauses on
-      // the first usercode_error, so no *later* dispatch happens at all; the
-      // isolation only ever spans the dispatch that is already running. Within
-      // it, though, handlers after the thrower still run and each failure is
-      // reported separately.
+      // WorldController pauses on the first usercode_error, so no later dispatch happens at
+      // all; within the dispatch already running, though, handlers after the thrower still
+      // run, and each of their failures is reported separately.
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
       const first = new Error("first");
       const second = new Error("second");
@@ -2083,9 +1764,8 @@ describe("World", () => {
   });
 
   it("satisfies the contract WorldController drives it through", () => {
-    // The assignment is the assertion: `ControllableWorld` is declared
-    // structurally in `world-controller.ts` to keep the two modules acyclic,
-    // so nothing would otherwise check that `World` still fits it.
+    // The assignment is the assertion: `ControllableWorld` is declared structurally to keep
+    // the two modules acyclic, so nothing else checks that `World` still fits it.
     const controllable: ControllableWorld = createWorld();
     expect(controllable.floorInterfaces).toHaveLength(4);
     expect(controllable.levelEnded).toBe(false);
@@ -2131,11 +1811,8 @@ interface RunTrace {
   /** Every passenger the run spawned, in order. */
   spawns: SpawnTrace[];
   /**
-   * The slot every boarding passenger was put in, in boarding order.
-   *
-   * Recorded as `<elevator index>:<slot index>`. The one thing in the trace the
-   * elevators' own stream decides, and the only way to see that stream at all
-   * from outside: nothing else the simulation reports changes with it.
+   * The slot every boarding passenger was put in, as `<elevator index>:<slot index>`, in
+   * boarding order. The only value in the trace the elevators' own stream decides.
    */
   boardingSlots: string[];
   /** The statistics the run ended on. */
@@ -2151,16 +1828,9 @@ const TRACE_STEP_SECONDS = 1.0 / 60.0;
 const TRACE_FRAMES = 3600;
 
 /**
- * Runs a world for a fixed minute and records what an observer would see.
- *
- * The elevators are driven by the simplest strategy that actually delivers
- * anybody - sweep up, wrap at the top - so the trace covers boarding, exits and
- * the statistics as well as the spawns themselves, and the slot each passenger
- * ends up in on top of that: the two streams a seed drives are both visible
- * here, which is what lets one seed be held to reproducing the whole run.
- *
- * @param random - Seed or stream to build the world with.
- * @returns The trace, and the world it came from.
+ * Runs a world for a fixed minute and records what an observer would see. Elevators sweep
+ * up and wrap at the top, so the trace covers boarding, exits, statistics and the slot
+ * each passenger lands in; the two streams a seed drives are both visible in it.
  */
 function traceRun(random?: RandomSeed | RandomSource): { trace: RunTrace; world: World } {
   const floorCount = 4;
@@ -2211,8 +1881,7 @@ function traceRun(random?: RandomSeed | RandomSource): { trace: RunTrace; world:
 
 describe("seeded runs", () => {
   it("replays a run exactly from the same seed", () => {
-    // The whole point of the exercise: a failed run, a surprising score or a
-    // divergence from the legacy engine can be looked at again.
+    // The whole point of the exercise: a failed run or a surprising score can be looked at again.
     const first = traceRun("rush-hour").trace;
     const second = traceRun("rush-hour").trace;
 
@@ -2231,10 +1900,9 @@ describe("seeded runs", () => {
   });
 
   it("stands every passenger in the same slot on a replay of the same seed", () => {
-    // The last draw in the engine that a seed did not account for. It decides
-    // nothing but where a passenger is drawn inside the car, so nothing else in
-    // the trace moves when it changes - which is exactly why it needs saying
-    // separately that it, too, comes back the same.
+    // This draw decides nothing but where a passenger lands inside the car, so nothing
+    // else in the trace moves when it changes, which is exactly why it needs its own
+    // assertion that it, too, replays the same.
     const first = traceRun("rush-hour").trace.boardingSlots;
     const second = traceRun("rush-hour").trace.boardingSlots;
 
@@ -2245,11 +1913,9 @@ describe("seeded runs", () => {
   });
 
   it("reaches the unseeded Math.random nowhere once it has its seed", () => {
-    // The guarantee with the caveat gone: a seeded run makes every draw it
-    // makes from a stream the seed determines, so there is nothing left in it
-    // for a replay to get wrong. Worth stating as a whole-run property rather
-    // than trusting to the absence of a call, because a new call site is
-    // exactly the kind of thing that gets added without anybody noticing.
+    // A seeded run makes every draw from a stream the seed determines, leaving nothing for
+    // a replay to get wrong. Asserted as a whole-run property, not just the absence of a
+    // call, because a new call site is exactly what would go unnoticed otherwise.
     const global = vi.spyOn(Math, "random").mockReturnValue(0);
     const trace = traceRun("rush-hour").trace;
 
@@ -2259,12 +1925,9 @@ describe("seeded runs", () => {
   });
 
   it("keeps boarding out of the stream the simulation runs on", () => {
-    // Why the elevators get a stream of their own rather than the world's: the
-    // world spawns its passengers from its stream, so a slot draw landing in it
-    // would shift every later spawn, and every seed anybody has already written
-    // down would quietly start replaying a different run. Boarding is also the
-    // kind of draw that comes and goes as the rendering changes, which is
-    // precisely what must never reach that sequence.
+    // The world spawns passengers from its own stream, so a slot draw landing there would
+    // shift every later spawn, silently changing what every existing seed replays. Boarding
+    // draws also come and go as rendering changes, which must never reach that sequence.
     const random = vi.fn(() => 0);
     const world = createWorld({ floorCount: 3, elevatorCount: 1 }, random);
     const elevator = at(world.elevators, 0);
@@ -2284,11 +1947,9 @@ describe("seeded runs", () => {
   });
 
   it("keeps button repressing out of the stream the simulation runs on", () => {
-    // The same argument as boarding slots, for the offset the re-offer sweep
-    // starts at. A press happens when a passenger a car turned away tries
-    // again, which is a moment the elevators decide, so a draw taken here used
-    // to walk the spawn stream forward by an amount that depended on the
-    // program the player had written.
+    // The same argument as boarding slots, for the button-repress offset: a press happens
+    // when a passenger a turned-away car decides to retry, so this draw must stay off the
+    // spawn stream or every seed would start replaying a different run.
     const random = vi.fn(() => 0);
     const world = createWorld({ floorCount: 3, elevatorCount: 2, spawnRate: 0.001 }, random);
     for (const elevator of world.elevators) {
@@ -2299,18 +1960,16 @@ describe("seeded runs", () => {
     const global = vi.spyOn(Math, "random");
     at(world.floors, 1).pressUpButton();
 
-    // The sweep ran and re-offered the floor, so an offset was drawn - from
-    // neither of these.
+    // The sweep ran and re-offered the floor, so an offset was drawn - from neither of these.
     expect(world.elevatorInterfaces.some((e) => e.destinationQueue.length > 0)).toBe(true);
     expect(random).not.toHaveBeenCalled();
     expect(global).not.toHaveBeenCalled();
   });
 
   it("draws the re-offered elevator from a stream the seed reproduces", () => {
-    // The other half: keeping the offset out of the spawn stream would be no
-    // improvement if it stopped being replayable on the way out. Four cars all
-    // standing at the pressed floor and all willing to take it, so the one that
-    // ends up with the destination is exactly the offset the sweep drew.
+    // The other half: keeping the offset off the spawn stream is no improvement if it stops
+    // being replayable on the way out. Four cars all stand at the pressed floor and all can
+    // take it, so which one ends up with the destination is exactly the offset the sweep drew.
     const chooseElevator = (seed: RandomSeed): number => {
       const world = createWorld({ floorCount: 3, elevatorCount: 4, spawnRate: 0.001 }, seed);
       for (const elevator of world.elevators) {
@@ -2331,16 +1990,14 @@ describe("seeded runs", () => {
   });
 
   it("keeps a delivered passenger's walk-off out of the stream that spawned them", () => {
-    // The third of the three, and the one that fires latest: the duration is
-    // drawn when a passenger steps out, which needs the player's program to
-    // have sent a car to the right floor and the car to have braked onto it.
-    // Nothing in a run is further from being decided by the seed alone.
+    // This duration is drawn when a passenger steps out, which needs the player's program
+    // to send a car to the right floor and have it brake onto it - nothing in a run is
+    // further from being decided by the seed alone.
     const floorCount = 3;
     const random = vi.fn(createRandomSource("walk-off-isolation"));
-    // A rate this low spawns exactly one passenger, on the first frame - the
-    // accumulator starts one thousandth of an interval past the threshold - and
-    // then nobody for the next thousand seconds, so any draw seen after the
-    // first frame is a draw the delivery made.
+    // A rate this low spawns exactly one passenger on the first frame - the accumulator
+    // starts one thousandth of an interval past the threshold - and then nobody for the
+    // next thousand seconds, so any draw seen after that frame is a draw the delivery made.
     const world = createWorld({ floorCount, elevatorCount: 1, spawnRate: 0.001 }, random);
     let delivered = 0;
     world.on("new_user", (user) => {

@@ -1,11 +1,6 @@
 /**
- * The elevator simulation object.
- *
- * Ported line for line from the legacy `elevator.js`. The movement integration
- * in {@link Elevator.updateElevatorMovement} and the passing-floor detection in
- * {@link Elevator.handleNewState} are deliberately *not* tidied up: their exact
- * arithmetic (including the odd-looking sign in the braking branch) determines
- * how the game feels and whether the shipped levels are solvable.
+ * Elevator car simulation: physics, buttons, indicators and passenger slots.
+ * The arithmetic in {@link Elevator.updateElevatorMovement} and {@link Elevator.handleNewState} is deliberately not tidied up: it determines game feel and level solvability.
  */
 
 import {
@@ -21,13 +16,7 @@ import { systemRandom, type RandomSource } from "./random.ts";
 /** Direction reported by the `passing_floor` event. */
 export type ElevatorDirection = "up" | "down";
 
-/**
- * The part of a passenger the elevator itself needs to know about.
- *
- * Structural on purpose: the elevator only ever reads a passenger's weight and
- * compares slot occupants by identity, so it does not have to depend on the
- * `User` module (which does depend on this one).
- */
+/** The part of a passenger the elevator needs; structural, so this module doesn't depend on `User`. */
 export interface ElevatorPassenger {
   /** Passenger weight, used to compute the load factor. */
   readonly weight: number;
@@ -67,10 +56,7 @@ export type ElevatorEvents = {
   entrance_available: [elevator: Elevator];
   /**
    * A boarding offer was taken: at least one passenger started walking in.
-   *
-   * Raised right after the `entrance_available` that filled the slot, while the
-   * passenger is still mid-walk-in, so that whoever decides when the car may
-   * leave can hold it for as long as boarding takes.
+   * Raised while boarding is still in progress, so a listener can hold the car until it finishes.
    */
   boarding_started: [elevator: Elevator];
   /** The elevator is about to pass a floor without stopping. */
@@ -86,21 +72,12 @@ export type ElevatorEvents = {
 /** The default passenger capacity, used when the world does not specify one. */
 const DEFAULT_MAX_USERS = 4;
 
-/**
- * Whether the {@link Elevator.getFirstPressedFloor} deprecation notice has been
- * printed.
- *
- * Module level rather than per elevator, and never reset: the warning is
- * addressed to whoever is writing the solution, and it says the same thing for
- * every elevator and every restart of the level.
- */
+/** Whether the {@link Elevator.getFirstPressedFloor} deprecation notice has printed; shared across every elevator, never reset. */
 let firstPressedFloorWarned = false;
 
 /**
  * An elevator car: physics, buttons, indicators and passenger slots.
- *
- * `y` grows downward, so floor 0 has the *largest* y and a positive
- * `velocityY` means the car is traveling *down*.
+ * `y` grows downward, so floor 0 has the largest `y` and a positive `velocityY` means moving down.
  */
 export class Elevator extends Movable<ElevatorEvents> {
   /** Acceleration in world units per second squared. */
@@ -126,12 +103,7 @@ export class Elevator extends Movable<ElevatorEvents> {
   destinationY = 0.0;
   /** Current vertical speed; positive means moving down. */
   velocityY = 0.0;
-  /**
-   * Whether the car is en route.
-   *
-   * Needed when going to the same floor again, so the arrival events are
-   * re-raised.
-   */
+  /** Whether the car is en route; set even when re-sent to the same floor, so arrival events re-fire. */
   isMoving = false;
   /** Whether the car advertises that it is going down. */
   goingDownIndicator = true;
@@ -143,41 +115,18 @@ export class Elevator extends Movable<ElevatorEvents> {
   previousTruncFutureFloorIfStopped = 0;
   /** Number of floor changes, used by the "elevator moves" levels. */
   moveCount = 0;
-  /**
-   * Load factors summed over the moves counted in {@link Elevator.moveCount}.
-   *
-   * Sampled on the same branch that counts the move, so the two can never
-   * disagree about how many samples there have been; `World` divides one by the
-   * other. One move is one floor crossed, so a mean over moves is already
-   * weighted by distance traveled, which is where an empty car is expensive.
-   */
+  /** Load factors summed over the moves in {@link Elevator.moveCount}; sampled alongside the move count so the two never disagree. */
   loadFactorSumOnMove = 0;
   /**
    * Times the car has come to rest on a floor and opened its doors.
-   *
-   * The `S` of lift-traffic analysis, and not a second name for
-   * {@link Elevator.moveCount}: one move is one floor crossed, so a car sent
-   * from 0 to 5 counts five moves and one stop, and a car told to go where it
-   * already is counts no moves and one more stop. That last case is a real door
-   * opening — {@link Elevator.handleDestinationArrival} re-runs the whole
-   * arrival sequence and passengers board — so it is counted rather than
-   * filtered out.
-   *
-   * Coming to rest between floors counts nothing, because nothing opens: the
-   * arrival sequence checks {@link Elevator.isOnAFloor} before it emits, and a
-   * car stopped mid-shaft from a `passing_floor` handler is exactly the case
-   * upstream #124 is about.
+   * Not the same as {@link Elevator.moveCount}: a car sent to its own floor counts zero moves but one stop, since doors open again.
+   * A stop between floors doesn't count, since nothing opens.
    */
   stopCount = 0;
-  /** Legacy flag, kept for parity; never read by the simulation. */
+  /** Legacy flag; unused by the simulation. */
   removed = false;
 
-  /**
-   * Whether {@link Elevator.handleDestinationArrival} is still emitting.
-   *
-   * Read by the `indicatorstate_change` handler, which must not slip an extra
-   * boarding offer into the middle of the arrival sequence.
-   */
+  /** Whether {@link Elevator.handleDestinationArrival} is still emitting; blocks a nested boarding offer mid-arrival. */
   #arrivalInFlight = false;
 
   /** Indicator state as of the last `indicatorstate_change`. */
@@ -189,36 +138,10 @@ export class Elevator extends Movable<ElevatorEvents> {
   /** Stream {@link userEntering} draws its starting slot from. */
   readonly #random: RandomSource;
 
-  /**
-   * The floors this car is allowed to serve, or `null` when it serves them all.
-   *
-   * A set built once rather than the array it arrived as, because
-   * {@link serves} is asked on every floor of every passenger on every door
-   * opening — `World.#handleElevAvailability` walks the whole building — and a
-   * linear scan there is a cost the unzoned levels would pay for a feature they
-   * do not use.
-   *
-   * `null` rather than a set of every floor, so that the common case is a
-   * single reference comparison and an unzoned car cannot be slowed down by a
-   * building that happens to be tall.
-   */
+  /** Floors this car is allowed to serve; `null` means every floor. */
   readonly #servedFloors: ReadonlySet<number> | null;
 
-  /**
-   * @param speedFloorsPerSec - Top speed expressed in floors per second.
-   * @param floorCount - Number of floors in the world.
-   * @param floorHeight - Height of one floor in world units.
-   * @param maxUsers - Passenger capacity; falsy values fall back to 4, as in
-   * the legacy `maxUsers || 4`.
-   * @param random - Stream the boarding slot is drawn from. A world hands over
-   * the stream it derives from its seed for exactly this, so that a replay
-   * stands every passenger where they stood before; the unseeded default is
-   * only for callers that build an elevator outside a world.
-   * @param servedFloors - The floors this car serves, for a zoned building.
-   * Omitted or empty means every floor, which is what every level written
-   * before zoning existed gets: one spelling of "no restriction", so that a
-   * caller never has to decide between two ways of saying nothing.
-   */
+  /** @param random - Stream the boarding slot is drawn from, for replay determinism. */
   constructor(
     speedFloorsPerSec: number,
     floorCount: number,
@@ -236,7 +159,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     this.MAXSPEED = floorHeight * speedFloorsPerSec;
     this.floorCount = floorCount;
     this.floorHeight = floorHeight;
-    // Legacy `maxUsers || 4`: a missing or zero capacity falls back to four.
+    // A missing or zero capacity falls back to 4.
     this.maxUsers = maxUsers === undefined || maxUsers === 0 ? DEFAULT_MAX_USERS : maxUsers;
 
     this.buttonStates = Array.from({ length: floorCount }, () => false);
@@ -250,10 +173,7 @@ export class Elevator extends Movable<ElevatorEvents> {
       this.handleNewState();
     });
 
-    // Only on an actual change: `indicatorstate_change` re-offers boarding,
-    // which makes the world sweep every floor and every user. Player code that
-    // assigns the indicators once per frame — the obvious way to implement
-    // directional service — would otherwise pay for that sweep every frame.
+    // Only fire on an actual change: indicatorstate_change triggers a costly boarding re-offer.
     this.on("change:goingUpIndicator change:goingDownIndicator", () => {
       if (
         this.goingUpIndicator === this.#announcedIndicators.up &&
@@ -262,33 +182,16 @@ export class Elevator extends Movable<ElevatorEvents> {
         return;
       }
       this.#announcedIndicators = { up: this.goingUpIndicator, down: this.goingDownIndicator };
-      // A fresh object per dispatch: the bookkeeping copy above is never handed
-      // to a subscriber.
       this.trigger("indicatorstate_change", {
         up: this.goingUpIndicator,
         down: this.goingDownIndicator,
       });
     });
 
-    // Boarding is otherwise only ever offered from handleDestinationArrival, so
-    // a passenger the indicators turned away when the car arrived would never
-    // be reconsidered, however the player changed the indicators afterwards
-    // (issues #59, #74, #98). Re-offering the entrance — and nothing else —
-    // leaves the destination queue, the move counts and the arrival events
-    // exactly as they were.
-    //
-    // Not #124, which this once claimed as well and does not cover: there the
-    // car is stopped mid-flight from a passing_floor handler and comes to rest
-    // between floors, where no indicator can help because boarding is a
-    // question of position. `world.test.ts` reproduces it under "stopping en
-    // route".
-    //
-    // Not while the arrival sequence is still running, though: isMoving is
-    // cleared before it starts, so an indicator flip from a stopped_at_floor
-    // handler would otherwise offer boarding before exit_available had let the
-    // passengers on board off. The sequence emits its own entrance_available
-    // in the right place, with the new indicator state already in effect.
+    // Re-offers boarding when the indicators change while the car is parked, so a
+    // passenger the old indicators turned away gets another chance without the car moving.
     this.on("indicatorstate_change", () => {
+      // Avoid a nested offer while handleDestinationArrival is still emitting its own.
       if (this.#arrivalInFlight) {
         return;
       }
@@ -298,11 +201,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     });
   }
 
-  /**
-   * Teleports the car onto a floor without any travel.
-   *
-   * @param floor - Floor number to snap to.
-   */
+  /** Teleports the car onto a floor without any travel. */
   setFloorPosition(floor: number): void {
     const destination = this.getYPosOfFloor(floor);
     this.currentFloor = floor;
@@ -311,21 +210,8 @@ export class Elevator extends Movable<ElevatorEvents> {
   }
 
   /**
-   * Assigns a free slot to a boarding passenger.
-   *
-   * The scan starts at a random slot so passengers do not all pile into the
-   * same corner of the car. Which slot that is decides nothing but where the
-   * passenger is drawn: the load factor sums integer weights, `isFull` and
-   * `isEmpty` count occupants, and `userExiting` frees whichever slot the
-   * passenger took, so every answer the car gives is the same whichever free
-   * slot it hands out. It is drawn from a stream all the same, because a replay
-   * that reproduces the run but redraws the passengers is a poor replay.
-   *
-   * The draw happens before the scan, and happens even when the car turns out
-   * to be full, exactly as it always has: how many values a boarding attempt
-   * takes decides what every later attempt of the same run sees.
-   *
-   * @param user - Passenger boarding the elevator.
+   * Assigns a free slot to a boarding passenger, scanning from a random offset so passengers don't all pile into one corner.
+   * The random draw happens even when the car turns out to be full, so a replay's random stream stays in sync regardless.
    * @returns The slot position, or `false` when the car is full.
    */
   userEntering(user: ElevatorPassenger): WorldPosition | false {
@@ -340,14 +226,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     return false;
   }
 
-  /**
-   * Presses the in-car button for a floor.
-   *
-   * Out-of-range floor numbers are clamped, and pressing an already lit button
-   * emits nothing.
-   *
-   * @param floorNumber - Floor to request.
-   */
+  /** Presses the in-car button for a floor; out-of-range numbers are clamped, and pressing an already-lit button emits nothing. */
   pressFloorButton(floorNumber: number): void {
     const floor = limitNumber(floorNumber, 0, this.floorCount - 1);
     const prev = this.buttonStates[floor];
@@ -358,11 +237,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     }
   }
 
-  /**
-   * Frees every slot occupied by a passenger.
-   *
-   * @param user - Passenger leaving the elevator.
-   */
+  /** Frees every slot occupied by `user`. */
   userExiting(user: ElevatorPassenger): void {
     for (const slot of this.userSlots) {
       if (slot.user === user) {
@@ -373,61 +248,32 @@ export class Elevator extends Movable<ElevatorEvents> {
 
   /**
    * Integrates one step of the car's vertical motion.
-   *
-   * Ported line for line from `elevator.js`. In particular:
-   *
-   * - the braking test `distanceNeededToStop * 1.05 < -Math.abs(destinationDiff)`
-   *   compares a signed stopping distance against a negated magnitude; the
-   *   signs look wrong but the expression is load-bearing;
-   * - the arrival snap uses the fixed thresholds `0.5` world units and speed
-   *   `3`, independent of floor height.
-   *
+   * Do not simplify the arithmetic: the braking comparison and the `0.5`/`3` arrival-snap thresholds are exact and affect whether shipped levels are solvable.
    * @param dt - Simulated seconds since the previous step.
    */
   updateElevatorMovement(dt: number): void {
     if (this.isBusy()) {
-      // A busy elevator is always a stopped elevator, so this hides nothing.
-      // The only task an elevator is ever handed is the dwell in
-      // `ElevatorInterface.#waitAtFloor`, and both events that start one reach
-      // it from a halt: `stopped` comes from the arrival snap below, which
-      // zeroes the velocity before it emits anything, and the indicator
-      // re-offer that raises `boarding_started` first checks `isMoving`, which
-      // only that same snap clears. Nothing else assigns `velocityY`, and
-      // nothing else clears `isMoving`. `elevator.test.ts` holds the invariant
-      // against every level, three seeds and three player programs, and
-      // pins what the skipped step would do to a car if it ever did break.
-      //
-      // The legacy note here (`legacy-1.x:elevator.js:86`) wondered whether a
-      // nonzero velocity should throw instead. It stays a comment: the contract
-      // of this port is behavioral identity with legacy, and throwing would
-      // end a level on a path legacy simply drove through. What legacy did
-      // with it is skip the whole integration step, so a car frozen in flight
-      // keeps its exact position and resumes at the speed it froze at.
+      // Only the boarding dwell can make the elevator busy, and it always starts from a halt,
+      // so skipping the movement step here hides nothing.
       return;
     }
 
-    // Make sure we're not speeding
     this.velocityY = limitNumber(this.velocityY, -this.MAXSPEED, this.MAXSPEED);
 
-    // Move elevator
     this.moveTo(null, this.y + this.velocityY * dt);
 
     const destinationDiff = this.destinationY - this.y;
     const directionSign = Math.sign(destinationDiff);
     const velocitySign = Math.sign(this.velocityY);
-    // The legacy code hoisted `var acceleration = 0.0` here; the initial value
-    // was never read, and nothing outside this block uses it.
     if (destinationDiff !== 0.0) {
       if (directionSign === velocitySign) {
-        // Moving in correct direction
         const distanceNeededToStop = distanceNeededToAchieveSpeed(
           this.velocityY,
           0.0,
           this.DECELERATION,
         );
         if (distanceNeededToStop * 1.05 < -Math.abs(destinationDiff)) {
-          // Slow down
-          // Allow a certain factor of extra breaking, to enable a smooth breaking movement after detecting overshoot
+          // 10% extra braking margin, to recover smoothly from overshoot.
           const requiredDeceleration = accelerationNeededToAchieveChangeDistance(
             this.velocityY,
             0.0,
@@ -436,18 +282,15 @@ export class Elevator extends Movable<ElevatorEvents> {
           const deceleration = Math.min(this.DECELERATION * 1.1, Math.abs(requiredDeceleration));
           this.velocityY -= directionSign * deceleration * dt;
         } else {
-          // Speed up (or keep max speed...)
           const acceleration = Math.min(Math.abs(destinationDiff * 5), this.ACCELERATION);
           this.velocityY += directionSign * acceleration * dt;
         }
       } else if (velocitySign === 0) {
-        // Standing still - should accelerate
         const acceleration = Math.min(Math.abs(destinationDiff * 5), this.ACCELERATION);
         this.velocityY += directionSign * acceleration * dt;
       } else {
-        // Moving in wrong direction - decelerate as much as possible
         this.velocityY -= velocitySign * this.DECELERATION * dt;
-        // Make sure we don't change direction within this time step - let standstill logic handle it
+        // Don't let deceleration overshoot into the opposite direction this step.
         if (Math.sign(this.velocityY) !== velocitySign) {
           this.velocityY = 0.0;
         }
@@ -455,7 +298,6 @@ export class Elevator extends Movable<ElevatorEvents> {
     }
 
     if (this.isMoving && Math.abs(destinationDiff) < 0.5 && Math.abs(this.velocityY) < 3) {
-      // Snap to destination and stop
       this.moveTo(null, this.destinationY);
       this.velocityY = 0.0;
       this.isMoving = false;
@@ -474,8 +316,7 @@ export class Elevator extends Movable<ElevatorEvents> {
         this.buttonStates[this.currentFloor] = false;
         this.trigger("floor_buttons_changed", this.buttonStates, this.currentFloor);
         this.trigger("stopped_at_floor", this.currentFloor);
-        // Need to allow users to get off first, so that new ones
-        // can enter on the same floor
+        // Let users exit before offering entrance, so new ones can board on the same floor.
         this.trigger("exit_available", this.currentFloor, this);
         this.#offerEntrance();
       }
@@ -485,18 +326,8 @@ export class Elevator extends Movable<ElevatorEvents> {
   }
 
   /**
-   * Offers boarding, and says so when the offer was taken.
-   *
-   * Every boarding runs inside the `entrance_available` dispatch: the world
-   * hands the elevator to each waiting passenger, and a passenger who boards
-   * takes a slot before starting their walk-in animation. So comparing the
-   * occupied slots either side of the dispatch is an exact test of "did anybody
-   * just start boarding", without the elevator having to know anything about
-   * passengers.
-   *
-   * The `boarding_started` event carries no cost when nobody boards, which is
-   * what keeps the indicator re-offer free for player code that rewrites the
-   * indicators every frame.
+   * Offers boarding, and raises `boarding_started` if anyone actually took it.
+   * Detects that by comparing occupied slots before and after the offer, so it costs nothing when nobody boards.
    */
   #offerEntrance(): void {
     const occupiedBefore = this.#occupiedSlotCount();
@@ -506,11 +337,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     }
   }
 
-  /**
-   * Number of slots with a passenger in them.
-   *
-   * @returns The count of occupied slots.
-   */
+  /** Number of slots with a passenger in them. */
   #occupiedSlotCount(): number {
     let count = 0;
     for (const slot of this.userSlots) {
@@ -522,10 +349,7 @@ export class Elevator extends Movable<ElevatorEvents> {
   }
 
   /**
-   * Sends the car to a floor.
-   *
-   * @param floor - Destination floor; may be fractional (`stop()` uses the
-   * exact floor the car would coast to).
+   * Sends the car to a floor; may be fractional (`stop()` uses the exact floor the car would coast to).
    * @throws When the car is busy with a task.
    */
   goToFloor(floor: number): void {
@@ -536,14 +360,8 @@ export class Elevator extends Movable<ElevatorEvents> {
 
   /**
    * Lowest pressed floor button.
-   *
-   * Warns once, not once per call: this is the kind of method player code calls
-   * from `update`, which runs on every frame, so warning unconditionally buries
-   * the console — including any `console.log` the player is debugging with —
-   * under some sixty identical lines a second.
-   *
+   * Warns at most once, not once per call, since player code typically calls this every frame from `update`.
    * @deprecated Undocumented legacy API, scheduled for removal.
-   * @returns The lowest pressed floor, or `0` when nothing is pressed.
    */
   getFirstPressedFloor(): number {
     if (!firstPressedFloorWarned) {
@@ -560,11 +378,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     return 0;
   }
 
-  /**
-   * Every pressed floor button, in ascending order.
-   *
-   * @returns Array of pressed floor numbers.
-   */
+  /** Every pressed floor button, in ascending order. */
   getPressedFloors(): number[] {
     const arr: number[] = [];
     for (let i = 0; i < this.buttonStates.length; i++) {
@@ -576,33 +390,16 @@ export class Elevator extends Movable<ElevatorEvents> {
   }
 
   /**
-   * Whether this car serves a floor at all.
-   *
-   * A rule about service, not about movement: a car can still be *driven* to a
-   * floor it does not serve — {@link goToFloor} takes any floor of the
-   * building, deliberately — and the shaft is the same shaft either way. What
-   * this decides is who may board and whose call button the car's arrival
-   * clears.
-   *
-   * @param floorNum - Floor to ask about.
-   * @returns `true` when the car serves that floor, and always `true` for a car
-   * with no zone of its own.
+   * Whether this car serves a floor; a car with no zone serves every floor.
+   * Governs boarding and call-button clearing, not where {@link goToFloor} can send the car.
    */
   serves(floorNum: number): boolean {
     return this.#servedFloors === null || this.#servedFloors.has(floorNum);
   }
 
   /**
-   * Whether the indicators invite a passenger making this trip to board.
-   *
-   * A zoned car turns the trip down before the indicators are consulted:
-   * boarding a car that does not serve the destination is a ride that cannot
-   * end, and boarding one that does not serve the origin cannot begin.
-   *
-   * @param fromFloorNum - Floor the passenger is waiting on.
-   * @param toFloorNum - Floor the passenger wants to reach.
-   * @returns `true` when the car serves both ends and the matching indicator is
-   * lit, or the trip is a no-op.
+   * Whether the indicators invite a passenger traveling from `fromFloorNum` to `toFloorNum` to board.
+   * Refuses first if the car doesn't serve both floors, since such a ride could never begin or end.
    */
   isSuitableForTravelBetween(fromFloorNum: number, toFloorNum: number): boolean {
     if (!this.serves(fromFloorNum) || !this.serves(toFloorNum)) {
@@ -617,59 +414,32 @@ export class Elevator extends Movable<ElevatorEvents> {
     return true;
   }
 
-  /**
-   * World y of a floor.
-   *
-   * @param floorNum - Floor number.
-   * @returns The y coordinate of that floor; floor 0 is at the bottom, i.e. the
-   * largest y.
-   */
+  /** World y of a floor; floor 0 is at the bottom, i.e. the largest y. */
   getYPosOfFloor(floorNum: number): number {
     return (this.floorCount - 1) * this.floorHeight - floorNum * this.floorHeight;
   }
 
-  /**
-   * Fractional floor for a world y.
-   *
-   * @param y - World y coordinate.
-   * @returns The (possibly fractional) floor at that height.
-   */
+  /** Fractional floor for a world y. */
   getExactFloorOfYPos(y: number): number {
     return ((this.floorCount - 1) * this.floorHeight - y) / this.floorHeight;
   }
 
-  /**
-   * Fractional floor the car is at right now.
-   *
-   * @returns The exact current floor.
-   */
+  /** Fractional floor the car is at right now. */
   getExactCurrentFloor(): number {
     return this.getExactFloorOfYPos(this.y);
   }
 
-  /**
-   * Fractional floor the car is heading for.
-   *
-   * @returns The exact destination floor.
-   */
+  /** Fractional floor the car is heading for. */
   getDestinationFloor(): number {
     return this.getExactFloorOfYPos(this.destinationY);
   }
 
-  /**
-   * Nearest whole floor to the car's position.
-   *
-   * @returns The rounded current floor.
-   */
+  /** Nearest whole floor to the car's position. */
   getRoundedCurrentFloor(): number {
     return Math.round(this.getExactCurrentFloor());
   }
 
-  /**
-   * Fractional floor the car would coast to if it started braking now.
-   *
-   * @returns The projected stopping floor.
-   */
+  /** Fractional floor the car would coast to if it started braking now. */
   getExactFutureFloorIfStopped(): number {
     const distanceNeededToStop = distanceNeededToAchieveSpeed(
       this.velocityY,
@@ -680,16 +450,8 @@ export class Elevator extends Movable<ElevatorEvents> {
   }
 
   /**
-   * Whether the car is currently moving toward a floor.
-   *
-   * Also the engine's definition of "not passed yet": {@link handleNewState}
-   * guards every `passing_floor` event with it, so a floor the car has already
-   * crossed — for which the sign of `elevToFloor` has flipped — is never
-   * announced. `ElevatorInterface.isApproachingFloor` hands this to player code
-   * unchanged, which is what keeps the two in agreement.
-   *
-   * @param floorNum - Floor to test.
-   * @returns `true` when moving and the floor lies ahead.
+   * Whether the car is moving toward `floorNum` and hasn't passed it yet.
+   * Also gates {@link handleNewState}'s `passing_floor` event, so the two stay in agreement.
    */
   isApproachingFloor(floorNum: number): boolean {
     const floorYPos = this.getYPosOfFloor(floorNum);
@@ -697,21 +459,12 @@ export class Elevator extends Movable<ElevatorEvents> {
     return this.velocityY !== 0.0 && Math.sign(this.velocityY) === Math.sign(elevToFloor);
   }
 
-  /**
-   * Whether the car is level with a floor.
-   *
-   * @returns `true` when the exact floor equals the rounded floor within
-   * {@link "./math.ts"!EPSILON}.
-   */
+  /** Whether the car is level with a floor, within {@link "./math.ts"!EPSILON}. */
   isOnAFloor(): boolean {
     return epsilonEquals(this.getExactCurrentFloor(), this.getRoundedCurrentFloor());
   }
 
-  /**
-   * How full the car is, by passenger weight.
-   *
-   * @returns `0` when empty, `1` at the nominal full load of 100 units per slot.
-   */
+  /** How full the car is, by passenger weight; `0` empty, `1` at the nominal full load of 100 units per slot. */
   getLoadFactor(): number {
     const load = this.userSlots.reduce(
       (sum, slot) => sum + (slot.user === null ? 0 : slot.user.weight),
@@ -720,11 +473,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     return load / (this.maxUsers * 100);
   }
 
-  /**
-   * Whether every slot is taken.
-   *
-   * @returns `true` when no slot is free.
-   */
+  /** Whether every slot is taken. */
   isFull(): boolean {
     for (const slot of this.userSlots) {
       if (slot.user === null) {
@@ -734,11 +483,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     return true;
   }
 
-  /**
-   * Whether no slot is taken.
-   *
-   * @returns `true` when the car carries nobody.
-   */
+  /** Whether no slot is taken. */
   isEmpty(): boolean {
     for (const slot of this.userSlots) {
       if (slot.user !== null) {
@@ -748,15 +493,8 @@ export class Elevator extends Movable<ElevatorEvents> {
     return true;
   }
 
-  /**
-   * Recomputes derived state after any position change.
-   *
-   * Emits `new_current_floor` when the rounded floor changes, and
-   * `passing_floor` when the floor the car would coast to changes to something
-   * other than its destination.
-   */
+  /** Recomputes derived state after a position change, emitting `new_current_floor` and `passing_floor` as needed. */
   handleNewState(): void {
-    // Recalculate the floor number etc
     const currentFloor = this.getRoundedCurrentFloor();
     if (currentFloor !== this.currentFloor) {
       this.moveCount++;
@@ -765,18 +503,12 @@ export class Elevator extends Movable<ElevatorEvents> {
       this.trigger("new_current_floor", this.currentFloor);
     }
 
-    // Check if we are about to pass a floor
     const futureTruncFloorIfStopped = Math.trunc(this.getExactFutureFloorIfStopped());
     if (futureTruncFloorIfStopped !== this.previousTruncFutureFloorIfStopped) {
-      // The following is somewhat ugly.
-      // A formally correct solution should iterate and generate events for all passed floors,
-      // because the elevator could theoretically have such a velocity that it would
-      // pass more than one floor over the course of one state change (update).
-      // But I can't currently be arsed to implement it because it's overkill.
+      // Assumes at most one floor is passed per update; a faster elevator could skip an event.
       const floorBeingPassed = Math.round(this.getExactFutureFloorIfStopped());
 
-      // Never emit passing_floor event for the destination floor
-      // Because if it's the destination we're not going to pass it, at least not intentionally
+      // Not the destination floor, which the elevator stops at rather than passes.
       if (
         this.getDestinationFloor() !== floorBeingPassed &&
         this.isApproachingFloor(floorBeingPassed)

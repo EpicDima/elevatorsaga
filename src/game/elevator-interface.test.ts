@@ -22,12 +22,7 @@ function stepElevator(e: Elevator, dt: number, stepSize: number): void {
   });
 }
 
-/**
- * Steps the elevator until `predicate` holds, giving up after `maxTime`.
- *
- * Used to land exactly inside the one-second wait the interface starts when the
- * elevator reaches a queued floor.
- */
+/** Steps the elevator until `predicate` holds, giving up after `maxTime`. */
 function stepUntil(e: Elevator, predicate: () => boolean, maxTime = 10.0): void {
   const stepSize = 0.015;
   let elapsed = 0.0;
@@ -53,14 +48,6 @@ describe("Elevator interface", () => {
   });
 
   it("exposes exactly the documented surface and nothing else", () => {
-    // `triggerSafe` is this rewrite's own method and reached player code only
-    // as an inheritance side effect. Its second parameter is the error
-    // *reporter*, so `elevator.triggerSafe("idle")` sends a handler's exception
-    // to `report(undefined, error)`, where the TypeError that follows is
-    // swallowed to console.error and never reaches handleUserCodeError - the
-    // player's code fails and the game says nothing. It also exposes the
-    // re-entrancy guard, so a triggerSafe of an in-flight event is a silent
-    // no-op. `trigger` stays: interfaces.js:6 published it.
     const exposed = new Set<string>();
     for (
       let proto: object | null = elevInterface;
@@ -99,9 +86,8 @@ describe("Elevator interface", () => {
       "trigger",
     ]);
     for (const forbidden of [
-      // This rewrite's own dispatch, and the reason for the test.
       "triggerSafe",
-      // The real Elevator behind the facade, which player code must not reach.
+      // The elevator behind the facade must stay unreachable.
       "userEntering",
       "userExiting",
       "setFloorPosition",
@@ -112,8 +98,7 @@ describe("Elevator interface", () => {
       "moveTo",
       "y",
       "destinationY",
-      // Read-only too, and still not published: an answer computed from the
-      // braking curve would make this port's kinematics part of the player API.
+      // Not published: exposing it would make the braking-curve kinematics part of the player API.
       "getExactFutureFloorIfStopped",
       "getExactCurrentFloor",
     ]) {
@@ -123,8 +108,6 @@ describe("Elevator interface", () => {
   });
 
   it("forwards the whole emitter surface to the emitter it holds", () => {
-    // The facade delegates instead of inheriting, so each of these has to be
-    // wired by hand and each returns the facade, not the emitter behind it.
     const once = vi.fn();
     const removed = vi.fn();
     const kept = vi.fn();
@@ -173,11 +156,6 @@ describe("Elevator interface", () => {
     });
 
     it("prepends the event name when one handler covers several events", () => {
-      // Upstream issue #1: magwo confirms the legacy behavior is intentional,
-      // and #33 and #42 are written against it. The legacy facade was a
-      // `riot.observable(obj)` (`interfaces.js:6`), and riot dispatched with
-      // `fn.apply(el, fn.typed ? [name].concat(args) : args)` (`libs/riot.js:45`)
-      // whenever the registration listed more than one name (`libs/riot.js:11`).
       const calls: unknown[][] = [];
       elevInterface.on("stopped_at_floor passing_floor", (...args: unknown[]) => {
         calls.push(args);
@@ -230,9 +208,6 @@ describe("Elevator interface", () => {
     });
 
     it("supports the legacy one() spelling of once()", () => {
-      // riot published `one`, not `once` (`libs/riot.js:33`), and the legacy
-      // facade was a `riot.observable(obj)` (`interfaces.js:6`), so
-      // `elevator.one("idle", fn)` is what existing solutions call.
       const handler = vi.fn();
 
       expect(elevInterface.one("stopped_at_floor", handler)).toBe(elevInterface);
@@ -244,12 +219,7 @@ describe("Elevator interface", () => {
     });
 
     it('unregisters every handler on off("*")', () => {
-      // The accepted answer to upstream issue #97 ("Unbind events?") is
-      // `elevator.off('*')`, and the legacy facade was a `riot.observable(obj)`
-      // (`interfaces.js:6`), whose `off` cleared the whole callback map for
-      // that argument (`libs/riot.js:18`). Looking up an event literally named
-      // "*" finds nothing and returns successfully, so a regression here leaks
-      // every handler silently.
+      // A literal event named "*" finds nothing, so a regression here leaks every handler.
       const stopped = vi.fn();
       const idle = vi.fn();
       elevInterface.on("stopped_at_floor", stopped);
@@ -264,8 +234,6 @@ describe("Elevator interface", () => {
     });
 
     it("calls handlers with the interface as `this`", () => {
-      // Legacy riot dispatched with `fn.apply(el, ...)` (libs/riot.js:45), and
-      // the elevator interface *was* `el`.
       const seen: unknown[] = [];
       elevInterface.on("stopped_at_floor", function (this: unknown): void {
         seen.push(this);
@@ -278,7 +246,6 @@ describe("Elevator interface", () => {
     });
 
     it("supports the legacy `function () { this.goToFloor(0); }` idiom", () => {
-      // A working legacy solution: `this` inside the handler is the elevator.
       e.setFloorPosition(2);
       elevInterface.on("idle", function (this: ElevatorInterface): void {
         this.goToFloor(0);
@@ -303,9 +270,6 @@ describe("Elevator interface", () => {
     });
 
     it("keeps running the remaining handlers of an event after one throws", () => {
-      // Issue #88 (also #83, #27): the legacy tryTrigger wrapped the whole
-      // dispatch in one try/catch, so the first handler to throw silently
-      // killed every handler registered after it.
       const boom = new Error("boom");
       const second = vi.fn();
       const third = vi.fn();
@@ -381,8 +345,6 @@ describe("Elevator interface", () => {
 
   describe("destination direction", () => {
     it("reports stopped when already at the destination", () => {
-      // Kept from the legacy suite, where this spec shared the name of the one
-      // below; it actually covers the "stopped" case.
       e.setFloorPosition(1);
       elevInterface.goToFloor(1);
       expect(elevInterface.destinationDirection()).toBe("stopped");
@@ -449,8 +411,7 @@ describe("Elevator interface", () => {
 
     it("stays true for the floor the car is arriving at until it gets there", () => {
       elevInterface.goToFloor(2);
-      // currentFloor() rounds, so it reads 2 from halfway up; the floor itself
-      // is still ahead of the car at that point.
+      // currentFloor() rounds, so it reads 2 well before the car actually gets there.
       stepUntil(e, () => e.currentFloor === 2);
 
       expect(elevInterface.currentFloor()).toBe(2);
@@ -464,8 +425,7 @@ describe("Elevator interface", () => {
     });
 
     it("looks at the direction of travel, not at where the car will stop", () => {
-      // A floor past the destination counts, exactly as it does for
-      // passing_floor, which is raised for floors the car merely travels over.
+      // A floor past the destination still counts, as it does for passing_floor.
       elevInterface.goToFloor(1);
       stepElevator(e, 0.1, 0.015);
 
@@ -474,9 +434,7 @@ describe("Elevator interface", () => {
     });
 
     it("agrees with passing_floor about which floors have been passed", () => {
-      // The engine guards every passing_floor with this same predicate
-      // (`legacy-1.x:elevator.js:251`), which is why it is forwarded rather
-      // than reimplemented: player code and the event cannot disagree.
+      // Forwarded rather than reimplemented, so player code and the event cannot disagree.
       const seen: [floorNum: number, approaching: boolean][] = [];
       elevInterface.on("passing_floor", (floorNum) => {
         seen.push([floorNum, elevInterface.isApproachingFloor(floorNum)]);
@@ -510,8 +468,6 @@ describe("Elevator interface", () => {
     });
 
     it("clamps a floor outside the building, as goToFloor does", () => {
-      // One reading of a floor number across the whole facade: 99 means the top
-      // floor here just as it does for goToFloor.
       elevInterface.goToFloor(3);
       stepElevator(e, 0.1, 0.015);
 
@@ -541,9 +497,7 @@ describe("Elevator interface", () => {
 
       for (const [call, value, named] of notFloorNumbers) {
         it(`refuses ${call} instead of answering a silent false`, () => {
-          // `false` is indistinguishable from a genuine "that floor is behind
-          // us", so the typo would never surface. goToFloor refuses exactly
-          // these values, and this throw travels the same way.
+          // `false` looks identical to a genuine "already behind us", so a typo would never surface.
           elevInterface.goToFloor(3);
           stepElevator(e, 0.1, 0.015);
 
@@ -554,10 +508,7 @@ describe("Elevator interface", () => {
       }
 
       it("reports the refusal through the player's own error path", () => {
-        // How it actually reaches a player: an exception out of a handler goes
-        // to the reporter, which in a real world is `World`'s own
-        // handleUserCodeError and ends in the paused game and the "problem with
-        // your code" banner.
+        // In a real game this reaches World's error handler and pauses the game.
         elevInterface.on("idle", () => {
           looseIsApproachingFloor(undefined);
         });
@@ -615,11 +566,7 @@ describe("Elevator interface", () => {
   });
 
   it("emits nothing when an indicator is written its current value", () => {
-    // Setting the indicators unconditionally every frame is the obvious way to
-    // write directional service, and it used to raise change:goingUpIndicator
-    // (and therefore indicatorstate_change, and therefore a re-offer of
-    // boarding, and therefore a whole floor/user availability sweep in the
-    // world) on every one of those writes.
+    // Without the guard, writing every frame would cascade into a re-offer each time.
     const indicatorChange = vi.fn();
     const upChange = vi.fn();
     e.on("indicatorstate_change", indicatorChange);
@@ -679,9 +626,7 @@ describe("Elevator interface", () => {
     });
 
     it("answers full where loadFactor cannot", () => {
-      // The whole reason for exposing it. Passenger weights are a random 55 to
-      // 100 against the nominal 100 per slot, so a full car reads well under 1
-      // and a player thresholding loadFactor is guessing where "full" is.
+      // Light passengers fill every slot but read well under 1 on loadFactor.
       for (let i = 0; i < e.maxUsers; i++) {
         e.userEntering({ weight: 55 });
       }
@@ -697,8 +642,7 @@ describe("Elevator interface", () => {
     let passingFloorEventCount = 0;
     elevInterface.on("passing_floor", (floorNum) => {
       passingFloorEventCount++;
-      // We only expect to be passing floor 1, but it is possible and ok that several
-      // such events are raised, due to possible overshoot.
+      // Overshoot can raise this more than once; only floor 1 should ever be passed.
       expect(floorNum, "floor being passed").toBe(1);
       elevInterface.stop();
     });
@@ -728,9 +672,7 @@ describe("Elevator interface", () => {
       }
 
       it("reports every floor of the building for a car with no zone", () => {
-        // Never an empty array and never nothing: one shape always, so
-        // `servedFloors().includes(n)` is the whole idiom and the levels
-        // without zoning are not a special case for player code to remember.
+        // Always one shape, so callers need no special case for unzoned cars.
         expect(elevInterface.servedFloors()).toEqual([0, 1, 2, 3]);
       });
 
@@ -743,8 +685,7 @@ describe("Elevator interface", () => {
       });
 
       it("hands out a fresh array each call", () => {
-        // The reason getPressedFloors does: player code sorting or splicing the
-        // answer must not be able to reach into the engine.
+        // Player code sorting or splicing the answer must not reach into the engine.
         const zoned = facadeOver([1, 2]);
         const first = zoned.servedFloors();
         first.length = 0;
@@ -753,8 +694,7 @@ describe("Elevator interface", () => {
       });
 
       it("says nothing about where the car can be sent", () => {
-        // A zone is a rule about service, not about the shaft: goToFloor takes
-        // any floor of the building whether the car serves it or not.
+        // A zone is a rule about service, not about the shaft.
         const zoned = facadeOver([0, 1]);
         zoned.goToFloor(3);
         expect(zoned.destinationQueue).toEqual([3]);
@@ -786,9 +726,7 @@ describe("Elevator interface", () => {
     });
 
     it("books the car itself, never the facade over it", () => {
-      // The floor hands the booked car to `User.elevatorAvailable`, which
-      // compares it against the car the passenger is standing in front of. A
-      // facade booked in its place would match nothing and nobody would board.
+      // The floor compares the booked car against the one out front; a facade there would match nothing.
       waits(1, 3);
       elevInterface.takeRequest(1, 3);
 
@@ -801,7 +739,6 @@ describe("Elevator interface", () => {
     });
 
     it("refuses every booking in a building whose passengers press buttons", () => {
-      // Nobody in one ever names a floor, so there is never a journey to take.
       const hallCallFloors = createFloors(FLOOR_COUNT, FLOOR_HEIGHT, () => undefined);
       const facade = new ElevatorInterface(e, hallCallFloors, errorHandler);
       at(hallCallFloors, 1).pressUpButton();
@@ -822,8 +759,7 @@ describe("Elevator interface", () => {
     });
 
     it("says the same thing again without doing anything again", () => {
-      // So that a program may book on every frame. The floor emits on a change,
-      // and re-booking the same car is not one.
+      // Lets a program book on every frame: re-booking the same car is not a change.
       const assigned = vi.fn();
       waits(1, 3);
       elevInterface.takeRequest(1, 3);
@@ -843,10 +779,7 @@ describe("Elevator interface", () => {
     });
 
     it("rounds both floors, since a floor is a place and not a position", () => {
-      // One argument down and one up, against journeys that would take a
-      // booking either way: 1.4 is the first floor and 2.6 is the third, so
-      // rounding that only ever went up or only ever went down would book one
-      // of the other two and be caught here.
+      // 1.4 rounds down and 2.6 rounds up, so rounding only one direction would be caught.
       waits(1, 3);
       waits(2, 3);
       waits(1, 2);
@@ -858,9 +791,7 @@ describe("Elevator interface", () => {
     });
 
     it("clamps a floor outside the building rather than booking nothing", () => {
-      // `#toFloorNumber` is the one policy on a floor argument and it clamps to
-      // the building, exactly as `goToFloor` does, so there is no floor index
-      // here that could fail to name a floor.
+      // `#toFloorNumber` clamps into the building, so no argument here can fail to name a floor.
       waits(3, 0);
 
       expect(elevInterface.takeRequest(9, -4)).toBe(true);
@@ -868,10 +799,7 @@ describe("Elevator interface", () => {
     });
 
     it("books nothing when there are no floors to book on", () => {
-      // A guard rather than a case. `#toFloorNumber` clamps into the building,
-      // so the only index that can fail to name a floor is one in a building
-      // that has none; `World` never builds one, and the type checker cannot
-      // know that.
+      // World never builds a floor-less building; kept because the type checker can't know that.
       const noFloors = new ElevatorInterface(e, [], errorHandler);
 
       expect(noFloors.takeRequest(0, 1)).toBe(false);
@@ -967,8 +895,6 @@ describe("Elevator interface", () => {
     });
 
     it("idles exactly one second after emptying the queue at a floor", () => {
-      // Regression guard for the timing of the normal completion path, which
-      // the stop()/#92 fix must leave alone.
       const stepSize = 0.015;
       let elapsed = 0.0;
       let arrivedAt = Number.NaN;
@@ -994,12 +920,6 @@ describe("Elevator interface", () => {
   });
 
   describe("destinations that are not floor numbers", () => {
-    // Everything untyped player code plausibly passes by mistake that
-    // `Number()` turns into `NaN`. `limitNumber` is the legacy
-    // `Math.min(max, Math.max(num, min))` (`legacy-1.x:base.js:11`), which hands
-    // `NaN` straight back, so `legacy-1.x:interfaces.js:28` queued it as a
-    // destination: from there the car's `y`, its `currentFloor` and the head of
-    // the queue are all `NaN`, and nothing recovers it.
     const notFloorNumbers: readonly (readonly [call: string, value: unknown, named: string])[] = [
       ["goToFloor(NaN)", Number.NaN, "NaN"],
       ["goToFloor(undefined)", undefined, "undefined"],
@@ -1014,11 +934,7 @@ describe("Elevator interface", () => {
       ).goToFloor(value, forceNow);
     }
 
-    /**
-     * The single value the error handler was given.
-     *
-     * @returns Whatever was reported, as an `Error`.
-     */
+    /** The single value the error handler was given, as an `Error`. */
     function soleReport(): Error {
       expect(errorHandler).toHaveBeenCalledTimes(1);
       const reported: unknown = errorHandler.mock.calls[0]?.[0];
@@ -1041,10 +957,7 @@ describe("Elevator interface", () => {
       });
 
       it(`reports ${call} from a handler to the error handler, naming both`, () => {
-        // The route player code actually takes: a handler's exception goes to
-        // the reporter `triggerSafe` was given, which in a real world is
-        // `World`'s own `handleUserCodeError` and ends in the paused game and
-        // the "error in your program" banner.
+        // The route player code actually takes: a handler's exception reaches World's error path.
         elevInterface.on("idle", () => {
           looseGoToFloor(value);
         });
@@ -1057,11 +970,7 @@ describe("Elevator interface", () => {
     }
 
     it("refuses an infinite floor too, which used to clamp to an end of the range", () => {
-      // The one input this moves. `Math.min(max, Math.max(Infinity, 0))` is
-      // `max`, so `goToFloor(Infinity)` did queue the top floor. It is still
-      // not a floor number, and admitting it would leave the same mistake with
-      // two outcomes: `destinationQueue = [Infinity]` is never clamped, and
-      // `getYPosOfFloor` turns it into an infinite `destinationY`.
+      // Clamping alone maps Infinity to the top floor instead of throwing.
       expect(() => {
         elevInterface.goToFloor(Number.POSITIVE_INFINITY);
       }).toThrow(TypeError);
@@ -1072,8 +981,6 @@ describe("Elevator interface", () => {
     });
 
     it("leaves the elevator usable after refusing one", () => {
-      // The whole point of refusing. A bricked car ignored `stop()`, an
-      // emptied queue and every later `goToFloor` alike.
       expect(() => {
         looseGoToFloor(Number.NaN);
       }).toThrow(TypeError);
@@ -1087,8 +994,7 @@ describe("Elevator interface", () => {
     });
 
     it("drops one a hand-assigned queue brought in, and keeps the rest", () => {
-      // `destinationQueue` is documented as directly assignable, and that path
-      // never reaches `goToFloor` at all.
+      // Direct assignment to destinationQueue never reaches goToFloor at all.
       elevInterface.destinationQueue = [Number.NaN, 2];
 
       elevInterface.checkDestinationQueue();
@@ -1100,9 +1006,7 @@ describe("Elevator interface", () => {
     });
 
     it("never throws out of checkDestinationQueue, which the engine calls too", () => {
-      // `World.init` and both of the facade's own arrival paths call this. An
-      // exception here would take the simulation down rather than the player's
-      // code, so this path reports and carries on instead.
+      // An exception here would take the simulation down, not just the player's code.
       const idle = vi.fn();
       elevInterface.on("idle", idle);
       elevInterface.destinationQueue = [Number.NaN];
@@ -1136,8 +1040,7 @@ describe("Elevator interface", () => {
 
       expect(errorHandler).toHaveBeenCalledTimes(1);
 
-      // A new world builds new facades, so restarting the level with the
-      // same mistake in it is still told about it.
+      // A new world builds new facades, so a restarted level is still told about the mistake.
       const restarted = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
       restarted.setFloorPosition(0);
       const restartedInterface = new ElevatorInterface(restarted, floors, errorHandler);
@@ -1148,10 +1051,7 @@ describe("Elevator interface", () => {
     });
 
     it("leaves a finite destination outside the building exactly where it was", () => {
-      // Only what the simulation cannot compute is dropped. The legacy code
-      // handed the head of the queue over unclamped as well
-      // (`legacy-1.x:interfaces.js:19`), and a floor above the roof is still a
-      // position: the car simply drives past the end of the shaft.
+      // Only what the simulation cannot compute is dropped; an out-of-building floor is still a valid position.
       elevInterface.destinationQueue = [99];
 
       elevInterface.checkDestinationQueue();
@@ -1162,11 +1062,7 @@ describe("Elevator interface", () => {
     });
 
     it("names an array as one rather than printing its contents", () => {
-      // `String([1, 2])` is "1,2", which reads like a pair of floor numbers
-      // rather than like the mistake it is. That phrase and the one for an
-      // object are the only prose in this description -- everything else is the
-      // value the player wrote, quoted back at them -- and they are the reason
-      // the catalog has `error.value.array` and `error.value.object` at all.
+      // `String([1, 2])` is "1,2", reading like a pair of floor numbers rather than the mistake it is.
       expect(() => {
         looseGoToFloor([1, 2]);
       }).toThrow(
@@ -1178,10 +1074,7 @@ describe("Elevator interface", () => {
     });
 
     it("names an object as one, in the queue message as well", () => {
-      // The other half of the pair, and the other of the two sentences it gets
-      // composed into: `String({})` is "[object Object]", and the queue
-      // complaint is a different frame from goToFloor's, so a phrase that only
-      // reads correctly in one of them would not be caught by the test above.
+      // A different sentence from goToFloor's, so the test above wouldn't catch this one.
       elevInterface.destinationQueue = [{ floor: 2 } as unknown as number];
       elevInterface.checkDestinationQueue();
 
@@ -1193,9 +1086,7 @@ describe("Elevator interface", () => {
     });
 
     it("refuses in the language the page is in, composed phrase and all", () => {
-      // Both halves have to move together: the sentence comes from one key and
-      // the words "an array" from another, so a wiring that translated only the
-      // sentence would produce a Russian complaint about "an array".
+      // The sentence and "an array" come from separate keys; translating only one leaves English behind.
       setLocale("ru");
 
       expect(() => {
@@ -1207,10 +1098,7 @@ describe("Elevator interface", () => {
         ),
       );
 
-      // An array rather than NaN, which is what the English case above uses:
-      // NaN is spelled the same in every case and gender, so it cannot show a
-      // frame that fails to agree with the noun dropped into it. «массив» can,
-      // and did — the previous wording put a neuter verb in front of it.
+      // An array, not NaN: NaN doesn't inflect in Russian, so only a noun like «массив» can expose a mismatch.
       elevInterface.destinationQueue = [[1, 2] as unknown as number, 2];
       elevInterface.checkDestinationQueue();
 
@@ -1241,9 +1129,6 @@ describe("Elevator interface", () => {
     });
 
     it("emits idle once the elevator has coasted to a halt", () => {
-      // Issue #92: the legacy `stopped` handler only did anything when the
-      // queue head matched the stop position, so after stop() emptied the queue
-      // nothing ever re-checked it and the elevator sat there with no `idle`.
       const idle = vi.fn();
       elevInterface.on("idle", idle);
       elevInterface.goToFloor(3);
@@ -1260,8 +1145,6 @@ describe("Elevator interface", () => {
     });
 
     it("waits the boarding second before idling when it halts on a floor", () => {
-      // Issue #105: the same gap skipped the one-second dwell, so an elevator
-      // could leave again while passengers were still walking in.
       const idle = vi.fn();
       elevInterface.on("idle", idle);
 
@@ -1306,11 +1189,7 @@ describe("Elevator interface", () => {
     });
 
     it("dwells and then idles when player code empties the queue mid-flight", () => {
-      // The second route into issues #92 and #105, named by the fix but never
-      // covered: `destinationQueue = []` assigned while the car is flying. The
-      // elevator still coasts to the floor it was already sent to, and that
-      // halt has no matching queue head, so the legacy handler ignored it -
-      // no one-second boarding dwell and no `idle`, ever.
+      // The car still coasts to the floor it was sent to; that halt has no matching queue head.
       const idle = vi.fn();
       elevInterface.on("idle", idle);
       elevInterface.goToFloor(3);
@@ -1333,10 +1212,6 @@ describe("Elevator interface", () => {
 
   describe("boarding dwell", () => {
     it("holds the car for a second when boarding starts away from an arrival", () => {
-      // Upstream issue #105. The dwell used to be installed only from `stopped`,
-      // so the boarding path added for issue #59 - the indicator re-offer, which
-      // fires while the car is already standing still - had nothing holding the
-      // car while the passenger walked in.
       elevInterface.destinationQueue = [3];
 
       e.trigger("boarding_started", e);
@@ -1353,10 +1228,7 @@ describe("Elevator interface", () => {
     });
 
     it("restarts a dwell already running instead of failing on the busy car", () => {
-      // `wait` throws MovableBusyError on a busy movable, and boarding can begin
-      // in the middle of a dwell: the arrival sequence itself does it, and so
-      // does an indicator flip made while the car is still standing at a floor.
-      // The passenger who just stepped in gets a full second either way.
+      // Boarding can begin mid-dwell; the passenger still gets a full second, rather than `wait` throwing.
       elevInterface.goToFloor(2);
       stepUntil(e, () => !e.isMoving);
       expect(e.isBusy()).toBe(true);
@@ -1376,9 +1248,7 @@ describe("Elevator interface", () => {
 
   describe("idle re-entrancy", () => {
     it("emits idle once for the documented clear-and-recheck idiom", () => {
-      // documentation.html tells players to write exactly this inside an idle
-      // handler. Without a re-entrancy guard it recurses until the stack
-      // overflows, and the RangeError ends up in the error handler.
+      // Without a guard this recurses until the stack overflows.
       const idle = vi.fn(() => {
         elevInterface.destinationQueue = [];
         elevInterface.checkDestinationQueue();
@@ -1437,10 +1307,6 @@ describe("Elevator interface", () => {
 
   describe("event re-entrancy", () => {
     it("refuses to re-enter a dispatch of the event already in flight", () => {
-      // `idle` was guarded by hand; every other player-facing event was not, so
-      // a handler that re-triggered its own event recursed 2397 deep until the
-      // stack overflowed. The RangeError came back as a usercode_error, which
-      // pauses the game. Legacy riot ran such a handler exactly once.
       const stoppedAtFloor = vi.fn(() => {
         e.trigger("stopped_at_floor", 1);
       });
@@ -1453,8 +1319,7 @@ describe("Elevator interface", () => {
     });
 
     it("still nests a dispatch of a different event", () => {
-      // The guard is per event name, not a blanket "no dispatch inside a
-      // dispatch": one player event legitimately leads to another.
+      // The guard is per event name, not a blanket ban on dispatch inside a dispatch.
       const seen: string[] = [];
       elevInterface.on("stopped_at_floor", () => {
         seen.push("stopped_at_floor");
@@ -1472,8 +1337,6 @@ describe("Elevator interface", () => {
     });
 
     it("clears the marker when a handler throws", () => {
-      // riot's fn.busy was never cleared on a throw, so a handler that threw
-      // once was dead for the rest of the run (upstream issue #88).
       const boom = new Error("boom");
       const stoppedAtFloor = vi.fn(() => {
         throw boom;
@@ -1488,12 +1351,6 @@ describe("Elevator interface", () => {
     });
 
     it("absorbs player code re-triggering the event it is handling", () => {
-      // `trigger` is published surface on this facade (interfaces.js:6 wrapped
-      // it in `riot.observable`), so player code really does write this. Run
-      // against the legacy engine the same program idles once and logs no
-      // error, because riot's `fn.busy` (libs/riot.js:43-48) refused the nested
-      // call; unguarded it recurses until the stack overflows and the
-      // RangeError arrives as a usercode_error, which pauses the game.
       let calls = 0;
       elevInterface.on("idle", () => {
         calls++;
@@ -1511,9 +1368,7 @@ describe("Elevator interface", () => {
     });
 
     it("absorbs it when the engine started the dispatch, not the player", () => {
-      // The engine dispatches with triggerSafe and player code answers with
-      // trigger. Both have to consult the same in-flight set, or the guard has
-      // an escape hatch on exactly the path the player is on.
+      // The engine dispatches with triggerSafe, player code with trigger; both share the in-flight set.
       let calls = 0;
       elevInterface.on("idle", () => {
         calls++;
@@ -1522,8 +1377,7 @@ describe("Elevator interface", () => {
         }
       });
 
-      // checkDestinationQueue's empty-queue branch, i.e. how `idle` really
-      // arrives.
+      // How `idle` really arrives: checkDestinationQueue's empty-queue branch.
       expect(() => {
         elevInterface.checkDestinationQueue();
       }).not.toThrow();
@@ -1550,8 +1404,7 @@ describe("Elevator interface", () => {
     });
 
     it("lets player code trigger a different event from a handler", () => {
-      // The guard is per event name, so the facade still dispatches events
-      // player code raises by hand — the only reason `trigger` is published.
+      // The guard is per event name, so a hand-raised event still dispatches.
       const floorButtonPressed = vi.fn();
       elevInterface.on("floor_button_pressed", floorButtonPressed);
       elevInterface.on("idle", () => {

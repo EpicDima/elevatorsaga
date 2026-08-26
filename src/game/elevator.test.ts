@@ -30,15 +30,7 @@ const SWEEP_STEP_SECONDS = 1.0 / 60.0;
 /** Frames each sweep run simulates: half a minute of game time. */
 const SWEEP_FRAMES = 1800;
 
-/**
- * A deterministic stand-in for `Math.random` (mulberry32).
- *
- * The sweep below is evidence, so it has to be reproducible: a seed that trips
- * the invariant must trip it again on the next run, on any machine.
- *
- * @param seed - Chooses the stream.
- * @returns A generator of values in `[0, 1)`.
- */
+/** A deterministic stand-in for `Math.random` (mulberry32), reproducible across runs and machines. */
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
   return (): number => {
@@ -52,23 +44,13 @@ function seededRandom(seed: number): () => number {
 
 /** What one sweep saw, summed over every elevator of every run. */
 interface SweepTotals {
-  /** Movement steps that found an elevator busy. */
   busySteps: number;
-  /** Times an elevator went from having no task to having one. */
   taskStarts: number;
   /** Velocities recorded where the invariant says there can be none. */
   violations: number[];
 }
 
-/**
- * Records the velocity an elevator has whenever it is handed a task.
- *
- * Hooks the property rather than {@link Elevator.wait}, so it catches every
- * assignment to `currentTask` whatever set it — including any path added later.
- *
- * @param elevator - The elevator to watch.
- * @param onBusyStart - Called with the velocity at the moment it becomes busy.
- */
+/** Hooks the `currentTask` property rather than {@link Elevator.wait}, catching every assignment. */
 function watchTaskStarts(elevator: Elevator, onBusyStart: (velocityY: number) => void): void {
   let task: MovableTask | null = elevator.currentTask;
   Object.defineProperty(elevator, "currentTask", {
@@ -83,14 +65,7 @@ function watchTaskStarts(elevator: Elevator, onBusyStart: (velocityY: number) =>
   });
 }
 
-/**
- * Plays one level with one program, recording what the busy check saw.
- *
- * @param options - The level's world options.
- * @param codeObj - The player program to drive it with.
- * @param totals - Accumulator the run adds its observations to.
- * @returns Anything the player program threw.
- */
+/** Plays one level with one program, recording what the busy check saw, and returns whatever it threw. */
 function sweepLevel(
   options: WorldOptions,
   codeObj: UserCodeObject,
@@ -146,15 +121,7 @@ function roundRobinProgram(): UserCodeObject {
   };
 }
 
-/**
- * Directional service, rewriting the indicators on every frame.
- *
- * This is the program that exercises the indicator re-offer: every indicator
- * change can hand a standing car a boarding dwell from outside the arrival
- * sequence.
- *
- * @returns The program.
- */
+/** Directional service, rewriting the indicators every frame; exercises the indicator re-offer. */
 function directionalProgram(): UserCodeObject {
   return {
     init(elevators, floors): void {
@@ -182,13 +149,7 @@ function directionalProgram(): UserCodeObject {
   };
 }
 
-/**
- * A deliberately hostile program: stops mid-flight, jumps the queue, and
- * flips the indicators at random.
- *
- * @param random - The seeded stream its decisions are drawn from.
- * @returns The program.
- */
+/** A deliberately hostile program: stops mid-flight, jumps the queue, and flips indicators at random. */
 function erraticProgram(random: () => number): UserCodeObject {
   return {
     init(elevators, floors): void {
@@ -314,9 +275,7 @@ describe("Elevator object", () => {
     });
 
     it("serves every floor when the zone is empty", () => {
-      // The second half of the one convention: an empty list at a position in
-      // `elevatorServedFloors` has to mean the same as no list at all, so that
-      // a level zoning one car of three can leave the other two alone.
+      // An empty list must mean the same as no list at all.
       const unzoned = zoned([]);
       for (let floor = 0; floor < FLOOR_COUNT; floor++) {
         expect(unzoned.serves(floor)).toBe(true);
@@ -344,12 +303,7 @@ describe("Elevator object", () => {
     });
 
     it("still drives to a floor it does not serve", () => {
-      // Deliberate, and the decision most likely to be "fixed" by someone who
-      // has not read why: a zone is a rule about service, not about the shaft.
-      // `goToFloor` is the most-used call in the whole API, and one that
-      // silently stopped moving the car would be a level nobody can debug. The
-      // wasted trip is charged to `moveCount`, which is how the game already
-      // punishes a pointless journey.
+      // A zone is a rule about service, not about the shaft; a silently refused goToFloor would be undebuggable.
       const lower = zoned([0, 1]);
       lower.goToFloor(3);
       stepElevator(lower, 10.0, 0.015);
@@ -414,16 +368,7 @@ describe("Elevator object", () => {
   });
 
   it("approaches the destination floor without ever passing it", () => {
-    // The two tests in front of a `passing_floor` event, disagreeing, which is
-    // the whole reason there are two of them. `isApproachingFloor` answers yes
-    // for the floor the car is heading to -- it is ahead, and the car is moving
-    // -- and the event is still withheld, because arriving somewhere is not
-    // passing it.
-    //
-    // Stated once, as a fact, because it is the fact the published declaration
-    // makes a promise about: `public/elevatorsaga.d.ts` told players for a
-    // while that the event fires for floors "whether or not they are where it
-    // is going". The surrounding cases each half-imply this; none says it.
+    // passing_floor is withheld even while approaching: arriving isn't passing it.
     const passed = vi.fn();
     e.on("passing_floor", passed);
     e.goToFloor(2);
@@ -438,8 +383,6 @@ describe("Elevator object", () => {
   });
 
   it("emits passing floor events when going from floor 3 to 0", () => {
-    // The legacy spec of this name was a copy-paste of the 0 -> 3 case and
-    // never exercised downward travel; this is the real thing.
     e.setFloorPosition(3);
     const someHandler = vi.fn();
     e.on("passing_floor", someHandler);
@@ -452,8 +395,7 @@ describe("Elevator object", () => {
   });
 
   it("reports direction up when traveling from floor 0 to 3", () => {
-    // y grows downward, so traveling toward higher floor numbers means a
-    // negative velocityY, which the implementation reports as "up".
+    // y grows downward, so climbing floors means a negative velocityY, reported as "up".
     const directions: ElevatorDirection[] = [];
     e.on("passing_floor", (_floorNum, direction) => {
       directions.push(direction);
@@ -624,16 +566,10 @@ describe("Elevator object", () => {
     });
   });
 
-  // The deprecation is the point of these tests: the method is still part of
-  // the shipped API surface and must keep behaving as it always did.
+  // The method is still part of the shipped API and must keep behaving as it always did.
   /* eslint-disable @typescript-eslint/no-deprecated */
   describe("getFirstPressedFloor", () => {
-    /**
-     * Loads a fresh copy of the module, so the once-per-session warning has not
-     * been used up by whatever else ran first.
-     *
-     * @returns The `Elevator` class of a newly evaluated module instance.
-     */
+    /** Loads a fresh copy of the module, so the once-per-session warning isn't already spent. */
     async function freshElevatorClass(): Promise<typeof Elevator> {
       vi.resetModules();
       return (await import("./elevator.ts")).Elevator;
@@ -660,9 +596,7 @@ describe("Elevator object", () => {
     });
 
     it("warns once per session, not once per call", async () => {
-      // Player code calls this from update(), which runs about sixty times a
-      // second: warning on every call floods the console the player is
-      // debugging in, and the notice says the same thing every time.
+      // update() runs many times a second; warning on every call would flood the console.
       const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
       const FreshElevator = await freshElevatorClass();
       const first = new FreshElevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
@@ -713,9 +647,7 @@ describe("Elevator object", () => {
     });
 
     it("uses a randomized starting slot but always finds the free one", () => {
-      // An elevator built without a source falls back to the unseeded one, so
-      // that a caller outside a world - in practice a test - does not have to
-      // supply a stream it does not care about.
+      // Falls back to the unseeded source when built without one.
       const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.99);
       const first = e.userEntering(passenger(70));
       expect(first).toEqual(e.userSlots[e.maxUsers - 1]?.pos);
@@ -723,11 +655,7 @@ describe("Elevator object", () => {
     });
 
     it("draws the starting slot from the stream it was handed", () => {
-      // A world hands over the stream it derives from its seed, so replaying a
-      // run stands every passenger back where they stood rather than shuffling
-      // them around a car that is otherwise identical. The values below are the
-      // top and the bottom of the offset's range, so the first scan starts on
-      // the last slot and the second on the first.
+      // 0.99 and 0 are the top and bottom of the offset's range: last slot, then first.
       const global = vi.spyOn(Math, "random");
       const seeded = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT, 4, scriptedRandom([0.99, 0]));
 
@@ -738,10 +666,7 @@ describe("Elevator object", () => {
     });
 
     it("spends exactly one value per boarding attempt, a full car included", () => {
-      // What a boarding costs is what keeps a replay aligned with the run it is
-      // replaying, so it is pinned rather than left to a reading of the loop.
-      // The attempt that finds no free slot is the interesting one: it boards
-      // nobody and still draws, because the offset is picked before the scan.
+      // The offset is drawn before the scan, so a full-car attempt still consumes one value.
       const random = vi.fn(() => 0.5);
       const small = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT, 2, random);
 
@@ -810,9 +735,7 @@ describe("Elevator object", () => {
     });
 
     it("re-offers boarding when an indicator changes while parked at a floor", () => {
-      // Issues #59, #74, #98: boarding is otherwise only ever offered from
-      // handleDestinationArrival, so a passenger the indicators refused is
-      // never reconsidered once the elevator has come to rest.
+      // Otherwise a passenger the indicators refused is never reconsidered once at rest.
       const entranceAvailable = vi.fn();
       e.on("entrance_available", entranceAvailable);
 
@@ -869,13 +792,7 @@ describe("Elevator object", () => {
     });
 
     it("does not re-offer boarding from inside the arrival sequence", () => {
-      // isMoving is cleared before handleDestinationArrival runs, so an
-      // indicator flip from a stopped_at_floor handler used to satisfy the
-      // re-offer guard and fire entrance_available *before* exit_available -
-      // boarding offered before the passengers on board had a chance to get
-      // off, which is exactly what the comment above the arrival events says
-      // must not happen. The arrival sequence emits its own entrance_available
-      // moments later, with the new indicator state already in effect.
+      // isMoving clears early, so a flip mid-handler could offer boarding before exit_available.
       const seen: string[] = [];
       e.on("stopped_at_floor", () => {
         seen.push("stopped_at_floor");
@@ -909,9 +826,7 @@ describe("Elevator object", () => {
     });
 
     it("announces boarding when the re-offer actually fills a slot", () => {
-      // Upstream issue #105: whoever decides when the car may leave has to know
-      // that a passenger is mid-walk-in, and the re-offer is a boarding path
-      // the arrival sequence knows nothing about.
+      // The re-offer is a boarding path the arrival sequence knows nothing about.
       const seen: string[] = [];
       e.on("entrance_available", (elevator) => {
         seen.push("entrance_available");
@@ -928,8 +843,7 @@ describe("Elevator object", () => {
     });
 
     it("stays silent when the re-offer boards nobody", () => {
-      // What keeps the re-offer free for player code that rewrites the
-      // indicators every frame: no boarder, no dwell, no delay.
+      // Keeps the re-offer safe for player code that rewrites the indicators every frame.
       const boardingStarted = vi.fn();
       e.on("boarding_started", boardingStarted);
 
@@ -988,8 +902,7 @@ describe("Elevator object", () => {
     });
 
     it("announces boarding on arrival too, after entrance_available", () => {
-      // The same signal from both boarding paths, so the facade's dwell has one
-      // rule to follow rather than two.
+      // Same signal from both boarding paths, so the facade's dwell has one rule to follow.
       const seen: string[] = [];
       e.on("entrance_available", (elevator) => {
         seen.push("entrance_available");
@@ -1038,10 +951,8 @@ describe("Elevator object", () => {
     });
 
     it("samples how full it is on every floor it crosses", () => {
-      // Sampled on the same branch that counts the move, which is what lets
-      // `World` divide one by the other. Two of four slots at the nominal 100
-      // is a load factor of exactly 0.5, and two floors crossed at that load
-      // sum to exactly 1 -- both exact in binary, so no epsilon is wanted here.
+      // Two slots at the nominal 100 is a load factor of exactly 0.5; two floors crossed
+      // at that load sum to exactly 1, both exact in binary, so no epsilon is needed.
       e.userEntering(passenger(100));
       e.userEntering(passenger(100));
       expect(e.loadFactorSumOnMove).toBe(0);
@@ -1059,8 +970,7 @@ describe("Elevator object", () => {
     });
 
     it("counts one stop however many floors the journey crossed", () => {
-      // The whole difference between the two counters, in one journey: the
-      // doors open once at the end of it, whatever the distance was.
+      // The doors open once at the end of the journey, whatever the distance was.
       expect(e.stopCount).toBe(0);
       e.goToFloor(3);
       stepElevator(e, 10.0, 0.015);
@@ -1069,10 +979,7 @@ describe("Elevator object", () => {
     });
 
     it("counts a stop for a car sent to the floor it is already on", () => {
-      // Which is a real door opening -- the arrival sequence runs again and
-      // passengers board -- and the reason this is not derived from moveCount.
-      // It is also how a repressed floor button is answered, so it happens in
-      // ordinary play rather than only when a player asks for it.
+      // A real door opening, so this can't be derived from moveCount.
       e.goToFloor(0);
       stepElevator(e, 1.0, 0.015);
       expect(e.moveCount).toBe(0);
@@ -1080,8 +987,7 @@ describe("Elevator object", () => {
     });
 
     it("counts nothing for a car that comes to rest between floors", () => {
-      // Nothing opens, so nothing is counted: this is the position upstream
-      // #124 is about, and a stop nobody could board at is not a stop.
+      // Nothing opens, so nothing is counted; a stop nobody could board at is not a stop.
       e.goToFloor(1.5);
       stepElevator(e, 10.0, 0.015);
       expect(e.isOnAFloor()).toBe(false);
@@ -1135,27 +1041,14 @@ describe("Elevator object", () => {
   });
 });
 
-/**
- * The invariant behind the early return at the top of `updateElevatorMovement`,
- * which the legacy code wondered aloud about (`legacy-1.x:elevator.js:86`).
- */
+/** The invariant behind the early return at the top of `updateElevatorMovement`. */
 describe("a busy elevator is always a stopped elevator", () => {
-  // The timeout is raised because this test is the suite's one genuinely
-  // expensive computation and vitest runs the files in parallel: alone it takes
-  // about 0.7s, but sharing the machine with the other thirty-five files it has
-  // been measured at 5.7s, which walks straight through the 5s default. It was
-  // failing roughly one full run in three, always on the clock and never on an
-  // assertion. The default stays where it is for every other test, where five
-  // seconds really does mean something has gone wrong.
+  // The suite's one expensive computation, raised past the default timeout.
   it(
     "never has a velocity when the movement step skips it, in any level",
     { timeout: 30_000 },
     () => {
-      // Every shipped level, three seeds and three programs: the naive first
-      // solution, one that rewrites the indicators every frame, and one that
-      // stops mid-flight and jumps the queue at random. Between them they reach
-      // both callers of the dwell — arrival and the indicator re-offer — a few
-      // thousand times.
+      // Sweeps every shipped level, reaching both callers of the dwell: arrival and the re-offer.
       const totals: SweepTotals = { busySteps: 0, taskStarts: 0, violations: [] };
       for (const level of levels) {
         for (const seed of [1, 2, 3]) {
@@ -1183,10 +1076,7 @@ describe("a busy elevator is always a stopped elevator", () => {
   );
 
   it("would be caught freezing mid-flight, and would hold its speed if it did", () => {
-    // The counter-example the sweep never produces, constructed by hand: this
-    // is what the early return does with a velocity, and why the invariant is
-    // worth stating. The car neither drifts nor slows — the whole integration
-    // step is skipped — and it resumes at exactly the speed it froze at.
+    // Constructed by hand: the whole integration step is skipped, so it resumes frozen.
     const e = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
     e.setFloorPosition(0);
     e.goToFloor(3);

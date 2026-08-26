@@ -1,49 +1,8 @@
 /**
- * The tail `tutorial-solutions.test.ts` cannot see: four hundred seeds, and the
- * win counts written down to the run.
- *
- * Ten seeds decide whether a level works. They cannot decide how *often* it
- * works, and for the two levels judged on waiting that is the number that
- * matters: level 5's limit was 26 for as long as it was measured on ten seeds,
- * and on four hundred it rejected the level's own answer twenty-two times, a
- * player in eighteen being told their correct program had failed. Nothing in
- * the fast suite noticed, because on its ten seeds the answer clears 26 with
- * eleven seconds to spare. A distribution is what was wrong, so a distribution
- * is what is asserted here.
- *
- * **Exact counts, not bounds.** `toBe(76)` rather than `toBeLessThan(100)`,
- * everywhere, including the count that is not 400. An improvement is as much a
- * report of a changed engine as a regression is, and a bound would swallow it —
- * a sweep that suddenly wins twice as often has learned nothing, the physics has
- * moved, and this file exists to be the place that says so. The cost is that
- * these numbers have to be re-measured whenever the simulation legitimately
- * changes, which is the intended cost.
- *
- * **These four hundred are not evidence, they are a tripwire.** `t0`…`t199` and
- * `u0`…`u199` were unseen while the thresholds were fitted on `s0`…`s199` — but
- * levels 5 and 6 were then re-tuned against these very seeds,
- * so their counts below are in-sample and prove nothing about a limit's
- * generality. The out-of-sample check for the two limits that moved is `v0`…
- * `v199` and `w0`…`w199`, quoted where they were spent, in the table in
- * {@link "./tutorial.ts"!tutorialLevels}. What this file guarantees is narrower
- * and still worth having: these programs, on these seeds, still come out to
- * these numbers.
- *
- * **Its own loop, not the fast suite's.** The harness below is that file's
- * `playLevel` with the clock shifting taken out, deliberately: the slow run
- * asserts nothing about margin. Level 8's margin on its worst win is under a
- * second and on seed `t165` it is negative, so a margin assertion over four
- * hundred seeds could only be either vacuous or false. Margin is a thing the
- * ten seeds check, where it is meaningful; a verdict is the only thing that
- * survives being counted.
- *
- * Three levels of the eight, and the three are not arbitrary: 5 and 6 are the
- * only ones whose bar measures a maximum rather than a sum, which is what gives
- * them a tail to hide in, and 8 is the only one whose answer genuinely loses a
- * seed. The other five are decided by delivery counts with margins the ten
- * seeds measure honestly. About 3200 runs and some two seconds, which is inside
- * what this suite already spends, so it is not put behind a flag: a test that
- * runs on request is a test that runs after the breakage has shipped.
+ * Checks three learning-track levels against 400 seeds, since ten aren't
+ * enough to see how often a max-based bar accepts or rejects a program.
+ * Counts are asserted exactly, not as bounds — a bound would hide either a
+ * regression or an improvement in the underlying simulation.
  */
 
 import { describe, expect, it } from "vitest";
@@ -59,7 +18,7 @@ import { createWorld, type WorldOptions } from "./world.ts";
 /** Milliseconds per frame, at the rate most displays run at. */
 const FRAME_MILLISECONDS = 1000.0 / 60.0;
 
-/** Simulated seconds after which an undecided run is called a broken level. */
+/** Simulated seconds after which an undecided run is treated as broken, so a stuck test fails loudly. */
 const MAX_SIMULATED_SECONDS = 240.0;
 
 /** Seeds per named set. */
@@ -67,24 +26,13 @@ const SET_SIZE = 200;
 
 /**
  * The four hundred seeds every count below is over, in order.
- *
- * Generated rather than listed because the generator *is* the definition — two
- * prefixes and a counter, which anybody re-measuring has to reproduce exactly.
- * Strings rather than numbers so they take the string path into
- * {@link "./random.ts"!createRandomSource}, and two prefixes rather than one
- * because `t0`…`t399` would be one set where the counts below are over two.
+ * Generated, not listed, so re-measuring reproduces the exact same seeds; two prefixes rather than one range, so the counts below are provably over two independent sets.
  */
 const SWEEP_SEEDS: readonly RandomSeed[] = ["t", "u"].flatMap((prefix) =>
   Array.from({ length: SET_SIZE }, (_unused, index) => `${prefix}${String(index)}`),
 );
 
-/**
- * A three-floor sweep: the dumbest program that could be called a solution.
- *
- * Here rather than in the level table because no player is ever shown it. It is
- * evidence about level 8's *building* — see the test that spends it — and the
- * table is for the two programs the level is played with.
- */
+/** A three-floor sweep: the dumbest program that could be called a solution. Not in the level table since no player is ever shown it. */
 const BLIND_SWEEP = `{
     init: function(elevators, floors) {
         var elevator = elevators[0];
@@ -109,18 +57,12 @@ interface SweepResult {
 
 /**
  * Plays one program in one building on one seed, and reports the verdict.
- *
- * `App.#startRun` line for line, as the fast suite's harness is: a real world at
- * the real seed, a real controller at the real step, the condition consulted on
- * every `stats_changed` and the world frozen at the first verdict.
- *
  * @param options - The building.
  * @param condition - The bar.
  * @param code - The player program.
  * @param seed - The passengers.
  * @returns `true` when the run was won.
- * @throws When the program throws, or the run is undecided after
- * {@link MAX_SIMULATED_SECONDS}.
+ * @throws When the program throws, or the run never resolves.
  */
 function playRun(
   options: WorldOptions,
@@ -132,9 +74,9 @@ function playRun(
   const world = createWorld(options, seed);
   const worldController = createWorldController(TICK_SECONDS);
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
-  // A property rather than two locals, for the reason the fast suite's harness
-  // gives: these are written from inside callbacks the compiler's flow analysis
-  // does not follow, and a local would be narrowed to `null` at the loop below.
+  // A property, not two `let` bindings: both are written inside callbacks the
+  // compiler's flow analysis doesn't follow, so a plain local would still be
+  // narrowed to `null` here.
   const run: { verdict: boolean | null; userCodeError: unknown } = {
     verdict: null,
     userCodeError: null,
@@ -201,9 +143,6 @@ function sweep(options: WorldOptions, condition: LevelCondition, code: string): 
 
 /**
  * The level with this identifier.
- *
- * @param id - The identifier.
- * @returns The level.
  * @throws When the track has no such level.
  */
 function levelById(id: string): TutorialLevel {
@@ -216,11 +155,7 @@ function levelById(id: string): TutorialLevel {
 
 /**
  * A run count, with the seeds that lost it named.
- *
- * Failure messages here are read by somebody deciding whether a number moved
- * for a good reason, and the count alone does not tell them: 399 with a
- * different seed lost is a different event from 398.
- *
+ * The same count with a different seed lost is a different event, which the number alone can't say.
  * @param label - Names the program.
  * @param result - What the sweep came to.
  * @returns A one-line description.
@@ -235,21 +170,7 @@ function describeSweep(label: string, result: SweepResult): string {
 
 /**
  * How long one sweep is allowed to take.
- *
- * Every case in this file simulates four hundred minute-long buildings, which is
- * one to two and a half seconds of real work each -- against a default timeout
- * of five. That is not the margin it looks like: measured alone, on an idle
- * laptop, with nothing else running. Vitest runs files in parallel, coverage
- * instrumentation roughly doubles the figure, and a CI runner has two cores to
- * share out; any two of those together put the slowest case over the line, and
- * what it then reports is a timeout rather than a count, which is a red gate
- * saying nothing about the simulation.
- *
- * Generous rather than tight on purpose. The number a timeout has to beat is not
- * how long the work takes but how long somebody is willing to wait to be told a
- * test has hung, and these cases are known to be slow -- being told after half a
- * minute costs nothing, being told at five seconds that a busy machine was busy
- * costs an afternoon.
+ * Generous on purpose: each case is already slow enough that CI parallelism and coverage instrumentation can blow past the default timeout, turning a slow pass into a false failure.
  */
 const SWEEP_TIMEOUT_MS = 30_000;
 
@@ -259,10 +180,8 @@ describe("Learning track level tutorial-5 over four hundred seeds", () => {
   it(
     "never rejects its own answer",
     () => {
-      // The whole reason the limit is 37. At 26 this was 378, and the twenty-two
-      // it lost are the failure a learner cannot debug: the program they were
-      // shown as the answer, failing. Seed t61 was the worst of them, stopping
-      // the correct program at 7 of the 15 delivered.
+      // The answer must never lose here: a rejected correct program is a
+      // failure a learner has no way to debug.
       const result = sweep(level.options, level.condition, level.solutionCode);
       expect(result.wins, describeSweep("tutorial-5 answer", result)).toBe(400);
     },
@@ -272,12 +191,8 @@ describe("Learning track level tutorial-5 over four hundred seeds", () => {
   it(
     "is passed by the nine-floor sweep on the seeds that suit it, and no others",
     () => {
-      // The price of the sentence above, paid knowingly: at 26 the sweep won one
-      // of the four hundred, and at 37 it wins 76. No limit avoids both errors —
-      // the sweep's best run leaves nobody waiting longer than 25.03 s while the
-      // answer's worst leaves somebody waiting 35.88 s — so the count is written
-      // down rather than wished away. It rising is not automatically a bug; it
-      // moving at all is something to look at.
+      // No wait limit rejects every sweep run while accepting every answer
+      // run, so this count is recorded rather than driven to zero.
       const result = sweep(level.options, level.condition, level.startingCode);
       expect(result.wins, describeSweep("tutorial-5 starting code", result)).toBe(76);
     },
@@ -291,10 +206,8 @@ describe("Learning track level tutorial-6 over four hundred seeds", () => {
   it(
     "never rejects its own answer",
     () => {
-      // At the old limit of 25 this was 399: seed u59 threw out the correct
-      // program with 14 of the 15 delivered and a worst wait of 25.02 s. The ten
-      // fixed seeds could not see it and cannot see it now, which is what this
-      // file is for.
+      // The ten fixed seeds in the fast suite can't see a rare rejection like
+      // this; that's what this file is for.
       const result = sweep(level.options, level.condition, level.solutionCode);
       expect(result.wins, describeSweep("tutorial-6 answer", result)).toBe(400);
     },
@@ -304,9 +217,6 @@ describe("Learning track level tutorial-6 over four hundred seeds", () => {
   it(
     "is passed by the lying indicators three times in four hundred",
     () => {
-      // Three, at every limit from 26 to 30 — the same three seeds throughout,
-      // which is what made 28 a shelf to stand in the middle of rather than a
-      // point to balance on.
       const result = sweep(level.options, level.condition, level.startingCode);
       expect(result.wins, describeSweep("tutorial-6 starting code", result)).toBe(3);
     },
@@ -320,14 +230,9 @@ describe("Learning track level tutorial-8 over four hundred seeds", () => {
   it(
     "loses one seed with its own answer, and it is level 1 that loses it",
     () => {
-      // 399, and the missing one is not a defect of the level. At 0.3 passengers a
-      // second the fifteenth does not exist before t ≈ 46.7 s of the 60 available,
-      // and on seed t165 the answer has 14 out by the bar with the last arriving
-      // some ten seconds later. This is the number to leave alone: level 8's
-      // building and bar are level 1's, deliberately and by identity, so
-      // anything that would lift 399 to 400 does it by making the graduation level
-      // no longer the game's own first level — which is the one thing it is
-      // for. The next test makes that concrete rather than asserting it.
+      // Not a defect: level 8 reuses level 1's building and bar by design, so
+      // this missing seed is arithmetic, not a bug. The next test confirms it
+      // by replaying the same answer as level 1 itself.
       const result = sweep(level.options, level.condition, level.solutionCode);
       expect(result.wins, describeSweep("tutorial-8 answer", result)).toBe(399);
       expect(result.losingSeeds).toEqual(["t165"]);
@@ -338,11 +243,9 @@ describe("Learning track level tutorial-8 over four hundred seeds", () => {
   it(
     "loses exactly that seed when the same program is played as level 1",
     () => {
-      // The claim above, measured: the same answer, over the same four hundred
-      // seeds, in the building and against the bar taken from levels.ts
-      // rather than from the level table. Same 399, same seed. A future editor who
-      // "fixes" level 8 will find they have only moved it away from the level
-      // it is meant to rehearse.
+      // Confirms the claim above: replays the same answer against level 1's
+      // own building and bar. A future "fix" to level 8 would just be moving
+      // it away from the level it rehearses.
       const levelOne = levels[0];
       if (levelOne === undefined) {
         throw new Error("the game has no levels");
@@ -357,8 +260,7 @@ describe("Learning track level tutorial-8 over four hundred seeds", () => {
   it(
     "is not passed once by the empty program the player is given",
     () => {
-      // The other end of the track's widest gap: an empty `init` moves nothing,
-      // so no seed and no budget can rescue it.
+      // An empty `init` moves nothing, so no seed can rescue it.
       const result = sweep(level.options, level.condition, level.startingCode);
       expect(result.wins, describeSweep("tutorial-8 starting code", result)).toBe(0);
     },
@@ -368,13 +270,9 @@ describe("Learning track level tutorial-8 over four hundred seeds", () => {
   it(
     "is passed on every seed by a program that only sweeps the three floors",
     () => {
-      // Where the missing seed really lives. A car that drives 0-1-2 for ever,
-      // knowing nothing about who is waiting, wins all four hundred on this
-      // building — including t165 — while the answer wins 399. The bar is low
-      // enough that being *thorough* beats being *responsive* here, which is a
-      // fact about level 1's building rather than about either program, and
-      // it is the reason level 8 is a rehearsal rather than a lesson: the thing it
-      // teaches is that the player can now write the answer unaided.
+      // A dumb, tireless sweep clears every seed here, including the one the
+      // real answer misses: the bar rewards thoroughness over responsiveness
+      // in this particular building.
       const result = sweep(level.options, level.condition, BLIND_SWEEP);
       expect(result.wins, describeSweep("a blind three-floor sweep", result)).toBe(400);
     },

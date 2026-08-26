@@ -1,35 +1,4 @@
-/**
- * The learning-track table is a table: eight entries, buildings the game can
- * actually construct, identifiers and seeds that stay put, programs that parse.
- *
- * Everything here is about the *shape* of {@link "./tutorial.ts"!tutorialLevels}.
- * Whether a level teaches anything — whether its starting code really loses and
- * its answer really wins — is not decidable by reading the table, so it is not
- * attempted here; `tutorial-solutions.test.ts` runs the simulation and measures
- * it. The division matters because these checks are fast and total (every level,
- * every field) while that one is slow and empirical, and mixing them would hide
- * a typo behind a two-second simulation.
- *
- * The one exception is {@link expectConditionIsReachable}, which does look at a
- * bar: not to judge a program, but to catch a threshold that no program could
- * ever meet because the passengers to satisfy it have not been born yet.
- *
- * Every check over a program is made in every language. The two programs of a
- * level are messages — their `//` comments are written to the player, so they are
- * translated, and only they are — which means a level hands out one program per
- * locale and a suite that read the default one would be leaving the other
- * unchecked. `src/i18n/catalog.test.ts` holds the code identical across
- * locales; what is left to this file is that each of those programs still
- * parses and is still written the way the track's programs are written, since a
- * translated comment is a line like any other and can be too long, indented
- * wrongly, or end a template literal early.
- *
- * The other thing a message key costs is the tie between a program and its level.
- * The compiler asks whether a key exists and never whether it was written under
- * the right entry, so the sixteen programs are held apart here instead: no two
- * levels may hand out one starting program, and no two may share an answer beyond
- * the one copy the track is built on.
- */
+/** Checks the learning-track table's shape — buildings, ids, seeds, and programs that parse — not whether it teaches. */
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -39,41 +8,25 @@ import { tutorialLevels, type TutorialLevel } from "./tutorial.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 
 afterEach(() => {
-  // Every spec below that names a language leaves it named, and the table
-  // answers in whatever language was set last.
+  // Resets the locale so later specs don't inherit whichever language ran last.
   setLocale(DEFAULT_LOCALE);
 });
 
 /**
  * The buildings the rest of the game is willing to construct.
- *
- * A restatement of `SANDBOX_LIMITS` in src/pages/game/model/route.ts, which is not
- * exported; duplicated on purpose rather than reached for, because the point of the
- * check is not "the sandbox agrees" but "this building is inside the range the
- * renderer, the physics and the address bar are all exercised over". A tutorial
- * building outside it would be one nothing else in the game can produce, which
- * is the definition of untested ground — and it is ground a *teaching* level can
- * least afford, since the player is being told the run is the lesson.
+ * Duplicated from the sandbox limits rather than imported, so a tutorial building can't drift outside the range the renderer and physics are actually tested against.
  */
 const BUILDING_LIMITS = {
   /** Two is the fewest floors an elevator can have somewhere to go. */
   floorCount: { min: 2, max: 60 },
-  /** One is the fewest cars a building can be served by. */
   elevatorCount: { min: 1, max: 12 },
-  /** Passengers one car holds. */
   elevatorCapacity: { min: 1, max: 30 },
-  /** Passengers per simulated second. */
   spawnRate: { min: 0.01, max: 10 },
 } as const;
 
 /**
  * What a seed may look like.
- *
- * Mirrors `SEED_PATTERN` and `SEED_MAX_LENGTH` in src/pages/game/model/route.ts. A
- * tutorial seed is pinned in this table rather than typed into the address bar, but a
- * link to a level is a thing people share, and a seed that cannot survive a
- * round trip through `location.hash` byte for byte hands the recipient a
- * different building — the one failure mode a pinned seed exists to prevent.
+ * A pinned seed is still shared as a URL, so it must survive a round trip through `location.hash` byte for byte.
  */
 const URL_SAFE_SEED = /^[\w.-]+$/;
 
@@ -85,10 +38,7 @@ const INDENT_WIDTH = 4;
 
 /**
  * Longest line a player-facing program may contain.
- *
- * The same width the repository's own sources are formatted to, for the same
- * reason applied to a narrower pane: the editor sits beside the building, and a
- * line that wraps in it is a line the player reads twice.
+ * The same width the repo's own sources use: the in-game editor sits in a narrow pane, and a wrapped line is read twice.
  */
 const MAX_CODE_LINE_LENGTH = 100;
 
@@ -113,28 +63,7 @@ const NOTHING_HAPPENED: LevelWorldStats = {
 
 /**
  * Asserts a bar could be cleared by a program better than any that can exist.
- *
- * The bound is the spawn rate. Passengers appear one every `1 / spawnRate`
- * seconds, so no program has delivered more than *k* of them by the time the
- * *k*th arrives. The probe hands the condition that trajectory — *k* delivered
- * at `k / spawnRate` seconds, with a waiting time of zero — which is a program
- * that teleports every passenger the instant they arrive. If even that loses,
- * the level is arithmetically unwinnable and the threshold is a typo.
- *
- * Deliberately a loose bound, and loose in two directions. Real deliveries cost
- * travel time, so passing says only "not impossible", never "achievable" — the
- * achievable half is what `tutorial-solutions.test.ts` measures by running the
- * answer. And the trajectory lags the engine by one spawn interval:
- * {@link "./world.ts"!World} starts its spawn clock full, so the first
- * passenger appears at once and the *k*th at about `(k - 1) / spawnRate`. Both
- * errors point the same way — this probe can be too strict, never too lenient —
- * which is the only direction a sanity check is allowed to be wrong in.
- *
- * Against a condition made of waiting time the zero is doing all the work, and
- * the probe degenerates to "the required count is finite". That is deliberate:
- * any non-zero wait it could assume would be a guess about how far the car has
- * to drive, and a guess is the one thing a bound like this must not contain.
- *
+ * Feeds the condition the fastest trajectory physically possible — every passenger delivered the instant it spawns — so this probe can be too strict but never too lenient.
  * @param level - The level whose condition is probed.
  */
 function expectConditionIsReachable(level: TutorialLevel): void {
@@ -160,15 +89,7 @@ function expectConditionIsReachable(level: TutorialLevel): void {
 }
 
 /**
- * Asserts a program is written the way the game's other player-facing code is.
- *
- * These strings are read far more often than they are run: they are the first
- * JavaScript most players see of this API, and they sit next to
- * the program {@link "../ui/default-code.ts"!defaultCode} returns, in the same
- * editor. Four-space indentation, spaces rather than tabs and no trailing blanks
- * are what `editor.defaultCode.code` establishes; a level that arrives formatted
- * differently makes the track look like it came from somewhere else.
- *
+ * Asserts a program is formatted the way the game's other player-facing code is: four-space indentation, no tabs, no trailing whitespace.
  * @param label - Identifies the program in failure messages.
  * @param code - The program.
  */
@@ -195,14 +116,7 @@ function expectPlayerCodeStyle(label: string, code: string): void {
 }
 
 /**
- * A program with its `//` comments taken out.
- *
- * The same reduction `src/i18n/catalog.test.ts` makes, spelled again here
- * rather than shared: that file asks whether two catalog entries hold the same
- * code, this one asks whether a *level* hands out the same code whichever
- * language it is asked in, and a helper imported across that line would tie the
- * two questions together for no gain.
- *
+ * A program with its `//` comments taken out, so the same code can be compared across languages.
  * @param code - A player-facing program.
  * @returns The same program with every comment stripped.
  */
@@ -215,19 +129,9 @@ function withoutComments(code: string): string {
 
 /**
  * The levels that hand out one and the same program, grouped by that program.
- *
- * Every program on the track is reached through a message key written out by
- * hand in the entry that uses it, and a key names no level: the compiler is asked
- * whether `tutorial.level4.solutionCode.code` exists, never whether it belongs to
- * the level it was written under. A key that slipped a row still compiles, still
- * renders, still parses and still reads like a program, so the one thing left
- * that can tell is the text — and a slipped key shows up as two levels holding
- * the same text, since the program it borrowed is still being handed out by its
- * owner as well.
- *
+ * Catches a message key written under the wrong level: the compiler can't tell, but the shared text can.
  * @param programOf - Which of a level's two programs to look at.
- * @returns One group of level ids per program that more than one level hands out,
- * in the order the track plays them; empty when every level's program is its own.
+ * @returns One group of level ids per shared program; empty when every level's program is its own.
  */
 function levelsSharingAProgram(
   programOf: (level: TutorialLevel) => string,
@@ -264,27 +168,16 @@ describe("Learning track table", () => {
   });
 
   it("gives every level passengers of its own", () => {
-    // Two levels sharing a seed would share a passenger stream, which is not
-    // wrong so much as wasteful of the one thing that makes the measurements
-    // independent: a physics change that happens to be kind to one stream would
-    // then be kind to two levels at once, and the suite would notice less.
-    //
-    // Compared as text because that is how a seed is consumed: every stream
-    // goes through `String(seed)` in {@link "./random.ts"!createRandomSource},
-    // so the number 1 and the string "1" are one passenger stream wearing two
-    // types, and a set of the raw values would count them as two.
+    // Compared as text: every seed is consumed via String(seed), so the number
+    // 1 and the string "1" produce the same passenger stream and must count as
+    // one, not two.
     const seeds = tutorialLevels.map((level) => String(level.seed));
     expect(new Set(seeds).size).toBe(seeds.length);
   });
 
   it("answers the last level with the one before it, in every language", () => {
-    // Level 8 asks for nothing new, so its answer is level 7's, word for word.
-    // The two are separate messages rather than one shared string, which is
-    // deliberate: every level owning the same eight keys is what lets a
-    // translator meet no exception. What a copy costs is drift, and this is
-    // what pays for it —
-    // in both languages, since a comment added to one of them would part them
-    // just as surely as a changed line.
+    // Kept as two separate messages rather than one shared string, so a
+    // comment added to only one translation would go undetected without this check.
     for (const locale of LOCALES) {
       setLocale(locale);
       expect(tutorialLevels.at(-1)?.solutionCode, locale).toBe(tutorialLevels.at(-2)?.solutionCode);
@@ -292,15 +185,8 @@ describe("Learning track table", () => {
   });
 
   it("fills every level's editor with a program no other level hands out, in every language", () => {
-    // The mistake each level is built around is its own, so two levels handed the
-    // same program means one of them is not being taught what its entry says it
-    // is. The way that happens is a key: the programs are messages, every one of
-    // the sixteen keys is written out by hand under the level it belongs to, and
-    // nothing about `tutorial.level4.startingCode.code` says which entry it may
-    // be written under. A row that borrowed its neighbor's key is a level that
-    // fills the editor with the neighbor's program — which compiles, renders,
-    // parses, and passes every other check in this file, because it is a
-    // perfectly good program. It is just not this level's.
+    // Catches a message key copy-pasted under the wrong level: the program
+    // still compiles and parses fine, so only a shared text gives it away.
     for (const locale of LOCALES) {
       setLocale(locale);
       expect(
@@ -311,16 +197,8 @@ describe("Learning track table", () => {
   });
 
   it("answers every level with a program no other level is answered by, save the last, in every language", () => {
-    // The same argument for the other half of each entry, and it is the half
-    // where a slipped key is worst: the answer is shown to a player who has
-    // given up, and an answer belonging to another level would clear neither the
-    // level it is shown under nor any suspicion that the track is broken.
-    //
-    // One pair is deliberately the same program and is measured here rather
-    // than excused: level 8's answer is level 7's, word for word, which the spec
-    // above states as an equality and this one states as the *only* equality
-    // there is. Written out as the pair rather than as a count, so that the day
-    // the copy moves the failure names the two levels that ended up sharing.
+    // Same check as above, on answers, where level 7 and 8 sharing one is the
+    // only allowed exception.
     for (const locale of LOCALES) {
       setLocale(locale);
       expect(
@@ -334,9 +212,8 @@ describe("Learning track table", () => {
 for (const level of tutorialLevels) {
   describe(`Learning track level ${level.id}`, () => {
     it("is playable by the machinery that runs a level", () => {
-      // Assignability is the actual assertion, and it is checked by tsc rather
-      // than at runtime: if TutorialLevel ever stops being a Level, this line
-      // stops compiling and the app can no longer hand a level to `startRun`.
+      // The real assertion is that this assigns at all: if TutorialLevel ever
+      // stops being a Level, this line stops compiling.
       const asLevel: Level = level;
       expect(asLevel.condition.description).not.toBe("");
     });
@@ -357,9 +234,8 @@ for (const level of tutorialLevels) {
       expect(spawnRate).toBeGreaterThanOrEqual(BUILDING_LIMITS.spawnRate.min);
       expect(spawnRate).toBeLessThanOrEqual(BUILDING_LIMITS.spawnRate.max);
 
-      // Every level so far runs on the default four-passenger car, so this loop
-      // is empty today. It is here because the day a level sets capacities is
-      // the day the value arrives without anyone thinking about the range.
+      // Empty today since every level uses the default car; guards the day a
+      // level sets capacities explicitly.
       for (const capacity of options.elevatorCapacities ?? []) {
         expect(capacity).toBeGreaterThanOrEqual(BUILDING_LIMITS.elevatorCapacity.min);
         expect(capacity).toBeLessThanOrEqual(BUILDING_LIMITS.elevatorCapacity.max);
@@ -374,9 +250,8 @@ for (const level of tutorialLevels) {
     });
 
     it("sets a bar that decides nothing before the run has begun", () => {
-      // A condition that has already made up its mind at t = 0 would end the
-      // run on its first statistics update, before the player's program has
-      // moved anything.
+      // A condition already decided at t = 0 would end the run before the
+      // player's program has moved anything.
       expect(level.condition.evaluate(NOTHING_HAPPENED)).toBe(null);
     });
 
@@ -385,17 +260,14 @@ for (const level of tutorialLevels) {
     });
 
     it("hands the player a program that differs from the answer", () => {
-      // Not a formality: the mistake is the level. A starting program equal to
-      // its answer is a level with nothing to find, and it would still pass the
-      // solutions test's "the answer wins" half.
+      // Not a formality: a starting program equal to its answer is a level
+      // with nothing to find.
       expect(level.startingCode).not.toBe(level.solutionCode);
     });
 
     it("hands the player two programs that run, in every language", () => {
-      // A comment is prose, and prose is translated: a translation carrying a
-      // backtick, a `${` or a stray line break would not be a blemish on the
-      // program, it would be the end of it. The player it stops is the one
-      // reading the track in that language, so every language is parsed.
+      // A translated comment carrying a stray backtick, `${`, or line break
+      // would break the program outright, so every language is parsed here.
       for (const locale of LOCALES) {
         setLocale(locale);
         for (const [label, code] of [
@@ -412,10 +284,8 @@ for (const level of tutorialLevels) {
     });
 
     it("hands the player two programs written like the starter program, in every language", () => {
-      // Indentation, tabs, trailing space and line length are properties of the
-      // text rather than of the code, so a translated comment can break any of
-      // them while leaving a program that runs perfectly well and reads like it
-      // came from somewhere else.
+      // Formatting lives in the comments, so a translation can break style
+      // rules while leaving a program that still runs fine.
       for (const locale of LOCALES) {
         setLocale(locale);
         expectPlayerCodeStyle(`${level.id} starting code in ${locale}`, level.startingCode);
@@ -424,16 +294,9 @@ for (const level of tutorialLevels) {
     });
 
     it("renders its programs in the language they are read in", () => {
-      // The two fields are getters over message keys, which is the whole of what
-      // makes the track translatable: read at import time — as a field would be
-      // — both programs would freeze in whatever language was active while this
-      // module was being evaluated, and that is no language at all, since the
-      // table is built before anything has chosen one.
-      //
-      // The other half of the statement is what stays the same. Only the
-      // comments are translated, so the code with its comments stripped must be
-      // the same text in both languages, and a program that has comments must
-      // not be the same text with them.
+      // These are getters over message keys, read fresh per locale rather than
+      // frozen at import time. Only the comments should differ between
+      // languages; the code itself must stay identical.
       setLocale(DEFAULT_LOCALE);
       const english = { start: level.startingCode, answer: level.solutionCode };
       setLocale("ru");

@@ -52,9 +52,7 @@ describe("User class", () => {
   });
 
   it("announces a change of the longest-wait flag, and only a change", () => {
-    // The world sets this every frame with the same answer, so repeating
-    // itself has to be free; the passenger it is true of is standing still,
-    // so a change has to be announced or nothing would redraw them.
+    // The world sets this every frame, so repeating the same answer must be free.
     const u = new User(70);
     const redraws = vi.fn();
     u.on("new_display_state", redraws);
@@ -105,7 +103,7 @@ describe("User.appearOnFloor", () => {
   });
 
   it("presses the up button when destination equals current floor", () => {
-    // The legacy test is a strict less-than, so a same-floor trip reads as up.
+    // Same-floor trip reads as up: the comparison is strict less-than.
     const floor = floors[2];
     if (floor === undefined) throw new Error("missing floor");
     new User(70).appearOnFloor(floor, 2);
@@ -179,14 +177,8 @@ describe("User.elevatorAvailable", () => {
   });
 
   it("re-presses the call button when the elevator will not serve their direction", () => {
-    // Issue #110 ("Passengers not rehitting button"): documentation.html says
-    // of both up_button_pressed and down_button_pressed that "passengers will
-    // press the button again if they fail to enter an elevator", but only the
-    // full-elevator path did so. The floor is notified of the arriving elevator
-    // before its waiting passengers are, so an elevator whose indicators change
-    // in between - which player code does from floor button handlers - clears
-    // the call button and then turns the passenger away, leaving the floor
-    // looking as though nobody is waiting there.
+    // The floor clears the call button before its indicators can change, so a
+    // passenger turned away here must re-press it or the floor looks unattended.
     const floor = currentFloor();
     floor.elevatorAvailable(elevator);
     expect(floor.buttonStates.up).toBe("");
@@ -202,8 +194,7 @@ describe("User.elevatorAvailable", () => {
   });
 
   it("re-presses the down button for a refused passenger traveling down", () => {
-    // The mirror of the case above: the passenger's direction decides which
-    // button is pressed, exactly as on their first arrival at the floor.
+    // Mirrors the case above; direction decides which button is pressed.
     const topFloor = at(floors, FLOOR_COUNT - 1);
     const downUser = new User(70);
     downUser.appearOnFloor(topFloor, 0);
@@ -282,8 +273,7 @@ describe("User on a destination-dispatch floor", () => {
 
     expect(entered).not.toHaveBeenCalled();
     expect(user.parent).toBe(null);
-    // Their own car is still booked and still coming, so there is nothing to
-    // ask for again.
+    // Their own car is still booked and still coming.
     expect(floor.assignedElevator(2)).toBe(booked);
     expect(floor.pendingDestinations()).toEqual(new Map([[2, 1]]));
   });
@@ -296,8 +286,7 @@ describe("User on a destination-dispatch floor", () => {
   });
 
   it("boards the booked car whatever its indicators say", () => {
-    // The indicators are how a hall-call passenger decides, and they are the
-    // wrong question here: a booked car may be about to travel either way.
+    // Indicators are the wrong question for a booked car, which may travel either way.
     booked.goingUpIndicator = false;
     booked.goingDownIndicator = false;
     floor.assignElevator(2, booked);
@@ -333,8 +322,7 @@ describe("User on a destination-dispatch floor", () => {
   });
 
   it("asks for another car when the booked one arrives full", () => {
-    // Where the livelock would live: the car that was going to take them is
-    // leaving, and a hall button pressed here lights a lamp nobody reads.
+    // The car is leaving; a hall button pressed here would light a lamp nobody reads.
     for (let i = 0; i < booked.maxUsers; i++) {
       booked.userEntering({ weight: 70 });
     }
@@ -375,9 +363,7 @@ describe("User on a destination-dispatch floor", () => {
     const exited = vi.fn();
     user.on("exited_elevator", exited);
 
-    // The destination button is pressed on boarding just as it always was: a
-    // destination-dispatch building knows where its passengers are going, and
-    // takes nothing away from the car's own panel.
+    // Destination-dispatch boarding still presses the car's own panel button.
     expect(booked.getPressedFloors()).toContain(2);
     booked.goToFloor(2);
     step(10.0, 0.05, user, booked);
@@ -484,14 +470,7 @@ describe("User walk-off duration", () => {
   /** Step size the walk-off is measured with, in simulated seconds. */
   const MEASURE_STEP = 0.01;
 
-  /**
-   * Delivers a passenger to floor 2 and times their walk off to the right.
-   *
-   * @param random - Stream the passenger draws the duration from; omitted, the
-   * passenger falls back to its own.
-   * @returns Simulated seconds between stepping out and being removable,
-   * rounded up to a whole step.
-   */
+  /** Delivers a passenger to floor 2 and times their walk off, rounded up to a whole step. */
   function measureWalkOff(random?: RandomSource): number {
     const floors = makeFloors();
     const elevator = new Elevator(2.6, FLOOR_COUNT, FLOOR_HEIGHT);
@@ -520,10 +499,8 @@ describe("User walk-off duration", () => {
   }
 
   it("draws the duration from the source it was given", () => {
-    // `legacy-1.x:user.js:41` spends `1 + Math.random() * 0.5` seconds walking
-    // off, and the passenger stays in `world.users` for all of it - so this
-    // draw decides when the world drops them, and has to come from the world's
-    // seeded stream rather than the global one for a run to replay.
+    // The passenger stays in the world's user list for the whole walk-off, so this
+    // draw must come from the world's seeded stream, not the global one, to replay.
     assertWithinRange(
       measureWalkOff(() => 0),
       1.0,

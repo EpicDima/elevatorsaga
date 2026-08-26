@@ -1,10 +1,4 @@
-/**
- * Deterministic stand-in for `window.requestAnimationFrame`.
- *
- * Ported from `createFrameRequester` in the legacy `base.js`. Used by the
- * fitness simulations and by tests to advance the world in exact steps instead
- * of at the whim of the browser.
- */
+/** Deterministic stand-in for `window.requestAnimationFrame`, stepped by hand instead of the browser. */
 
 /** A `requestAnimationFrame`-shaped function: registers a callback for the next frame. */
 export type AnimationFrameRequester = (callback: (t: number) => void) => void;
@@ -19,15 +13,7 @@ export interface FrameRequester {
   trigger: () => void;
 }
 
-/**
- * Creates a frame requester that advances by a fixed step on every trigger.
- *
- * Only the most recently registered callback is kept, matching the legacy
- * behavior where the world controller re-registers itself each frame.
- *
- * @param timeStep - Milliseconds added to `currentT` per trigger.
- * @returns The frame requester.
- */
+/** Creates a frame requester that advances by a fixed step on every trigger; only the latest registered callback is kept. */
 export function createFrameRequester(timeStep: number): FrameRequester {
   let currentCb: ((t: number) => void) | null = null;
   const requester: FrameRequester = {

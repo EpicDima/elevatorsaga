@@ -11,8 +11,6 @@ afterEach(() => {
 
 describe("Movable class", () => {
   it("disallows incorrect creation", () => {
-    // Legacy `newGuard` is gone: ES classes throw natively when called
-    // without `new`.
     const faultyCreation = (): unknown => (Movable as unknown as () => unknown)();
     expect(faultyCreation).toThrow(TypeError);
   });
@@ -169,9 +167,6 @@ describe("Movable object", () => {
   });
 
   it("moves to destination over time", () => {
-    // The legacy spec passed the spy as the 4th argument (the interpolator),
-    // so it never actually asserted the completion callback. Fixed here: the
-    // interpolator is left at its default and the spy is the callback.
     const m = new Movable();
     const cb = vi.fn();
     m.moveToOverTime(2.0, 3.0, 10.0, undefined, cb);
@@ -230,9 +225,7 @@ describe("Movable object", () => {
   });
 
   it("says so in the language the page is in", () => {
-    // Player code reaches this through `elevator.wait`, so it lands in the code
-    // status bar and has to follow the locale. The console line beside it stays
-    // English on purpose: that one is for whoever is reading a stack.
+    // The thrown message follows the locale; the console.error stays English on purpose.
     setLocale("ru");
     const m = new Movable();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -263,7 +256,7 @@ describe("Movable.wait", () => {
     const cb = vi.fn();
     m.wait(1, cb);
 
-    // Exactly one second elapsed: `timeSpent > seconds` is still false.
+    // At exactly one second, timeSpent > seconds is still false.
     m.update(0.5);
     m.update(0.5);
     expect(cb).not.toHaveBeenCalled();
@@ -284,8 +277,6 @@ describe("Movable.wait", () => {
 
 describe("Movable events", () => {
   it("calls handlers with the movable as `this`", () => {
-    // `unobservable`, the emitter behind Movable, dispatched with
-    // `fn.call(this, ...)` too (libs/unobservable.js:96-97).
     const m = new Movable();
     const seen: unknown[] = [];
     m.on("new_state", function (this: unknown): void {

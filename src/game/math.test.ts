@@ -36,7 +36,6 @@ describe("limitNumber", () => {
   });
 
   it("lets max win for an inverted range, matching the legacy implementation", () => {
-    // Math.min(max, Math.max(num, min)) => Math.min(1, 5) === 1
     expect(limitNumber(3, 5, 1)).toBe(1);
   });
 });
@@ -74,12 +73,10 @@ describe("epsilonEquals", () => {
 
 describe("distanceNeededToAchieveSpeed", () => {
   it("computes (v^2 - u^2) / (2a) for acceleration from rest", () => {
-    // u = 0, v = 10, a = 5 -> (100 - 0) / 10 = 10
     expect(distanceNeededToAchieveSpeed(0, 10, 5)).toBe(10);
   });
 
   it("computes a positive distance when decelerating with negative acceleration", () => {
-    // u = 3, v = 1, a = -2 -> (1 - 9) / -4 = 2
     expect(distanceNeededToAchieveSpeed(3, 1, -2)).toBe(2);
   });
 
@@ -88,7 +85,6 @@ describe("distanceNeededToAchieveSpeed", () => {
   });
 
   it("returns a negative distance when the sign of acceleration opposes the change", () => {
-    // u = 0, v = 10, a = -5 -> 100 / -10 = -10
     expect(distanceNeededToAchieveSpeed(0, 10, -5)).toBe(-10);
   });
 
@@ -99,12 +95,10 @@ describe("distanceNeededToAchieveSpeed", () => {
 
 describe("accelerationNeededToAchieveChangeDistance", () => {
   it("computes 0.5 * ((v^2 - u^2) / d)", () => {
-    // u = 0, v = 10, d = 10 -> 0.5 * (100 / 10) = 5
     expect(accelerationNeededToAchieveChangeDistance(0, 10, 10)).toBe(5);
   });
 
   it("computes a negative acceleration when slowing down", () => {
-    // u = 3, v = 1, d = 2 -> 0.5 * (-8 / 2) = -2
     expect(accelerationNeededToAchieveChangeDistance(3, 1, 2)).toBe(-2);
   });
 
@@ -164,7 +158,6 @@ describe("powInterpolate", () => {
   });
 
   it("eases in for a > 1", () => {
-    // A steeper exponent keeps the value closer to value0 early on.
     expect(powInterpolate(0, 1, 0.25, 1.3)).toBeLessThan(0.25);
     expect(powInterpolate(0, 1, 0.75, 1.3)).toBeGreaterThan(0.75);
   });
@@ -212,10 +205,6 @@ describe("randomInt", () => {
   });
 
   it("spreads a uniform source evenly over the range", () => {
-    // The distribution is the whole contract, since it is all a legacy run
-    // could ever have observed of `Math.random`. A source sweeping [0, 1) has
-    // to land the same number of times on each of the eleven values of the
-    // one-in-eleven roll that decides where a passenger above the lobby goes.
     const draws = 11 * 500;
     const counts = new Map<number, number>();
     for (let i = 0; i < draws; i++) {
@@ -227,9 +216,6 @@ describe("randomInt", () => {
   });
 
   it("falls back to Math.random when no source is given", () => {
-    // Nothing reachable from a running world relies on this any more: the
-    // default is what keeps `randomInt` usable outside one, and what a caller
-    // that forgets a source falls back to.
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     expect(randomInt(0, 10)).toBe(5);
     vi.restoreAllMocks();

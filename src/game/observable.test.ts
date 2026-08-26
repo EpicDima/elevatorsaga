@@ -111,12 +111,6 @@ describe("Observable space-separated event names", () => {
   });
 
   it("prepends the event name for multi-name registrations", () => {
-    // Legacy riot set `fn.typed = pos > 0` while scanning the names
-    // (`libs/riot.js:11`) and dispatched with
-    // `fn.apply(el, fn.typed ? [name].concat(args) : args)` (`libs/riot.js:45`);
-    // unobservable set `fn.typed = count > 1` (`libs/unobservable.js:49`) and
-    // branched the same way (`libs/unobservable.js:96`). Upstream issue #1
-    // confirms it is intentional, and #33 and #42 rely on it.
     const emitter = makeEmitter();
     const handler = vi.fn();
     emitter.on("up_button_pressed down_button_pressed", handler);
@@ -127,9 +121,6 @@ describe("Observable space-separated event names", () => {
   });
 
   it("prepends the name ahead of every argument of the event that fired", () => {
-    // The documented `stopped_at_floor passing_floor` pairing: the two events
-    // carry different argument counts, and each handler call is the name
-    // followed by that event's own arguments.
     const emitter = makeEmitter();
     const calls: unknown[][] = [];
     emitter.on("up_button_pressed passing_floor", (...args: unknown[]) => {
@@ -146,10 +137,6 @@ describe("Observable space-separated event names", () => {
   });
 
   it("leaves single-name registrations completely unaffected", () => {
-    // Legacy prepended only when the registration listed more than one name, so
-    // the ordinary one-event registration must see exactly the event's own
-    // arguments — including when the same function is also registered for
-    // several events.
     const emitter = makeEmitter();
     const handler = vi.fn();
     emitter.on("passing_floor", handler);
@@ -164,9 +151,6 @@ describe("Observable space-separated event names", () => {
   });
 
   it("prepends for a multi-name once registration too", () => {
-    // `once`/`one` take a single name, but `off`-less legacy code could still
-    // reach the multi-name path through `on`; a `once` entry carries the same
-    // flag, so the two mechanisms do not interfere.
     const emitter = makeEmitter();
     const handler = vi.fn();
     emitter.on("idle up_button_pressed", handler);
@@ -262,11 +246,7 @@ describe("Observable.off", () => {
   });
 
   it('off("*") removes handlers for every event', () => {
-    // riot (`libs/riot.js:18`) and unobservable (`libs/unobservable.js:53`)
-    // both opened `off` with `if (events === "*") callbacks = {}`, and upstream
-    // issue #97 ("Unbind events?") was answered with `elevator.off('*')`. A
-    // literal lookup of the name "*" finds nothing and returns successfully, so
-    // getting this wrong leaks every handler with no error and no output.
+    // A literal lookup of "*" would find nothing and silently no-op, leaking every handler.
     const emitter = makeEmitter();
     const up = vi.fn();
     const idle = vi.fn();
@@ -282,7 +262,6 @@ describe("Observable.off", () => {
   });
 
   it('off("*", handler) ignores the handler and still removes everything', () => {
-    // Both legacy emitters tested for the wildcard before they looked at `fn`.
     const emitter = makeEmitter();
     const named = vi.fn();
     const other = vi.fn();
@@ -380,10 +359,6 @@ describe("Observable.once", () => {
 
 describe("Observable.one", () => {
   it("is the legacy spelling of once", () => {
-    // Both legacy emitters published `one` and neither published `once`
-    // (`libs/riot.js:33`, `libs/unobservable.js:84`), so this is the name every
-    // solution written against the old game uses. Without it, the call is a
-    // TypeError.
     const emitter = makeEmitter();
     const handler = vi.fn();
 
@@ -409,8 +384,6 @@ describe("Observable.one", () => {
 
 describe("Observable mutation during dispatch", () => {
   it("lets a handler remove itself without skipping the next handler", () => {
-    // This is what User.handleExit does: it calls
-    // elevator.off("exit_available", handler) from inside the dispatch.
     const emitter = makeEmitter();
     const order: string[] = [];
     const selfRemoving = (): void => {
@@ -467,11 +440,7 @@ describe("Observable mutation during dispatch", () => {
   });
 
   it("diverges from legacy: a handler added during a dispatch skips the in-flight event", () => {
-    // Deliberate divergence. Both legacy emitters iterated a live array
-    // (libs/riot.js:40-42; libs/unobservable.js:94, "len can change during
-    // iteration"), so a handler registered mid-dispatch *did* run for the event
-    // already in flight. Snapshot iteration matches the DOM EventTarget model
-    // and cannot livelock; see the module docblock.
+    // Snapshot iteration: a handler added mid-dispatch doesn't see the event already in flight.
     const emitter = makeEmitter();
     const added = vi.fn();
     emitter.on("idle", () => {
@@ -499,8 +468,6 @@ describe("Observable mutation during dispatch", () => {
   });
 
   it("diverges from legacy: re-adding a removed handler mid-dispatch does not re-run it", () => {
-    // Same divergence as above, and the reason it is the safer default: with a
-    // live array this handler would have re-appended itself forever.
     const emitter = makeEmitter();
     let calls = 0;
     const handler = (): void => {
@@ -518,8 +485,6 @@ describe("Observable mutation during dispatch", () => {
 
 describe("Observable re-entrancy", () => {
   it("supports triggering another event from inside a handler", () => {
-    // User.handleExit triggers exited_elevator/new_state/new_display_state
-    // while the elevator is dispatching exit_available.
     const emitter = makeEmitter();
     const order: string[] = [];
     emitter.on("up_button_pressed", () => {
@@ -535,11 +500,7 @@ describe("Observable re-entrancy", () => {
   });
 
   it("supports re-triggering the same event from inside a handler, as unobservable did", () => {
-    // Matches `unobservable`, which had no re-entrancy guard. riot would have
-    // stopped after the first call, because `fn.busy` was still set on the
-    // handler that did the re-triggering. This is how the simulation talks to
-    // itself, so it stays unguarded; the player-facing dispatch is guarded by
-    // PlayerObservable below.
+    // Unguarded because this is how the simulation talks to itself; player-facing dispatch is guarded by PlayerObservable below.
     const emitter = makeEmitter();
     const seen: number[] = [];
     emitter.on("up_button_pressed", (floor) => {
@@ -571,8 +532,7 @@ describe("Observable re-entrancy", () => {
   });
 
   it("propagates a throwing handler and skips the remaining handlers", () => {
-    // Plain `trigger` has no error handling at all. Dispatches that reach
-    // player code use `triggerSafe` instead.
+    // Plain `trigger` has no error handling; dispatches reaching player code use `triggerSafe` instead.
     const emitter = makeEmitter();
     const never = vi.fn();
     emitter.on("idle", () => {
@@ -634,9 +594,6 @@ describe("PlayerObservable", () => {
   });
 
   it("refuses to re-enter a trigger dispatch of the same event", () => {
-    // `trigger` is published on the elevator facade (interfaces.js:6 made it a
-    // `riot.observable`), so player code reaches it and the guard has to cover
-    // it too. riot's own `fn.busy` (libs/riot.js:43-48) is what absorbed this.
     const emitter = new PlayerObservable<TestEvents>();
     const seen: number[] = [];
     emitter.on("up_button_pressed", (floor) => {
@@ -652,9 +609,7 @@ describe("PlayerObservable", () => {
   });
 
   it("refuses a trigger nested inside a triggerSafe of the same event", () => {
-    // The two methods share one in-flight set, so neither is an escape hatch
-    // out of the other. This is the shape that actually reaches players: the
-    // engine dispatches with triggerSafe and the handler calls trigger.
+    // The two methods share one in-flight set; neither is an escape hatch out of the other.
     const emitter = new PlayerObservable<TestEvents>();
     const onError = vi.fn();
     const seen: number[] = [];
@@ -704,9 +659,7 @@ describe("PlayerObservable", () => {
   });
 
   it("clears the marker after a trigger whose handler threw", () => {
-    // `trigger` lets the exception out, so the guard has to be released on the
-    // way past it — riot's `fn.busy` was not, and the handler was dead for the
-    // rest of the run (upstream issue #88).
+    // `trigger` lets the exception out, so the guard must be released on the way past it too.
     const emitter = new PlayerObservable<TestEvents>();
     const handler = vi.fn(() => {
       throw new Error("boom");
@@ -736,10 +689,6 @@ describe("PlayerObservable", () => {
 
 describe("PlayerObservable.triggerSafeKeyed", () => {
   it("lets one event nest inside itself under two different keys", () => {
-    // The point of the method. `FloorInterface` dispatches
-    // `hall_button_pressed` under a key per direction, because one press of the
-    // up button and one of the down button are two calls that both have to be
-    // heard even though they share an event name.
     const emitter = new PlayerObservable<TestEvents>();
     const onError = vi.fn();
     const seen: number[] = [];
@@ -779,9 +728,7 @@ describe("PlayerObservable.triggerSafeKeyed", () => {
   });
 
   it("shares the in-flight set with the unkeyed methods", () => {
-    // One set, so a key that *is* an event name is that event's own mark: a
-    // caller cannot reach a nested dispatch of an event already in flight by
-    // spelling its name through this method instead.
+    // A key that is an event name is that event's own mark, so this method can't be used to bypass the guard on it.
     const emitter = new PlayerObservable<TestEvents>();
     const onError = vi.fn();
     const seen: number[] = [];
@@ -799,11 +746,7 @@ describe("PlayerObservable.triggerSafeKeyed", () => {
   });
 
   it("marks only the key, so the event's own name stays free", () => {
-    // The other direction of the same rule, and the one a caller has to think
-    // about: a keyed dispatch does not mark the event, so an unkeyed dispatch
-    // of it from inside a handler still runs. What bounds that is the caller's
-    // own bookkeeping — `FloorInterface` marks the call in flight before it
-    // dispatches anything — not this method.
+    // A keyed dispatch doesn't mark the event itself, so an unkeyed dispatch of it from inside a handler still runs.
     const emitter = new PlayerObservable<TestEvents>();
     const onError = vi.fn();
     const seen: number[] = [];
@@ -816,8 +759,7 @@ describe("PlayerObservable.triggerSafeKeyed", () => {
 
     emitter.triggerSafeKeyed("call:up", "up_button_pressed", onError, 1);
 
-    // Two deep, not three: the nested `triggerSafe` marks the name as usual, so
-    // it is the one that refuses the level below it.
+    // Two deep, not three: the nested `triggerSafe` marks the name as usual and refuses the level below it.
     expect(seen).toEqual([1, 2]);
     expect(onError).not.toHaveBeenCalled();
   });
@@ -855,8 +797,6 @@ describe("PlayerObservable.triggerSafeKeyed", () => {
 
 describe("Observable handler receiver", () => {
   it("calls handlers with the emitter as `this`, as riot did", () => {
-    // libs/riot.js:45 dispatched with `fn.apply(el, ...)`, so the legacy idiom
-    // `elevators[0].on("idle", function() { this.goToFloor(0); })` worked.
     const emitter = makeEmitter();
     const seen: unknown[] = [];
     emitter.on("idle", function (this: unknown): void {
@@ -900,10 +840,6 @@ describe("Observable handler receiver", () => {
   });
 
   it("never hands a handler the emitter's internal bookkeeping", () => {
-    // The dispatch used to invoke `entry.handler(...)`, which made `this` the
-    // internal handler record `{handler, once, removed}`: player code was given
-    // a live internal object, and writing `this.removed = true` from a handler
-    // silently unregistered it from every later dispatch.
     const emitter = makeEmitter();
     const later = vi.fn();
     const selfDestructing = vi.fn(function (this: Record<string, unknown>): void {
@@ -954,10 +890,8 @@ describe("Observable.triggerSafe", () => {
   });
 
   it("keeps dispatching when the error handler itself throws", () => {
-    // The reporter escaped the dispatch and took the remaining handlers with
-    // it - exactly the failure triggerSafe exists to prevent, one level up.
-    // Reporters here end in a usercode_error dispatch, so anything subscribed
-    // to that is on this path.
+    // A throwing reporter must not take out the remaining handlers, the same
+    // failure triggerSafe exists to prevent for the dispatch itself.
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const emitter = makeEmitter();
     const boom = new Error("boom");
