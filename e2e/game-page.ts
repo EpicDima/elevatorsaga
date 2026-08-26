@@ -97,9 +97,9 @@ export async function languagePicker(page: Page): Promise<Locator> {
 }
 
 /**
- * One value from the statistics panel, found by its tile's caption (`exact`,
- * since "Transported" prefixes "Transported/s") since the value itself has no
- * accessible name. Opens the "All figures" disclosure directly, so repeated calls don't race a redraw.
+ * One value from the statistics panel, found by its tile's caption (`exact`, since
+ * "Transported" prefixes "Transported per sec") since the value itself has no accessible
+ * name. Opens the "All figures" disclosure directly, so repeated calls don't race a redraw.
  */
 export async function statistic(page: Page, label: string): Promise<Locator> {
   await page.locator(".statspanel .more").evaluate((details) => {

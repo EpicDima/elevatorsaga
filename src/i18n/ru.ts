@@ -27,7 +27,7 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "page.stats.elapsedTime": "Прошло времени",
   "page.stats.elapsedTimeTitle":
     "Собственные часы прогона: регулятор скорости заставляет их идти быстрее или медленнее настоящих, и в них измерено всякое другое время на этой панели",
-  "page.stats.transportedPerSec": "Перевезено/с",
+  "page.stats.transportedPerSec": "Перевезено в сек.",
   "page.stats.transportedPerSecTitle":
     "Все доставленные к этому моменту, делённые на время прогона, так что это среднее за весь прогон, а не скорость прямо сейчас",
   "page.stats.avgWaitTime": "Сред. доставка",

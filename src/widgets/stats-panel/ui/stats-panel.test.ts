@@ -141,7 +141,7 @@ describe("presentStatsPanel", () => {
     expect(cap("avgWaitTime")).toBe("Avg delivery time");
     expect(cap("maxWaitTime")).toBe("Max delivery time");
     expect(cap("avgLoadFactorOnMove")).toBe("Avg load");
-    expect(cap("transportedPerSec")).toBe("Transported/s");
+    expect(cap("transportedPerSec")).toBe("Transported per sec");
     expect(cap("transportedCounter")).toBe("Transported");
     expect(cap("avgPickupTime")).toBe("Avg wait for a car");
     expect(cap("avgRideTime")).toBe("Avg ride time");
@@ -178,7 +178,7 @@ describe("presentStatsPanel", () => {
       "Everyone delivered so far, over the time the run has taken, so it is the whole run's average rather than the rate at this moment",
     );
     // The card also carries the caption in full; the grids truncate it to one line.
-    expect(requireElement(".statcard-title", parent).textContent).toBe("Transported/s");
+    expect(requireElement(".statcard-title", parent).textContent).toBe("Transported per sec");
   });
 
   it("makes every tile a tab stop a screen reader has a name for", () => {

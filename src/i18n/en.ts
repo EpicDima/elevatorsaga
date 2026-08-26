@@ -27,7 +27,8 @@ export const EN_MESSAGES = {
   "page.stats.elapsedTime": "Elapsed time",
   "page.stats.elapsedTimeTitle":
     "The run's own clock, which the speed control makes pass faster or slower than real time, and which every other time in this panel is measured in",
-  "page.stats.transportedPerSec": "Transported/s",
+  // The unit spelled out: a slash all but disappears at the caption's small uppercase size.
+  "page.stats.transportedPerSec": "Transported per sec",
   "page.stats.transportedPerSecTitle":
     "Everyone delivered so far, over the time the run has taken, so it is the whole run's average rather than the rate at this moment",
   // The full journey (spawn to delivery), not just the wait; see
