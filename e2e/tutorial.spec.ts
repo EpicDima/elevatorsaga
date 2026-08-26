@@ -638,6 +638,58 @@ test("scrolls a house too tall for the pane in the same box as the lesson", asyn
   expect(measured.groundShown, "the ground floor at the foot of the scroll").toBe(true);
 });
 
+test("scrolls a chapter two briefing and its house in the same box", async ({ page }) => {
+  // The card is a briefing here rather than a lesson - the same box in the column, drawn by
+  // another widget - and chapter two's houses are the game's tall ones. Measured at the
+  // smallest window the game supports, where ten floors don't fit the pane.
+  await page.setViewportSize({ width: 1040, height: 600 });
+  await page.goto("/#level=2-2");
+  await expect(page.locator(".briefingpanel")).toBeVisible();
+
+  const measured = await page.locator(".stagearea").evaluate((area) => {
+    const card = area.querySelector(".tutorial");
+    const world = area.querySelector(".world");
+    const building = area.querySelector(".building");
+    const lobby = area.querySelector(".levels .floor");
+    if (card === null || world === null || building === null || lobby === null) {
+      throw new Error("the stage area is missing the card or the building");
+    }
+    const nested = [...area.querySelectorAll("*")]
+      .filter((box) => box.scrollHeight - box.clientHeight > 1)
+      .map((box) => box.className);
+    const stacked = world.getBoundingClientRect().top - card.getBoundingClientRect().bottom;
+    const opened = Math.round(area.scrollTop);
+    area.scrollTop = area.scrollHeight;
+    const view = area.getBoundingClientRect();
+    const foot = building.getBoundingClientRect();
+    const ground = lobby.getBoundingClientRect();
+    return {
+      nested,
+      stacked,
+      opened,
+      port: area.clientHeight,
+      worldHeight: world.getBoundingClientRect().height,
+      buildingHeight: foot.height,
+      overhang: foot.bottom - view.bottom,
+      groundShown: ground.top >= view.top - 1 && ground.bottom <= view.bottom + 1,
+    };
+  });
+
+  expect(measured.opened, "the briefing on arrival").toBe(0);
+  // Stacked, not overlaid: the card ends where the house begins, and neither is drawn over the other.
+  expect(measured.stacked, "the briefing overlapping the house").toBeGreaterThanOrEqual(0);
+  expect(measured.nested, "a second scroll inside the stage area").toEqual([]);
+  expect(
+    measured.buildingHeight,
+    "chapter two's second house fits the pane after all",
+  ).toBeGreaterThan(measured.port);
+  expect(measured.worldHeight, "the building's own box").toBeGreaterThanOrEqual(
+    measured.buildingHeight,
+  );
+  expect(measured.overhang, "the building at the foot of the scroll").toBeLessThanOrEqual(1);
+  expect(measured.groundShown, "the ground floor at the foot of the scroll").toBe(true);
+});
+
 test("costs the levels nothing: the widest building in the game still fits its pane", async ({
   page,
 }) => {
