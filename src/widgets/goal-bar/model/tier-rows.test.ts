@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { buildTierRows } from "./tier-rows.ts";
 import type { Level, LevelWorldStats } from "#entities/level/index.ts";
-import { atLeastAvgLoadFactorOnMove, requireAll, underElapsedTime } from "#game/level-tiers.ts";
+import {
+  WINNING_IS_GOLD,
+  atLeastAvgLoadFactorOnMove,
+  requireAll,
+  underElapsedTime,
+} from "#game/level-tiers.ts";
 import { requireUserCountWithinTime } from "#game/levels.ts";
 
 const NOTHING_HAPPENED: LevelWorldStats = {
@@ -29,9 +34,10 @@ const LEVEL: Level = {
   },
 };
 
-const BRONZE_ONLY_LEVEL: Level = {
+const GOLD_ON_WIN_LEVEL: Level = {
   options: {},
   condition: requireUserCountWithinTime(5, 30),
+  tiers: WINNING_IS_GOLD,
 };
 
 const NOTHING_TO_METER_LEVEL: Level = {
@@ -41,6 +47,7 @@ const NOTHING_TO_METER_LEVEL: Level = {
     evaluate: () => null,
     requirements: [],
   },
+  tiers: WINNING_IS_GOLD,
 };
 
 describe("buildTierRows", () => {
@@ -49,11 +56,20 @@ describe("buildTierRows", () => {
     expect(buildTierRows(NOTHING_TO_METER_LEVEL, NOTHING_HAPPENED, true)).toEqual([]);
   });
 
-  it("builds only a bronze row for a level with no silver/gold requirements", () => {
+  it("builds one gold row, carrying the level's own bar, for a level that grades nothing", () => {
     const world = { ...NOTHING_HAPPENED, transportedCounter: 5, elapsedTime: 20 };
-    const rows = buildTierRows(BRONZE_ONLY_LEVEL, world, true);
-    expect(rows.map((row) => row.tier)).toEqual(["bronze"]);
+    const rows = buildTierRows(GOLD_ON_WIN_LEVEL, world, true);
+    expect(rows.map((row) => row.tier)).toEqual(["gold"]);
     expect(rows[0]?.state).toBe("held");
+    expect(rows[0]?.requirements.map((need) => need.requirement)).toEqual(
+      GOLD_ON_WIN_LEVEL.condition.requirements,
+    );
+  });
+
+  it("marks that lone gold row lost once such a level has ended without winning", () => {
+    const world = { ...NOTHING_HAPPENED, transportedCounter: 2, elapsedTime: 30 };
+    const rows = buildTierRows(GOLD_ON_WIN_LEVEL, world, false);
+    expect(rows.map((row) => [row.tier, row.state])).toEqual([["gold", "lost"]]);
   });
 
   it("reads every row as pending while the run is still undecided, and never flags an unmet at-least requirement as a miss", () => {

@@ -10,7 +10,9 @@ export { nextTierHint } from "./ui/tier-hint.ts";
 export { TIER_NAME_KEY } from "./ui/tier-name.ts";
 export {
   LEVEL_TIERS,
+  WINNING_IS_GOLD,
   evaluateLevelTier,
+  hasTierLadder,
   type LevelTier,
   type LevelTierRequirements,
   type TierRequirementComparison,

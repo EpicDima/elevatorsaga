@@ -9,6 +9,7 @@ import {
   type LevelCondition,
 } from "./levels.ts";
 import {
+  WINNING_IS_GOLD,
   requireAll,
   underAvgWaitTime,
   underElapsedTime,
@@ -27,8 +28,8 @@ export interface SkyscraperLevel {
   readonly options: WorldOptions;
   /** The bar that decides the run, built with the level constructors. */
   readonly condition: LevelCondition;
-  /** Silver and gold on top of the win/lose {@link condition}; omitted means bronze is the only medal. */
-  readonly tiers?: LevelTierRequirements;
+  /** Silver and gold on top of the win/lose {@link condition}; `WINNING_IS_GOLD` on the demo levels, where clearing is the whole achievement. */
+  readonly tiers: LevelTierRequirements;
   /** The seed this level is played on, pinned unlike levels 1-19. */
   readonly seed: RandomSeed;
   /** The program the editor opens with; required here since every level tests a mechanic the numbered levels don't. */
@@ -56,6 +57,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     id: "sky-1",
     options: { floorCount: 12, elevatorCount: 3, spawnRate: 1.2, elevatorCapacities: [8] },
     condition: requireUserCountWithinMoves(40, 170),
+    tiers: WINNING_IS_GOLD,
     seed: 4,
     get startingCode(): string {
       return t("skyscraper.sky1.startingCode.code");
@@ -72,6 +74,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
       trafficProfile: "up-peak",
     },
     condition: requireUserCountWithinMoves(20, 60),
+    tiers: WINNING_IS_GOLD,
     seed: 0,
     get startingCode(): string {
       return t("skyscraper.sky2.startingCode.code");
@@ -118,6 +121,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
       trafficProfile: "down-peak",
     },
     condition: requireUserCountWithinMoves(25, 125),
+    tiers: WINNING_IS_GOLD,
     seed: 2,
     get startingCode(): string {
       return t("skyscraper.sky4.startingCode.code");
@@ -158,6 +162,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
       trafficProfile: "lunch",
     },
     condition: requireUserCountWithinMoves(20, 56),
+    tiers: WINNING_IS_GOLD,
     seed: 0,
     get startingCode(): string {
       return t("skyscraper.sky6.startingCode.code");
@@ -203,6 +208,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
       ],
     },
     condition: requireUserCountWithMaxWaitTime(20, 35),
+    tiers: WINNING_IS_GOLD,
     seed: 0,
     get startingCode(): string {
       return t("skyscraper.sky8.startingCode.code");
@@ -286,6 +292,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
       destinationDispatch: true,
     },
     condition: requireUserCountWithMaxWaitTime(20, 45),
+    tiers: WINNING_IS_GOLD,
     seed: 0,
     get startingCode(): string {
       return t("skyscraper.sky11.startingCode.code");

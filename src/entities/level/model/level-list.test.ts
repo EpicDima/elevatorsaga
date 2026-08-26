@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { listLevels } from "./level-list.ts";
+import { WINNING_IS_GOLD } from "#game/level-tiers.ts";
 import { requireUserCountWithinTime, type Level } from "#game/levels.ts";
 
 /** Builds a fixture level; its condition and options are never inspected by {@link listLevels}. */
 function fixtureLevel(): Level {
-  return { options: {}, condition: requireUserCountWithinTime(5, 60) };
+  return { options: {}, condition: requireUserCountWithinTime(5, 60), tiers: WINNING_IS_GOLD };
 }
 
 describe("listLevels", () => {

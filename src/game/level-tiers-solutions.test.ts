@@ -460,7 +460,7 @@ const CASES: readonly LevelTierCase[] = [
     ],
   },
   {
-    // No `tiers` field: every outcome below is a loss by construction.
+    // Grades nothing, so a win here would read gold — but neither program manages one.
     levelNumber: 17,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
@@ -468,7 +468,7 @@ const CASES: readonly LevelTierCase[] = [
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {
-    // No `tiers` field: every outcome below is a loss by construction.
+    // Grades nothing, so a win here would read gold — but neither program manages one.
     levelNumber: 18,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
@@ -476,7 +476,7 @@ const CASES: readonly LevelTierCase[] = [
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {
-    // No `tiers` field: every outcome below is a loss by construction.
+    // Grades nothing, so a win here would read gold — but neither program manages one.
     levelNumber: 19,
     goodCode: GOOD_CODE_MOVE_CONSCIOUS,
     goodLabel: "GOOD_CODE_MOVE_CONSCIOUS",

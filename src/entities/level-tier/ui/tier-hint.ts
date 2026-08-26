@@ -13,15 +13,15 @@ import { tierRequirementNow, tierRequirementText } from "./requirement-text.ts";
 
 /**
  * The sentence naming what a run needs for its next star, as trusted markup,
- * or `""` when there is nothing to hint at: no tiers, already gold, or a
- * predicate that failed without missing any of its advertised requirements.
+ * or `""` when there is nothing to hint at: already gold, or a predicate that
+ * failed without missing any of its advertised requirements.
  */
 export function nextTierHint(
-  tiers: LevelTierRequirements | undefined,
+  tiers: LevelTierRequirements,
   earned: LevelTier,
   world: LevelWorldStats,
 ): string {
-  if (tiers === undefined || earned === "gold") {
+  if (earned === "gold") {
     return "";
   }
   // LEVEL_TIERS also holds bronze, which has no entry in LevelTierRequirements.

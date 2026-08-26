@@ -4,6 +4,7 @@ import { nextTierHint } from "./tier-hint.ts";
 import type { LevelWorldStats } from "#game/levels.ts";
 import type { LevelTierRequirements, TierPredicate } from "#game/level-tiers.ts";
 import {
+  WINNING_IS_GOLD,
   atLeastAvgLoadFactorOnMove,
   requireAll,
   underElapsedTime,
@@ -34,8 +35,8 @@ const TIERS: LevelTierRequirements = {
 };
 
 describe("nextTierHint", () => {
-  it("says nothing for a level with no silver or gold to reach", () => {
-    expect(nextTierHint(undefined, "bronze", FINISHED)).toBe("");
+  it("says nothing for a level that grades nothing, where every win is already gold", () => {
+    expect(nextTierHint(WINNING_IS_GOLD, "gold", FINISHED)).toBe("");
   });
 
   it("says nothing to a run that already has every star", () => {

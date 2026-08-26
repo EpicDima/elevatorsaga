@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildLevelMenu, type LevelLinkTarget, type LevelMenuInput } from "./level-menu.ts";
+import { WINNING_IS_GOLD } from "#game/level-tiers.ts";
 import { requireUserCountWithinTime, type Level } from "#game/levels.ts";
 import type { SkyscraperLevel } from "#game/skyscraper.ts";
 import { tutorialLevels } from "#game/tutorial.ts";
@@ -9,6 +10,7 @@ function fixtureLevels(count: number): readonly Level[] {
   return Array.from({ length: count }, () => ({
     options: {},
     condition: requireUserCountWithinTime(5, 60),
+    tiers: WINNING_IS_GOLD,
   }));
 }
 
@@ -18,6 +20,7 @@ function fixtureSkyscraperLevels(count: number): readonly SkyscraperLevel[] {
     id: `sky-${String(index + 1)}`,
     options: {},
     condition: requireUserCountWithinTime(5, 60),
+    tiers: WINNING_IS_GOLD,
     seed: index + 1,
     startingCode: "",
     title: `Sky ${String(index + 1)}`,

@@ -49,7 +49,7 @@ export interface TutorialMenuTile {
 
 /**
  * One tile of the «Небоскрёб» block. Carries a `tier` rather than a `cleared` flag: a
- * demo level with no `tiers` records bronze on a win, so one field covers both cases.
+ * demo level that grades nothing records gold on a win, so one field covers both cases.
  */
 export interface SkyscraperMenuTile {
   readonly kind: "skyscraper";

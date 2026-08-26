@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { LevelWorldStats } from "./levels.ts";
 import {
+  WINNING_IS_GOLD,
   atLeastAvgLoadFactorOnMove,
   atLeastTransportedPerSec,
   evaluateLevelTier,
+  hasTierLadder,
   requireAll,
   underAvgWaitTime,
   underElapsedTime,
@@ -172,6 +174,27 @@ describe("requireAll", () => {
   });
 });
 
+describe("WINNING_IS_GOLD", () => {
+  it("holds both its bars for any run at all, and advertises no requirement to draw", () => {
+    const overshot = { ...NOTHING_HAPPENED, elapsedTime: 1e9, maxWaitTime: 1e9 };
+    expect(WINNING_IS_GOLD.silver(overshot)).toBe(true);
+    expect(WINNING_IS_GOLD.gold(overshot)).toBe(true);
+    expect(WINNING_IS_GOLD.silver.requirements).toEqual([]);
+    expect(WINNING_IS_GOLD.gold.requirements).toEqual([]);
+  });
+});
+
+describe("hasTierLadder", () => {
+  it("is false for the vacuous set, where clearing the level is the whole achievement", () => {
+    expect(hasTierLadder(WINNING_IS_GOLD)).toBe(false);
+  });
+
+  it("is true as soon as either bar names a figure of its own", () => {
+    expect(hasTierLadder({ silver: underMaxWaitTime(20), gold: requireAll() })).toBe(true);
+    expect(hasTierLadder({ silver: requireAll(), gold: underMoveCount(450) })).toBe(true);
+  });
+});
+
 describe("evaluateLevelTier", () => {
   it("is null on a loss, whatever the statistics and requirements say", () => {
     const tiers: LevelTierRequirements = {
@@ -179,13 +202,13 @@ describe("evaluateLevelTier", () => {
       gold: stubPredicate(true),
     };
     expect(evaluateLevelTier(false, NOTHING_HAPPENED, tiers)).toBe(null);
-    expect(evaluateLevelTier(false, { ...NOTHING_HAPPENED, elapsedTime: 1e9 }, undefined)).toBe(
-      null,
-    );
+    expect(
+      evaluateLevelTier(false, { ...NOTHING_HAPPENED, elapsedTime: 1e9 }, WINNING_IS_GOLD),
+    ).toBe(null);
   });
 
-  it("is bronze on a win when the level has no tier requirements", () => {
-    expect(evaluateLevelTier(true, NOTHING_HAPPENED, undefined)).toBe("bronze");
+  it("is gold on a win when the level grades nothing beyond its own bar", () => {
+    expect(evaluateLevelTier(true, NOTHING_HAPPENED, WINNING_IS_GOLD)).toBe("gold");
   });
 
   it("is bronze on a win that clears neither requirement", () => {

@@ -2,6 +2,7 @@
 
 import { decimal, exact, format, formatList, t } from "../i18n/index.ts";
 import {
+  WINNING_IS_GOLD,
   atLeastAvgLoadFactorOnMove,
   requireAll,
   underAvgWaitTime,
@@ -63,8 +64,8 @@ export interface Level {
   readonly options: WorldOptions;
   /** The condition deciding the outcome. */
   readonly condition: LevelCondition;
-  /** Silver/gold requirements on top of the win/lose {@link condition}; omitted means bronze is the only tier. */
-  readonly tiers?: LevelTierRequirements;
+  /** Silver/gold requirements on top of the win/lose {@link condition}; `WINNING_IS_GOLD` where the win itself is the whole achievement. */
+  readonly tiers: LevelTierRequirements;
 }
 
 /** Requires `userCount` passengers delivered within `timeLimit` simulated seconds. */
@@ -276,6 +277,8 @@ export function createSandboxLevel(options: SandboxOptions): Level {
       spawnRate: options.spawnRate,
     },
     condition: requireSandbox(options),
+    // Never read: a sandbox run has no verdict for a tier to be judged from.
+    tiers: WINNING_IS_GOLD,
   };
 }
 
@@ -370,16 +373,22 @@ export const levels: readonly Level[] = [
       gold: requireAll(underElapsedTime(70.1), atLeastAvgLoadFactorOnMove(0.411)),
     },
   },
+  // The last three grade nothing beyond their own bar: neither reference
+  // program wins them on any calibration seed, so there is no distribution to
+  // read a silver or gold threshold from, and clearing them is gold.
   {
     options: { floorCount: 21, elevatorCount: 5, spawnRate: 1.9, elevatorCapacities: [10] },
     condition: requireUserCountWithinTime(110, 80),
+    tiers: WINNING_IS_GOLD,
   },
   {
     options: { floorCount: 21, elevatorCount: 8, spawnRate: 1.5, elevatorCapacities: [6, 8] },
     condition: requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45),
+    tiers: WINNING_IS_GOLD,
   },
   {
     options: { floorCount: 8, elevatorCount: 6, spawnRate: 0.9 },
     condition: requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30),
+    tiers: WINNING_IS_GOLD,
   },
 ];

@@ -793,7 +793,7 @@ export class App {
         recordClearedTutorialLevel(this.#storage, tutorial.level.id);
         this.#levelSwitcher.update();
       } else if (levelStatus && skyscraper !== undefined) {
-        // A medal, not a cleared flag: a level with no `tiers` still earns bronze, keyed by id since `levelIndex` is null here.
+        // A medal, not a cleared flag: a demo level that grades nothing earns gold, keyed by id since `levelIndex` is null here.
         const tier = evaluateLevelTier(true, world, skyscraper.level.tiers);
         if (tier !== null) {
           recordSkyscraperTier(this.#storage, skyscraper.level.id, tier);
@@ -961,7 +961,7 @@ export class App {
         : won
           ? t("game.feedback.success.message")
           : t("game.feedback.failure.message"),
-      // A track level has no `tiers` for the hint to name a bar out of.
+      // A track level grades nothing, so there is no next star to name.
       hint: "",
       // Seed dropped — the router refuses one on a level address anyway.
       url: finished
@@ -969,7 +969,7 @@ export class App {
         : won && nextLevel !== undefined
           ? createParamsUrl(this.#query, { [LEVEL_KEY]: nextLevel.id, seed: null })
           : "",
-      // Track levels carry no `tiers` to rank against.
+      // The track's progress is a cleared flag, not a medal, so its card shows none.
       tier: undefined,
     });
     if (won) {

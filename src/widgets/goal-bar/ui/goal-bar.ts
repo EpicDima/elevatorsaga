@@ -103,15 +103,13 @@ function meterStateClass(meter: GoalMeterView): "is-done" | "is-near" | "is-late
 }
 
 /**
- * The silver/gold tick marks a bronze meter's own bar draws.
+ * The silver/gold tick marks a bronze meter's own bar draws. A level that
+ * grades nothing draws none, since neither of its bars names a field.
  * Skipped for `transportedCounter` and for ticks within 3% of either edge,
  * indistinguishable from the bar's own ends.
  */
-function meterTicks(
-  requirement: TierRequirementInfo,
-  tiers: LevelTierRequirements | undefined,
-): string {
-  if (tiers === undefined || requirement.field === "transportedCounter") {
+function meterTicks(requirement: TierRequirementInfo, tiers: LevelTierRequirements): string {
+  if (requirement.field === "transportedCounter") {
     return "";
   }
   const marks: string[] = [];

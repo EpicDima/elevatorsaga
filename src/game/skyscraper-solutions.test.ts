@@ -237,7 +237,7 @@ const BATCHING_CODE = `{
 
 /**
  * Plays one program in a level's building at its pinned seed.
- * @returns The tier reached, or `"lost"` when bronze was never won.
+ * @returns The tier reached, or `"lost"` when the level was never cleared at all.
  * @throws When the run is still undecided after {@link MAX_SIMULATED_SECONDS}.
  */
 function playRun(level: SkyscraperLevel, code: string): TierOutcome {
@@ -302,18 +302,19 @@ interface SkyscraperCase {
 // Recorded by running each case against the real engine at the level's own
 // pinned seed. Extra columns appear only where the four standard programs
 // can't tell two tiers apart, so every silver/gold rung has a run backing it.
+// The demo levels grade nothing, so their every win reads gold.
 const CASES: readonly SkyscraperCase[] = [
-  { id: "sky-1", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
-  { id: "sky-2", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
+  { id: "sky-1", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
+  { id: "sky-2", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
   { id: "sky-3", starter: "silver", sweep: "silver", dev: "lost", good: "gold" },
-  { id: "sky-4", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
+  { id: "sky-4", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
   { id: "sky-5", starter: "bronze", sweep: "bronze", dev: "lost", good: "gold" },
-  { id: "sky-6", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
+  { id: "sky-6", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
   { id: "sky-7", starter: "lost", sweep: "gold", dev: "lost", good: "silver" },
-  { id: "sky-8", starter: "lost", sweep: "lost", dev: "lost", good: "bronze", zone: "bronze" },
+  { id: "sky-8", starter: "lost", sweep: "lost", dev: "lost", good: "gold", zone: "gold" },
   { id: "sky-9", starter: "bronze", sweep: "lost", dev: "lost", good: "gold" },
   { id: "sky-10", starter: "silver", sweep: "lost", dev: "lost", good: "gold" },
-  { id: "sky-11", starter: "lost", sweep: "lost", dev: "lost", good: "lost", dispatch: "bronze" },
+  { id: "sky-11", starter: "lost", sweep: "lost", dev: "lost", good: "lost", dispatch: "gold" },
   {
     id: "sky-12",
     starter: "bronze",

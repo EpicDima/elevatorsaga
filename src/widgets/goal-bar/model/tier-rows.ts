@@ -1,12 +1,14 @@
 /**
- * The tier popover's own rows: bronze, plus silver/gold when a level has them.
- * A row reads `"pending"` until the run ends, never a live pass/fail, so
- * meeting a requirement in the first tick can't light it green early.
+ * The tier popover's own rows: bronze/silver/gold for a graded level, and a
+ * lone gold row for one that only asks to be cleared. A row reads `"pending"`
+ * until the run ends, never a live pass/fail, so meeting a requirement in the
+ * first tick can't light it green early.
  */
 
 import {
   LEVEL_TIERS,
   evaluateLevelTier,
+  hasTierLadder,
   requirementMet,
   requirementProgress,
 } from "#entities/level-tier/index.ts";
@@ -61,10 +63,11 @@ function tierRank(tier: LevelTier): number {
 }
 
 /**
- * Builds the popover's rows for one level, bronze first, plus silver/gold
- * when present, or empty for a level with nothing to meter (the sandbox
- * tile). `verdict` is `null` while undecided; taken as a parameter rather
- * than recomputed, since only one caller may decide a run is over.
+ * Builds the popover's rows for one level: bronze first, then silver and gold,
+ * or a single gold row carrying the level's own bar where clearing it is the
+ * whole achievement, or none at all for a level with nothing to meter (the
+ * sandbox tile). `verdict` is `null` while undecided; taken as a parameter
+ * rather than recomputed, since only one caller may decide a run is over.
  */
 export function buildTierRows(
   level: Level,
@@ -91,10 +94,12 @@ export function buildTierRows(
     state: rowState(tier),
   });
 
-  const rows: TierRow[] = [row("bronze", level.condition.requirements)];
-  if (level.tiers !== undefined) {
-    rows.push(row("silver", level.tiers.silver.requirements));
-    rows.push(row("gold", level.tiers.gold.requirements));
+  if (!hasTierLadder(level.tiers)) {
+    return [row("gold", level.condition.requirements)];
   }
-  return rows;
+  return [
+    row("bronze", level.condition.requirements),
+    row("silver", level.tiers.silver.requirements),
+    row("gold", level.tiers.gold.requirements),
+  ];
 }

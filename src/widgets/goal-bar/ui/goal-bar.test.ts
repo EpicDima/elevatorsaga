@@ -4,7 +4,12 @@ import { describe, expect, it } from "vitest";
 
 import { goalBarTemplate, presentGoalBar } from "./goal-bar.ts";
 import type { Level } from "#entities/level/index.ts";
-import { atLeastAvgLoadFactorOnMove, requireAll, underElapsedTime } from "#game/level-tiers.ts";
+import {
+  WINNING_IS_GOLD,
+  atLeastAvgLoadFactorOnMove,
+  requireAll,
+  underElapsedTime,
+} from "#game/level-tiers.ts";
 import {
   requireUserCountWithinTime,
   requireUserCountWithinTimeWithMaxWaitTime,
@@ -14,10 +19,11 @@ import type { World } from "#game/world.ts";
 import { format, percent, seconds } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 
-/** A bronze-only level: deliver 5 within 30 seconds, no silver/gold. */
-const BRONZE_ONLY_LEVEL: Level = {
+/** A level that grades nothing: deliver 5 within 30 seconds, and that alone is gold. */
+const GOLD_ON_WIN_LEVEL: Level = {
   options: {},
   condition: requireUserCountWithinTime(5, 30),
+  tiers: WINNING_IS_GOLD,
 };
 
 /** A level with silver/gold on top of its bronze bar. */
@@ -38,6 +44,7 @@ const NOTHING_TO_METER_LEVEL: Level = {
     evaluate: () => null,
     requirements: [],
   },
+  tiers: WINNING_IS_GOLD,
 };
 
 function fixtureWorld(): World {
@@ -75,7 +82,7 @@ describe("presentGoalBar", () => {
     const world = fixtureWorld();
     world.transportedCounter = 3;
     world.elapsedTime = 10;
-    const parent = setUp(BRONZE_ONLY_LEVEL, world);
+    const parent = setUp(GOLD_ON_WIN_LEVEL, world);
 
     const meters = parent.querySelectorAll(".meter");
     expect(meters).toHaveLength(2);
@@ -101,7 +108,7 @@ describe("presentGoalBar", () => {
   it("marks an at-least meter is-done once met, and never near or late", () => {
     const world = fixtureWorld();
     world.transportedCounter = 5;
-    const parent = setUp(BRONZE_ONLY_LEVEL, world);
+    const parent = setUp(GOLD_ON_WIN_LEVEL, world);
     const meter = requireElement('.meter[data-kind="transportedCounter"]', parent);
 
     expect(meter.classList.contains("is-done")).toBe(true);
@@ -112,7 +119,7 @@ describe("presentGoalBar", () => {
   it("leaves an at-most meter unmarked at exactly the near threshold, not past it", () => {
     const world = fixtureWorld();
     world.elapsedTime = 24; // 24 / 30 = 0.8, the threshold itself, not past it
-    const parent = setUp(BRONZE_ONLY_LEVEL, world);
+    const parent = setUp(GOLD_ON_WIN_LEVEL, world);
     const meter = requireElement('.meter[data-kind="elapsedTime"]', parent);
 
     expect(meter.classList.contains("is-near")).toBe(false);
@@ -122,7 +129,7 @@ describe("presentGoalBar", () => {
   it("marks an at-most meter is-near once its progress passes the near threshold, while still met", () => {
     const world = fixtureWorld();
     world.elapsedTime = 25; // 25 / 30 = 0.8333, past the 0.8 near threshold
-    const parent = setUp(BRONZE_ONLY_LEVEL, world);
+    const parent = setUp(GOLD_ON_WIN_LEVEL, world);
     const meter = requireElement('.meter[data-kind="elapsedTime"]', parent);
 
     expect(meter.classList.contains("is-near")).toBe(true);
@@ -132,7 +139,7 @@ describe("presentGoalBar", () => {
   it("marks an at-most meter is-late once its budget is blown", () => {
     const world = fixtureWorld();
     world.elapsedTime = 35; // past the 30-second budget
-    const parent = setUp(BRONZE_ONLY_LEVEL, world);
+    const parent = setUp(GOLD_ON_WIN_LEVEL, world);
     const meter = requireElement('.meter[data-kind="elapsedTime"]', parent);
 
     expect(meter.classList.contains("is-late")).toBe(true);
@@ -213,6 +220,7 @@ describe("presentGoalBar", () => {
         evaluate: () => null,
         requirements: [{ field: "avgWaitTime", comparison: "atMost", threshold: 8 }],
       },
+      tiers: WINNING_IS_GOLD,
     };
     const world = fixtureWorld();
     world.avgWaitTime = 4.6;
@@ -352,7 +360,7 @@ describe("presentGoalBar", () => {
   it("update() rebuilds the bar's structure, not just the live values a tick can patch", () => {
     const world = fixtureWorld();
     const options: { level: Level; getVerdict: () => boolean | null } = {
-      level: BRONZE_ONLY_LEVEL,
+      level: GOLD_ON_WIN_LEVEL,
       getVerdict: () => null,
     };
     const parent = document.createElement("div");
@@ -384,7 +392,7 @@ describe("presentGoalBar", () => {
     document.body.append(parent);
     const presenter = presentGoalBar(parent, world, options);
 
-    options.level = BRONZE_ONLY_LEVEL;
+    options.level = GOLD_ON_WIN_LEVEL;
     world.transportedCounter = 3;
     world.trigger("stats_display_changed");
 

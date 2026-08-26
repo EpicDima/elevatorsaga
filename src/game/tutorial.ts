@@ -10,6 +10,7 @@ import {
   requireUserCountWithinTime,
   type LevelCondition,
 } from "./levels.ts";
+import { WINNING_IS_GOLD, type LevelTierRequirements } from "./level-tiers.ts";
 import type { RandomSeed } from "./random.ts";
 import type { WorldOptions } from "./world.ts";
 
@@ -25,6 +26,8 @@ export interface TutorialLevel {
   readonly options: WorldOptions;
   /** The bar that decides the run, built with the level constructors. */
   readonly condition: LevelCondition;
+  /** Always `WINNING_IS_GOLD`: the track grades nothing, and its progress is a cleared flag rather than a medal. Present so a track level stays a {@link "./levels.ts"!Level}. */
+  readonly tiers: LevelTierRequirements;
   /** The seed this level is played on, pinned so the mistake reliably loses and the fix reliably wins. */
   readonly seed: RandomSeed;
   /** The program the editor opens with; contains the mistake to find. */
@@ -45,6 +48,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     id: "tutorial-1",
     options: { floorCount: 2, elevatorCount: 1, spawnRate: 0.5 },
     condition: requireUserCountWithinTime(10, 60),
+    tiers: WINNING_IS_GOLD,
     seed: "tutorial-1",
     get startingCode(): string {
       return t("tutorial.level1.startingCode.code");
@@ -58,6 +62,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     id: "tutorial-2",
     options: { floorCount: 3, elevatorCount: 1, spawnRate: 0.5 },
     condition: requireUserCountWithinTime(15, 60),
+    tiers: WINNING_IS_GOLD,
     seed: "tutorial-2",
     get startingCode(): string {
       return t("tutorial.level2.startingCode.code");
@@ -71,6 +76,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     id: "tutorial-3",
     options: { floorCount: 4, elevatorCount: 1, spawnRate: 0.6 },
     condition: requireUserCountWithinTime(15, 60),
+    tiers: WINNING_IS_GOLD,
     seed: "tutorial-3",
     get startingCode(): string {
       return t("tutorial.level3.startingCode.code");
@@ -84,6 +90,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     id: "tutorial-4",
     options: { floorCount: 4, elevatorCount: 1, spawnRate: 0.8 },
     condition: requireUserCountWithinTime(15, 60),
+    tiers: WINNING_IS_GOLD,
     seed: "tutorial-4",
     get startingCode(): string {
       return t("tutorial.level4.startingCode.code");
@@ -101,6 +108,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     id: "tutorial-5",
     options: { floorCount: 9, elevatorCount: 1, spawnRate: 0.2 },
     condition: requireUserCountWithMaxWaitTime(15, 37),
+    tiers: WINNING_IS_GOLD,
     seed: "tutorial-5",
     get startingCode(): string {
       return t("tutorial.level5.startingCode.code");
@@ -114,6 +122,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     id: "tutorial-6",
     options: { floorCount: 5, elevatorCount: 1, spawnRate: 0.25 },
     condition: requireUserCountWithMaxWaitTime(15, 28),
+    tiers: WINNING_IS_GOLD,
     seed: "tutorial-6",
     get startingCode(): string {
       return t("tutorial.level6.startingCode.code");
@@ -127,6 +136,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     id: "tutorial-7",
     options: { floorCount: 6, elevatorCount: 2, spawnRate: 1.2 },
     condition: requireUserCountWithinTime(28, 60),
+    tiers: WINNING_IS_GOLD,
     seed: "tutorial-7",
     get startingCode(): string {
       return t("tutorial.level7.startingCode.code");
@@ -144,6 +154,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     id: "tutorial-8",
     options: { floorCount: 3, elevatorCount: 1, spawnRate: 0.3 },
     condition: requireUserCountWithinTime(15, 60),
+    tiers: WINNING_IS_GOLD,
     seed: "tutorial-8",
     get startingCode(): string {
       return t("tutorial.level8.startingCode.code");

@@ -37,7 +37,11 @@ export interface TierRequirementInfo {
   readonly threshold: number;
 }
 
-/** The silver and gold bars a level asks a winning run to clear. */
+/**
+ * The silver and gold bars a level asks a winning run to clear. Both bars are
+ * vacuous in {@link WINNING_IS_GOLD}, the set a level uses when clearing it is
+ * the whole achievement.
+ */
 export interface LevelTierRequirements {
   /** Must hold for the run to be rated silver or better. */
   readonly silver: TierPredicate;
@@ -104,6 +108,22 @@ export function requireAll(...predicates: readonly TierPredicate[]): TierPredica
 }
 
 /**
+ * The tiers of a level that grades nothing beyond its own win condition: both
+ * bars hold vacuously, so clearing the level is gold and there is no bronze or
+ * silver rung under it. `requirements` is empty on both, which is how
+ * {@link hasTierLadder} tells this set apart from a graded one.
+ */
+export const WINNING_IS_GOLD: LevelTierRequirements = {
+  silver: requireAll(),
+  gold: requireAll(),
+};
+
+/** Whether a level ranks its wins at all, rather than awarding gold for every one of them. */
+export function hasTierLadder(tiers: LevelTierRequirements): boolean {
+  return tiers.silver.requirements.length > 0 || tiers.gold.requirements.length > 0;
+}
+
+/**
  * Decides the tier a finished run earned. `won` is the verdict a
  * {@link "./levels.ts"!LevelCondition} already reached and is never
  * recomputed here; gold is checked before silver since nothing enforces that `tiers` has gold imply silver.
@@ -113,13 +133,10 @@ export function requireAll(...predicates: readonly TierPredicate[]): TierPredica
 export function evaluateLevelTier(
   won: boolean,
   world: LevelWorldStats,
-  tiers: LevelTierRequirements | undefined,
+  tiers: LevelTierRequirements,
 ): LevelTier | null {
   if (!won) {
     return null;
-  }
-  if (tiers === undefined) {
-    return "bronze";
   }
   if (tiers.gold(world)) {
     return "gold";

@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Level } from "../../game/levels.ts";
-import { atLeastAvgLoadFactorOnMove } from "../../game/level-tiers.ts";
+import { WINNING_IS_GOLD, atLeastAvgLoadFactorOnMove } from "../../game/level-tiers.ts";
 import type { LevelTierRequirements } from "../../game/level-tiers.ts";
 import { INSTANT_RUN_MAX_SIMULATED_SECONDS } from "../../game/instant-run.ts";
 import { skyscraperLevels } from "../../game/skyscraper.ts";
@@ -59,14 +59,17 @@ const LEVELS: readonly Level[] = [
       evaluate: () => null,
       requirements: [],
     },
+    tiers: WINNING_IS_GOLD,
   },
   {
     options: { floorCount: 4, elevatorCount: 2, spawnRate: 0 },
     condition: { description: "Level two", evaluate: () => true, requirements: [] },
+    tiers: WINNING_IS_GOLD,
   },
   {
     options: { floorCount: 5, elevatorCount: 1, spawnRate: 0 },
     condition: { description: "Level three", evaluate: () => false, requirements: [] },
+    tiers: WINNING_IS_GOLD,
   },
 ];
 
@@ -447,17 +450,17 @@ describe("App level outcome", () => {
   });
 
   it("puts the star the run earned beside the headline", () => {
-    // A level with no silver or gold of its own still rates a win as bronze.
+    // A level with no silver or gold of its own rates a win as gold: clearing it is the whole achievement.
     const { app, elements } = setUp();
     app.startLevel(1);
 
     app.world?.trigger("stats_changed");
 
     const stars = requireElement(".verdict h3 .stars", elements.feedback);
-    expect(stars.getAttribute("data-tier")).toBe("bronze");
+    expect(stars.getAttribute("data-tier")).toBe("gold");
     // Icons are aria-hidden, so this text is the screen-reader equivalent.
     expect(requireElement(".verdict h3 .visually-hidden", elements.feedback).textContent).toBe(
-      "Level stars: Bronze",
+      "Level stars: Gold",
     );
     expect(elements.feedback.querySelector(".verdict-more")).toBeNull();
   });
@@ -1405,17 +1408,18 @@ describe("App Skyscraper block", () => {
     // Recorded under the block's own store, keyed by id, so it can't collide with the
     // numbered levels' tiers.
     const { app, elements, storage } = setUp();
-    expect(levelAt(0).tiers).toBeUndefined();
+    // A demo level grading nothing, so its win is gold.
+    expect(levelAt(0).tiers).toBe(WINNING_IS_GOLD);
 
     app.startSkyscraperLevel(0);
     endRun(app, true);
 
-    expect(readBestSkyscraperTiers(storage)).toEqual(new Map([[levelAt(0).id, "bronze"]]));
+    expect(readBestSkyscraperTiers(storage)).toEqual(new Map([[levelAt(0).id, "gold"]]));
     expect(readBestLevelTiers(storage)).toEqual(new Map());
     // The tile updates without waiting for the next run's redraw.
     expect(
       requireElement('[href^="#level=sky-1"]', elements.levelSwitcher).getAttribute("data-tier"),
-    ).toBe("bronze");
+    ).toBe("gold");
   });
 
   it("records nothing for a level that was lost", () => {
