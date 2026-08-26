@@ -284,6 +284,18 @@ describe("presentAppBarSettings", () => {
       expect(document.activeElement).toBe(replacement);
     });
 
+    it("has nothing to give focus back to once the run it described is over", () => {
+      // The control the player was holding is gone rather than replaced, so focus falls
+      // back to the page instead of onto a row this block no longer draws.
+      const { parent, controller } = setUp(SEED);
+      requireElement(".seedvalue", parent).focus();
+
+      controller.setSeed(null);
+
+      expect(requireElement('[data-set-block="seed"]', parent).children).toHaveLength(0);
+      expect(document.activeElement).toBe(document.body);
+    });
+
     it("leaves focus where it was when it was never this block's to move", () => {
       const { parent, controller } = setUp(SEED);
       const elsewhere = requireElement(".setopen", parent);

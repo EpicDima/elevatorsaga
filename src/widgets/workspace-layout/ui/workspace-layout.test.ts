@@ -67,7 +67,11 @@ function setUp(options: { readonly width?: number; readonly storage?: Storage } 
     captured = pointerId;
   };
   elements.splitter.hasPointerCapture = (pointerId: number): boolean => captured === pointerId;
-  elements.splitter.releasePointerCapture = (): void => {
+  elements.splitter.releasePointerCapture = (pointerId: number): void => {
+    // A real browser throws NotFoundError for a pointer the element isn't holding.
+    if (captured !== pointerId) {
+      throw new DOMException("Pointer not captured", "NotFoundError");
+    }
     captured = null;
   };
 
@@ -230,6 +234,40 @@ describe("presentWorkspaceLayout", () => {
       elements.splitter.dispatchEvent(new FakePointerEvent("pointermove", { clientX: 900 }));
 
       expect(split()).toBe(DEFAULT_SPLIT_PERCENT);
+    });
+
+    it("ignores a release for a gesture it never took", () => {
+      // The secondary button starts no drag, so the release that follows it has no split
+      // of its own to write back over the one already remembered.
+      const { split, storage, elements } = setUp({ width: 1200 });
+
+      elements.splitter.dispatchEvent(
+        new FakePointerEvent("pointerdown", { clientX: 0, button: 2 }),
+      );
+      elements.splitter.dispatchEvent(new FakePointerEvent("pointerup", { clientX: 900 }));
+
+      expect(split()).toBe(DEFAULT_SPLIT_PERCENT);
+      expect(storage.getItem(SPLIT_PERCENT_STORAGE_KEY)).toBeNull();
+    });
+
+    it("ends a drag a second pointer's release interrupted, holding on to no capture", () => {
+      // A second finger lifting fires pointerup for a pointer the splitter never captured;
+      // releasing that one would throw where a browser holds only the first.
+      const { split, storage, elements } = setUp({ width: 1200 });
+
+      elements.splitter.dispatchEvent(
+        new FakePointerEvent("pointerdown", { clientX: 0, button: 0, pointerId: 1 }),
+      );
+      elements.splitter.dispatchEvent(new FakePointerEvent("pointermove", { clientX: 480 }));
+      elements.splitter.dispatchEvent(
+        new FakePointerEvent("pointerup", { clientX: 480, pointerId: 2 }),
+      );
+
+      expect(storage.getItem(SPLIT_PERCENT_STORAGE_KEY)).toBe(String(split()));
+
+      // The drag really is over: the boundary no longer follows the pointer.
+      elements.splitter.dispatchEvent(new FakePointerEvent("pointermove", { clientX: 900 }));
+      expect(split()).toBeCloseTo(40);
     });
 
     it("leaves the secondary button to the browser", () => {

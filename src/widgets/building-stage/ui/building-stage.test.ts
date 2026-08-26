@@ -183,6 +183,25 @@ describe("presentBuildingStage", () => {
     }
   });
 
+  it("draws a building with no cars in it, leaving neither a corridor nor a span to fill", () => {
+    // The queue walks to the first car, and the world is as wide as the last one; with
+    // neither there, both fall back to nothing rather than measuring an absent car.
+    const world = createWorld({ floorCount: 2, elevatorCount: 0 });
+    const { parent, stage } = mount(world, 800, 218);
+
+    expect(queryAll(".shafts .elevator", parent)).toHaveLength(0);
+    // The floors are laid out exactly as they would be for any other building.
+    expect(expectedLayout(world, stage).floorHeights).toEqual([90, 90]);
+    for (const row of queryAll(".levels .floor", parent)) {
+      expect(row.style.height).toBe("90px");
+    }
+
+    expect(requireElement(".tracks", parent).style.width).toBe(`${String(TRAILING_ROOM)}px`);
+    for (const queue of queryAll(".queue", parent)) {
+      expect(queue.style.width).toBe("0px");
+    }
+  });
+
   it("hands the stylesheet the floor height, the car height and the scale it cannot work out for itself", () => {
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });
     const { parent, stage } = mount(world, 800, 218);
@@ -288,6 +307,33 @@ describe("presentBuildingStage", () => {
     expect(carEl.style.transform).not.toBe(beforeResize);
   });
 
+  it("re-lays-out the building on its own when the pane around it is resized", () => {
+    // jsdom has no ResizeObserver, so this stand-in records what the stage pointed it at
+    // and hands the callback back for the test to fire.
+    const observed: Element[] = [];
+    let resized: (() => void) | undefined;
+    class FakeResizeObserver {
+      constructor(callback: () => void) {
+        resized = callback;
+      }
+      observe(element: Element): void {
+        observed.push(element);
+      }
+    }
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+
+    const world = createWorld({ floorCount: 2, elevatorCount: 1 });
+    const { parent, stage } = mount(world, 800, 218);
+    // The pane, not the stage inside it: the stage's own size is what the resize changes.
+    expect(observed).toEqual([parent]);
+    expect(queryAll(".levels .floor", parent)[0]?.style.height).toBe("90px");
+
+    Object.defineProperty(stage, "clientHeight", { value: 100, configurable: true });
+    resized?.();
+
+    expect(queryAll(".levels .floor", parent)[0]?.style.height).toBe("80px");
+  });
+
   it("shows a floor's hover card from the corridor its queue stands in, not from its number", () => {
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });
     const { parent } = mount(world, 800, 218);
@@ -316,6 +362,34 @@ describe("presentBuildingStage", () => {
     ).toEqual(expected.lines);
     // The row gets the description even though the pointer never touched it: it's the focusable thing.
     expect(floorEl?.getAttribute("aria-describedby")).toBe(card.id);
+  });
+
+  it("names a floor's destinations once each and in floor order, however its queue formed", () => {
+    // Three passengers heading to two floors, arriving out of order: the card reports
+    // where the queue is going, not the order it happens to be standing in.
+    const world = createWorld({ floorCount: 4, elevatorCount: 1 });
+    const { parent } = mount(world, 800, 400);
+
+    const floor = at(world.floors, 0);
+    for (const destination of [3, 1, 3]) {
+      const user = new User(70);
+      user.appearOnFloor(floor, destination);
+      world.users.push(user);
+    }
+
+    queryAll(".queue", parent)[0]?.dispatchEvent(new Event("pointerenter"));
+
+    const card = requireElement(".carcard", parent);
+    const expected = floorCardText({
+      level: 0,
+      waitingCount: 3,
+      // Nobody has waited yet: the world is still at time zero.
+      longestWaitSeconds: 0,
+      destinationFloors: [1, 3],
+    });
+    expect(
+      [...requireElement(".carcard-lines", card).children].map((el) => el.textContent),
+    ).toEqual(expected.lines);
   });
 
   it("shows the same floor card from the row itself, for a pointer that found the numbers", () => {
@@ -645,6 +719,22 @@ describe("presentBuildingStage", () => {
     // the loop itself must not survive past the opening window, even though it never scrolled anything.
     expect(afterOnePass).toBe(scrollsWhileSettling + 1);
     expect(scrolls).toBe(afterOnePass);
+  });
+
+  it("hands the view over straight away where there are no frames to retry in", () => {
+    // Without a compositor the opening scroll gets only the passes it has already had, so
+    // a later one must leave the view where the player put it rather than reaching again.
+    vi.stubGlobal("requestAnimationFrame", undefined);
+
+    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
+    const { stage, presenter } = mount(world, 800, 218);
+    stubScroll(stage, { scrollHeight: 1000 });
+
+    stage.scrollTop = 300;
+    stage.dispatchEvent(new Event("scroll"));
+    presenter.recomputeGeometry();
+
+    expect(stage.scrollTop).toBe(300);
   });
 
   it("gives the stage a tab stop exactly while there is somewhere to scroll to", () => {

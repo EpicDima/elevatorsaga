@@ -298,6 +298,24 @@ describe("presentGoalBar", () => {
     );
   });
 
+  it("hands out no stars for a lost run, however well it scored on the way down", () => {
+    // The same figures that earn silver on a win earn nothing at all on a loss: the
+    // tiers are read off the verdict, never recomputed from the meters.
+    const world = fixtureWorld();
+    world.transportedCounter = 12;
+    world.elapsedTime = 45;
+
+    const lost = setUp(TIERED_LEVEL, world, () => false);
+    expect(requireElement(".tierbox", lost).getAttribute("aria-label")).toBe(
+      "Level stars: none yet. Open requirements",
+    );
+
+    const won = setUp(TIERED_LEVEL, world, () => true);
+    expect(requireElement(".tierbox", won).getAttribute("aria-label")).toBe(
+      "Level stars: Silver. Open requirements",
+    );
+  });
+
   it("leaves every tier row unmarked while the run's own verdict is still undecided", () => {
     const parent = setUp(TIERED_LEVEL, fixtureWorld(), () => null);
 
@@ -352,5 +370,31 @@ describe("presentGoalBar", () => {
     expect(parent.querySelectorAll(".meter")).toHaveLength(0);
     expect(parent.querySelector(".goalfree")).not.toBeNull();
     expect(requireElement(".tierwrap", parent).hidden).toBe(true);
+  });
+
+  it("patches no meter a tick has figures for but the bar has not been rebuilt around", () => {
+    // A tick measuring two requirements against a bar built for none has nowhere to put
+    // them: structure follows update(), and a live value patch waits for it.
+    const world = fixtureWorld();
+    const options: { level: Level; getVerdict: () => boolean | null } = {
+      level: NOTHING_TO_METER_LEVEL,
+      getVerdict: () => null,
+    };
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const presenter = presentGoalBar(parent, world, options);
+
+    options.level = BRONZE_ONLY_LEVEL;
+    world.transportedCounter = 3;
+    world.trigger("stats_display_changed");
+
+    expect(parent.querySelectorAll(".meter")).toHaveLength(0);
+    expect(parent.querySelector(".goalfree")).not.toBeNull();
+
+    presenter.update();
+    expect(parent.querySelectorAll(".meter")).toHaveLength(2);
+    expect(
+      requireElement('.meter[data-kind="transportedCounter"] .meter-val', parent).innerHTML,
+    ).toBe("<b>3</b> / 5");
   });
 });
