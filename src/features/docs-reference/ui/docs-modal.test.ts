@@ -175,6 +175,21 @@ describe("presentDocsModal search", () => {
     expect(opened?.hasAttribute("hidden")).toBe(true);
   });
 
+  it("folds one back up even once the toggle it queued has landed", async () => {
+    // `toggle` reaches the listener a task after the row was opened, which is where it
+    // lands between one keystroke and the next; read as the reader's, it would strip the
+    // mark that folds the row back up.
+    const { dialog } = setUp();
+    search(dialog, "twice");
+    const opened = dialog.querySelector<HTMLDetailsElement>(".api[data-by-search]");
+    await new Promise((settled) => setTimeout(settled));
+
+    expect(opened?.getAttribute("data-by-search")).toBe("1");
+
+    search(dialog, "down_button_pressed");
+    expect(opened?.open).toBe(false);
+  });
+
   it("leaves a row a person opened by hand open, even once the query changes", () => {
     const { dialog } = setUp();
     const row = dialog.querySelector<HTMLDetailsElement>(".api");

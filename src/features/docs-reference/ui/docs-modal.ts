@@ -105,13 +105,13 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
 
   let apiRows = collectApiRows(dialog);
 
-  // True while the filter itself is opening/closing rows, so a `toggle`
-  // fired then isn't mistaken for the player opening a row by hand.
-  let applyingSearch = false;
+  // The rows the filter itself opened or folded. `toggle` is queued rather than
+  // raised on assignment, so which rows they are outlives any flag around the loop.
+  const toggledByFilter = new WeakSet<HTMLDetailsElement>();
   function wireApiRows(): void {
     for (const row of apiRows) {
       row.addEventListener("toggle", () => {
-        if (!applyingSearch) {
+        if (!toggledByFilter.delete(row)) {
           delete row.dataset["bySearch"];
         }
       });
@@ -119,15 +119,23 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
   }
   wireApiRows();
 
+  /** Opens or folds a row as the filter, so its queued `toggle` isn't read as the reader's. */
+  function setRowOpen(row: HTMLDetailsElement, open: boolean): void {
+    if (row.open === open) {
+      return;
+    }
+    toggledByFilter.add(row);
+    row.open = open;
+  }
+
   function filterDocs(): void {
     const query = docsFind.value.trim().toLowerCase();
     docsClear.hidden = docsFind.value === "";
     let found = 0;
-    applyingSearch = true;
     for (const row of apiRows) {
       // Fold shut the previous search's own finds first, or they'd stay open forever.
       if (row.dataset["bySearch"] !== undefined) {
-        row.open = false;
+        setRowOpen(row, false);
         delete row.dataset["bySearch"];
       }
       // textContent sees the closed detail too; a match found only there still has to open.
@@ -139,11 +147,10 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
       found += 1;
       const summaryText = (row.querySelector("summary")?.textContent ?? "").toLowerCase();
       if (query !== "" && !row.open && !summaryText.includes(query)) {
-        row.open = true;
+        setRowOpen(row, true);
         row.dataset["bySearch"] = "1";
       }
     }
-    applyingSearch = false;
 
     // A heading hides with its last surviving row; the intro heading, with no rows, hides outright once a query is live.
     for (const head of queryAll(":scope > h3", docsBody)) {
