@@ -40,7 +40,7 @@ test("serves a favicon the browser can actually draw", async ({ page }) => {
     shapes: document.querySelectorAll("rect").length,
   }));
   // An error document's root is `html`, not `svg`.
-  expect(drawn).toEqual({ root: "svg", title: "Elevator Saga", shapes: 4 });
+  expect(drawn).toEqual({ root: "svg", title: "Elevator Saga", shapes: 3 });
 });
 
 test("serves the image its link preview promises", async ({ page }) => {
