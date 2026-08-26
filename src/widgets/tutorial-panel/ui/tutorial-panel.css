@@ -91,6 +91,26 @@
 .tutorialsolution code {
   padding: 9px 11px;
   font-size: 12px;
+  counter-reset: tutorialline;
+}
+
+/*
+ * Numbered the way the live editor's gutter numbers: right-aligned in the same
+ * token, with no rule between the column and the code. Generated content, so
+ * the copy button keeps reading the program alone out of `textContent`, and the
+ * empty alternative keeps a screen reader from counting the lines aloud.
+ */
+.tutorialsolution .codeline {
+  counter-increment: tutorialline;
+}
+
+.tutorialsolution .codeline::before {
+  content: counter(tutorialline) / "";
+  display: inline-block;
+  inline-size: 2ch;
+  margin-inline-end: 1.5ch;
+  color: var(--ds-code-line);
+  text-align: end;
 }
 
 /*

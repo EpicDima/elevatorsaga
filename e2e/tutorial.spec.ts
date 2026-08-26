@@ -352,6 +352,50 @@ test("stands the lesson across the pane with the whole house under it, at every 
   await measure("Russian");
 });
 
+test("numbers the answer's lines beside the program rather than inside it", async ({ page }) => {
+  // Level 7's answer is the track's longest at 29 lines, so the column has to
+  // hold two digits, and half of them are marked, which is where a number and
+  // the band drawn around it can fall out of step. Only a real browser draws
+  // CSS counters at all: jsdom has no generated content.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/#level=tutorial-7");
+  await page
+    .locator(".tutorialhint")
+    .last()
+    .evaluate((hint) => {
+      (hint as HTMLDetailsElement).open = true;
+    });
+  const code = page.locator(".tutorialsolution code");
+  await expect(code).toBeVisible();
+
+  const measured = await code.evaluate((block) => ({
+    lines: [...block.children].map((line) => {
+      // A range over the line's contents, since the line box itself starts at
+      // the number, and the number is what this is measuring past.
+      const range = document.createRange();
+      range.selectNodeContents(line);
+      return {
+        marked: line.tagName === "MARK",
+        text: Math.round(range.getBoundingClientRect().left),
+        box: Math.round(line.getBoundingClientRect().left),
+      };
+    }),
+    text: block.textContent,
+  }));
+
+  expect(measured.lines).toHaveLength(29);
+  expect(measured.lines.filter((line) => line.marked).length).toBeGreaterThan(0);
+  // One x for all 29: the column is the same width on every line, and a marked
+  // line's band neither shifts its code nor swallows its number.
+  expect([...new Set(measured.lines.map((line) => line.text))]).toHaveLength(1);
+  for (const line of measured.lines) {
+    expect(line.text - line.box, "the line-number column").toBeGreaterThanOrEqual(20);
+  }
+  // Drawn, not written: what the copy button reads back is still the program,
+  // which a number turned into real text would open with a "1".
+  expect(measured.text.startsWith("function init(elevators, floors) {\n")).toBe(true);
+});
+
 test("shows the longest answer on the track without panning it sideways", async ({ page }) => {
   // Level 7 has the track's longest answer (68 characters). Beside the
   // building the card was 384px, leaving the code block too narrow to read

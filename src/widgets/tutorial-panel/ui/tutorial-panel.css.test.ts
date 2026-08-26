@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { tutorialLevels } from "#game/tutorial.ts";
 import {
   CODE_INK_TOKENS,
   contrast,
@@ -89,5 +90,45 @@ describe("ds palette on the lesson card", () => {
         contrast(themed(palette, "ds-n-3"), themed(palette, "ds-code-bg")),
       ).toBeGreaterThanOrEqual(1.1);
     }
+  });
+});
+
+describe("the answer's line numbers", () => {
+  const COLUMN = ".tutorialsolution .codeline::before";
+  const column = ruleBody(COLUMN);
+  const content = declaration(column, "content", COLUMN);
+
+  it("draws each number as generated content, which nothing reads back", () => {
+    // The copy button reads the block's `textContent` and a screen reader reads
+    // the empty alternative: neither may come away with a line number.
+    expect(content).toMatch(/^counter\([\w-]+\) \/ ""$/);
+  });
+
+  it("names one counter in each of the three rules that mention it", () => {
+    // A rename in one rule alone leaves every line numbered 0, on screen only.
+    const named = /^counter\(([\w-]+)\)/.exec(content)?.[1] ?? "";
+
+    expect(named).not.toBe("");
+    expect(declaration(ruleBody(".tutorialsolution code"), "counter-reset", COLUMN)).toBe(named);
+    expect(declaration(ruleBody(".tutorialsolution .codeline"), "counter-increment", COLUMN)).toBe(
+      named,
+    );
+  });
+
+  it("leaves the column wide enough for the longest answer's last number", () => {
+    const lines = Math.max(...tutorialLevels.map((level) => level.solutionCode.split("\n").length));
+    const width = declaration(column, "inline-size", COLUMN);
+
+    expect(width, "the column is measured in characters").toMatch(/^[\d.]+ch$/);
+    expect(
+      Number.parseFloat(width),
+      `${String(lines)} lines need ${String(String(lines).length)} digits`,
+    ).toBeGreaterThanOrEqual(String(lines).length);
+  });
+
+  it("borrows the color the live editor's own gutter numbers in", () => {
+    expect(declaration(column, "color", COLUMN)).toBe(
+      declaration(ruleBody(".cm-editor .cm-gutters"), "color", ".cm-editor .cm-gutters"),
+    );
   });
 });
