@@ -42,7 +42,7 @@ const LADDER_STEPS = TIME_SCALES.flatMap((slower, index) => {
 
 describe("TIME_SCALES", () => {
   it("is the ladder of whole-number stops, with no Infinity", () => {
-    expect([...TIME_SCALES]).toEqual([1, 2, 3, 6, 10, 20]);
+    expect([...TIME_SCALES]).toEqual([1, 2, 4, 8, 16]);
   });
 
   it("holds only finite, positive speeds inside the runnable range", () => {
@@ -62,15 +62,14 @@ describe("TIME_SCALES", () => {
 describe("increasedTimeScale", () => {
   it("steps up the ladder", () => {
     expect(increasedTimeScale(1)).toBe(2);
-    expect(increasedTimeScale(2)).toBe(3);
-    expect(increasedTimeScale(3)).toBe(6);
-    expect(increasedTimeScale(6)).toBe(10);
-    expect(increasedTimeScale(10)).toBe(20);
+    expect(increasedTimeScale(2)).toBe(4);
+    expect(increasedTimeScale(4)).toBe(8);
+    expect(increasedTimeScale(8)).toBe(16);
   });
 
   it("has nothing faster to offer at the top of the ladder", () => {
     // That press is the one the speed control spends on its instant stop instead.
-    expect(increasedTimeScale(20)).toBe(20);
+    expect(increasedTimeScale(16)).toBe(16);
   });
 
   it("climbs out of a slow speed only a URL can ask for", () => {
@@ -88,15 +87,14 @@ describe("increasedTimeScale", () => {
 
 describe("decreasedTimeScale", () => {
   it("steps back down through the values the increase produced", () => {
-    expect(decreasedTimeScale(20)).toBe(10);
-    expect(decreasedTimeScale(10)).toBe(6);
-    expect(decreasedTimeScale(6)).toBe(3);
-    expect(decreasedTimeScale(3)).toBe(2);
+    expect(decreasedTimeScale(16)).toBe(8);
+    expect(decreasedTimeScale(8)).toBe(4);
+    expect(decreasedTimeScale(4)).toBe(2);
     expect(decreasedTimeScale(2)).toBe(1);
   });
 
   it("brings a speed above the ladder down to its neighboring stop", () => {
-    expect(decreasedTimeScale(40)).toBe(20);
+    expect(decreasedTimeScale(40)).toBe(16);
     expect(decreasedTimeScale(1.2)).toBe(1);
   });
 
@@ -115,7 +113,7 @@ describe("isSlowestTimeScale", () => {
     expect(isSlowestTimeScale(0.5)).toBe(true);
     expect(isSlowestTimeScale(TIME_SCALE_MIN)).toBe(true);
     expect(isSlowestTimeScale(2)).toBe(false);
-    expect(isSlowestTimeScale(20)).toBe(false);
+    expect(isSlowestTimeScale(16)).toBe(false);
   });
 
   it("agrees with what a press of `-` would actually do", () => {
@@ -129,9 +127,9 @@ describe("isSlowestTimeScale", () => {
 
 describe("isFastestTimeScale", () => {
   it("is true only at the top of the ladder and above it", () => {
-    expect(isFastestTimeScale(20)).toBe(true);
+    expect(isFastestTimeScale(16)).toBe(true);
     expect(isFastestTimeScale(40)).toBe(true);
-    expect(isFastestTimeScale(10)).toBe(false);
+    expect(isFastestTimeScale(8)).toBe(false);
     expect(isFastestTimeScale(0.5)).toBe(false);
   });
 

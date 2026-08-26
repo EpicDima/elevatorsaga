@@ -153,7 +153,7 @@ test("does not offer the instant stop in the sandbox, and plays it animated at t
 
   // Presses "Faster" until it dims, wherever that turns out to be.
   await selectInstantSpeed(page);
-  await expect(speedValue(page)).toHaveText("20x");
+  await expect(speedValue(page)).toHaveText("16x");
 
   await startButton(page).click();
 

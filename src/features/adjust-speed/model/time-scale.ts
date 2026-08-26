@@ -7,8 +7,11 @@
  * `NaN` and freezes the world.
  */
 
-/** Every stop the `+`/`-` buttons offer, slowest first; whole numbers only, no `Infinity`. */
-export const TIME_SCALES: readonly number[] = [1, 2, 3, 6, 10, 20];
+/**
+ * Every time scale the `+`/`-` buttons offer, slowest first: each twice the last.
+ * All finite; the `∞x` stop one press past the top is app state, not a time scale.
+ */
+export const TIME_SCALES: readonly number[] = [1, 2, 4, 8, 16];
 
 /** Time scale used when nothing valid is stored or requested; a slow stop on {@link TIME_SCALES}. */
 export const DEFAULT_TIME_SCALE = 2.0;

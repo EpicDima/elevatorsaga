@@ -838,8 +838,8 @@ describe("App sandbox", () => {
 
     reachInstantSpeed(elements);
 
-    expect(requireElement(".speed-val", elements.controls).textContent).toBe("20x");
-    expect(app.worldController.timeScale).toBe(20);
+    expect(requireElement(".speed-val", elements.controls).textContent).toBe("16x");
+    expect(app.worldController.timeScale).toBe(16);
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
   });
 
@@ -849,12 +849,12 @@ describe("App sandbox", () => {
     reachInstantSpeed(elements);
     expect(requireElement(".speed-val", elements.controls).textContent).toBe("∞x");
 
-    app.handleRoute(...routeFor("#level=sandbox,floors=20,timescale=20"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20,timescale=16"));
 
-    expect(requireElement(".speed-val", elements.controls).textContent).toBe("20x");
+    expect(requireElement(".speed-val", elements.controls).textContent).toBe("16x");
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
 
-    app.handleRoute(...routeFor("#level=1,timescale=20"));
+    app.handleRoute(...routeFor("#level=1,timescale=16"));
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(false);
   });
 
@@ -2004,8 +2004,8 @@ describe("App time scale", () => {
     worldController.setTimeScale(2);
 
     requireElement(".speed-up", elements.controls).click();
-    expect(worldController.timeScale).toBe(3);
-    expect(requireElement(".speed-val", elements.controls).textContent).toBe("3x");
+    expect(worldController.timeScale).toBe(4);
+    expect(requireElement(".speed-val", elements.controls).textContent).toBe("4x");
 
     requireElement(".speed-down", elements.controls).click();
     expect(worldController.timeScale).toBe(2);
@@ -2017,21 +2017,21 @@ describe("App time scale", () => {
     // tick again. So `+` at the top only changes what the next Start press will do.
     const { app, worldController, elements } = setUp();
     app.startLevel(0);
-    worldController.setTimeScale(20);
+    worldController.setTimeScale(16);
     const value = requireElement(".speed-val", elements.controls);
 
     requireElement(".speed-up", elements.controls).click();
 
     expect(value.textContent).toBe("\u221ex");
-    expect(worldController.timeScale).toBe(20);
+    expect(worldController.timeScale).toBe(16);
     expect(Number.isFinite(worldController.timeScale)).toBe(true);
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
     expect(requireElement(".startstop", elements.controls).textContent).toBe("Start");
 
     requireElement(".speed-down", elements.controls).click();
 
-    expect(value.textContent).toBe("20x");
-    expect(worldController.timeScale).toBe(20);
+    expect(value.textContent).toBe("16x");
+    expect(worldController.timeScale).toBe(16);
   });
 
   it("keeps the instant stop out of storage and out of the url", () => {
@@ -2039,13 +2039,13 @@ describe("App time scale", () => {
     // the url; a reload should reopen at a finite speed, not a game with nothing drawn.
     const { app, worldController, storage, elements } = setUp();
     app.startLevel(0);
-    worldController.setTimeScale(20);
+    worldController.setTimeScale(16);
     const setItem = vi.spyOn(storage, "setItem");
 
     requireElement(".speed-up", elements.controls).click();
 
     expect(setItem).not.toHaveBeenCalled();
-    expect(readStoredTimeScale(storage)).toBe(20);
+    expect(readStoredTimeScale(storage)).toBe(16);
   });
 
   it("remembers the chosen speed", () => {
@@ -2670,7 +2670,7 @@ describe("the language the interface comes out in", () => {
 
   it("relabels every run control on the next update", () => {
     const parent = createElement("div", { className: "controls" });
-    const worldController = { isPaused: true, timeScale: 20 };
+    const worldController = { isPaused: true, timeScale: 16 };
     let levelEnded = false;
     let runStarted = false;
     const presenter = presentControls(parent, {
@@ -2690,7 +2690,7 @@ describe("the language the interface comes out in", () => {
     setLocale("ru");
     presenter.update();
 
-    expect(requireElement(".speed-val", parent).textContent).toBe("20×");
+    expect(requireElement(".speed-val", parent).textContent).toBe("16×");
     expect(startStop.textContent).toBe("Запустить");
     expect(requireElement(".startover", parent).textContent).toBe("Заново");
     expect(requireElement(".startover", parent).title).toBe("Начать прогон с самого начала");

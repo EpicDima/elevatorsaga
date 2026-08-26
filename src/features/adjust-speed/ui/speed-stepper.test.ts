@@ -126,8 +126,8 @@ describe("presentSpeedStepper", () => {
     presenter.update();
     expect(decrease.hasAttribute("disabled")).toBe(true);
 
-    // 20x is the ladder's top, not the control's: the instant stop is one press further on.
-    options.worldController.timeScale = 20;
+    // 16x is the ladder's top, not the control's: the instant stop is one press further on.
+    options.worldController.timeScale = 16;
     presenter.update();
     expect(decrease.hasAttribute("disabled")).toBe(false);
     expect(increase.hasAttribute("disabled")).toBe(false);
@@ -140,7 +140,7 @@ describe("presentSpeedStepper", () => {
 
     expect(increase.hasAttribute("disabled")).toBe(false);
 
-    options.worldController.timeScale = 20;
+    options.worldController.timeScale = 16;
     presenter.update();
     expect(increase.hasAttribute("disabled")).toBe(true);
     // Only `+` is affected: the way back down the ladder is as open as ever.
@@ -153,7 +153,7 @@ describe("presentSpeedStepper", () => {
     const { parent, options } = setUp({ instantSpeed: () => instant });
     const presenter = presentSpeedStepper(parent, options);
 
-    options.worldController.timeScale = 20;
+    options.worldController.timeScale = 16;
     instant = true;
     presenter.update();
 
@@ -203,10 +203,9 @@ describe("formatTimeScale", () => {
     // Whole speeds the +/- buttons produce, which must not gain a decimal point.
     [1, "1x"],
     [2, "2x"],
-    [3, "3x"],
-    [6, "6x"],
-    [10, "10x"],
-    [20, "20x"],
+    [4, "4x"],
+    [8, "8x"],
+    [16, "16x"],
     [40, "40x"],
     [64, "64x"],
     // The slow half of the runnable range.

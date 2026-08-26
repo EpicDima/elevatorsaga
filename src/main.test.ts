@@ -484,11 +484,11 @@ describe("the console benchmark", () => {
 
 describe("the simulation speed", () => {
   it("starts at the speed the player left behind", async () => {
-    storage.setItem(TIME_SCALE_STORAGE_KEY, "6");
+    storage.setItem(TIME_SCALE_STORAGE_KEY, "8");
     await boot();
 
     expect(requireElement(".speed-val").textContent).toBe(
-      translateIn("en", "game.timeScale.value", { value: 6 }),
+      translateIn("en", "game.timeScale.value", { value: 8 }),
     );
   });
 
