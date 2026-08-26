@@ -20,13 +20,9 @@ const PROGRAM = `{
 }`;
 
 /**
- * A program indented two spaces to the level, as a player who copied it from
- * somewhere else may well have it.
- *
- * The editor indents by four, so every indented line here is a line the
- * editor's own indenter would have written differently — which is the point.
- * Text the indenter happens to agree with could not tell "left alone" and
- * "reindented" apart.
+ * Indented two spaces, while the editor itself indents by four - every
+ * indented line here is one the editor's indenter would write differently,
+ * which is the point: text it happens to agree with can't prove anything.
  */
 const PASTED_PROGRAM = `{
   init: function (elevators, floors) {
@@ -46,21 +42,16 @@ test("keeps the player's program across a reload", async ({ page }) => {
 
   await editor(page).click();
   await page.keyboard.press("ControlOrMeta+a");
-  // Inserted rather than typed: CodeMirror closes brackets and quotes as you
-  // type them, so keystroke-by-keystroke entry would not necessarily leave the
-  // document holding what this test thinks it typed.
+  // Inserted, not typed: CodeMirror auto-closes brackets and quotes as you
+  // type, so keystroke entry wouldn't necessarily leave this exact text.
   await page.keyboard.insertText(PROGRAM);
   await expect(editor(page)).toContainText("e2e-marker-a7f3");
 
-  // Ctrl+S rather than a button: the editor autosaves a second after the last
-  // keystroke, so the Save button is gone and this shortcut -- which also stops
-  // the browser offering to save the page -- is the only explicit save left.
+  // The editor autosaves, so there's no Save button left; this is the only explicit save.
   await page.keyboard.press("ControlOrMeta+s");
 
-  // The key is level 1's first slot, the buffer the default route opens.
-  // Asserted exactly, not merely "something was stored". Polled rather than
-  // read once: nothing on screen confirms a save -- there is no status line
-  // under the editor -- so storage itself is what says the write landed.
+  // Polled, not read once: there's no status line, so storage itself is what
+  // confirms the write landed.
   await expect.poll(() => storedCode(page)).toBe(PROGRAM);
 
   await page.reload();
@@ -71,14 +62,8 @@ test("keeps the player's program across a reload", async ({ page }) => {
 });
 
 test("pastes code without reindenting it", async ({ page, context }) => {
-  // magwo/elevatorsaga#119. The legacy editor hooked CodeMirror 5's paste and
-  // ran the "smart" indenter over every line that arrived, so pasting a snippet
-  // reformatted it; CodeMirror 6 is configured to leave pasted text alone.
-  //
-  // This has to be a real paste — clipboard, then the paste shortcut — because
-  // the reindenting lived in the editor's paste handling. The `insertText` the
-  // reload test above uses never goes near it, so it could not tell the two
-  // behaviors apart.
+  // Must be a real clipboard paste: reindenting bugs live in paste handling,
+  // and `insertText` (used above) never goes near it.
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
 
   await page.goto("/");
@@ -93,9 +78,7 @@ test("pastes code without reindenting it", async ({ page, context }) => {
 
   await page.keyboard.press("ControlOrMeta+s");
 
-  // Character for character, whitespace included. Read back out of storage
-  // rather than off the screen so that the comparison is against the document
-  // the editor actually holds, not against rendered text.
+  // Read from storage, not the screen, so it's the document the editor holds, not rendered text.
   await expect.poll(() => storedCode(page)).toBe(PASTED_PROGRAM);
 });
 
@@ -104,32 +87,19 @@ test("surfaces a program that will not compile", async ({ page }) => {
 
   await page.goto("/");
 
-  // `.errorline` rather than `getByText(errorBanner)`: the label and the
-  // program's own message are two separate elements now (`.errorline-label`
-  // and `.errormessage`), so a text-content locator resolves to the label
-  // alone and never sees the message beside it.
+  // `.errorline`, not `getByText`: the label and message are separate elements now.
   const banner = page.locator(".errorline");
   await expect(banner).toBeVisible();
   await expect(banner).toContainText(errorBanner);
   await expect(banner).toContainText("SyntaxError");
 
-  // The page is still a game: the legacy version handed `null` to the world
-  // controller here and died on the first frame with a TypeError instead.
   await expect(startButton(page)).toBeVisible();
   await expect(building(page).getByRole("group", { name: "Elevator 0" })).toBeVisible();
 });
 
 test("starts the code slot that is open, not the one the level opened on", async ({ page }) => {
-  // Reported as "I choose another code slot, press run, and it runs the first
-  // slot's program". It did: the editor is compiled as the world is built, and
-  // the controller holds that program for the whole run, so everything the
-  // player did to the editor before pressing Start — switching slots, or just
-  // typing — went unread. Start begins a run that has not begun yet, and a run
-  // begins from the program on screen.
-  //
-  // The second slot's program announces itself by throwing, which is the only
-  // way from out here to tell which of the two the building is running: both
-  // compile, and an elevator standing still looks the same either way.
+  // The second slot's program announces itself by throwing, the only way from
+  // out here to tell which of the two the building is actually running.
   await seedLevelCode(page, 1, "{ init: function () {}, update: function () {} }", 1);
   await seedLevelCode(
     page,
@@ -159,7 +129,6 @@ test("surfaces a program that throws once the simulation is running", async ({ p
 
   await page.goto("/");
 
-  // It compiles, so nothing is wrong until it runs.
   await expect(page.getByText(errorBanner)).toBeHidden();
 
   await startButton(page).click();
@@ -168,19 +137,14 @@ test("surfaces a program that throws once the simulation is running", async ({ p
   await expect(banner).toBeVisible();
   await expect(banner).toContainText(errorBanner);
   await expect(banner).toContainText("e2e boom");
-  // Paused, not dead: the button is offering to start again.
+  // Paused, not dead: the button offers to start again.
   await expect(startButton(page)).toBeVisible();
 });
 
 test("gives the player search and folding, not just a text box", async ({ page }) => {
-  // `editor.ts` spells its extension list out by hand rather than taking
-  // CodeMirror's `basicSetup` bundle, which is what lets the download drop the
-  // parts nothing uses. The cost of writing the list out is that dropping a
-  // line from it is silent: the editor still loads, still highlights, still
-  // saves, and the player simply finds that a key does nothing. These two are
-  // the conveniences worth naming -- one behind a keystroke, one drawn in the
-  // gutter -- and neither is reachable from a unit test, which mounts the
-  // editor in jsdom where CodeMirror measures nothing and draws no panel.
+  // The extension list is written by hand, not taken from CodeMirror's full
+  // bundle, so dropping a line from it fails silently; neither of these is
+  // reachable from a unit test, since jsdom draws no panel to check.
   await page.goto("/");
   await expect(page.locator(".cm-foldGutter")).toBeVisible();
 

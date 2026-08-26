@@ -1,31 +1,15 @@
-/**
- * The address bar as the router leaves it.
- *
- * `src/pages/game/model/route.test.ts` proves the correction against a
- * stand-in whose `replaceState` this repository wrote. What it cannot prove is
- * the part that belongs to the browser: what a real `history.replaceState`
- * does to `location.hash`, and what the Back button does afterwards. Both are
- * the whole reason the correction is a replacement and not a navigation.
- */
+/** Checks how the router leaves the address bar and the Back button in a real browser. */
 
 import { expect, test } from "@playwright/test";
 
 import { seedField } from "./game-page.ts";
 
 test("takes a parameter the game refused out of the address bar", async ({ page }) => {
-  // The URL said `seed=rush hour` while the game drew somebody else, because a
-  // browser writes the space as %20 and a percent sign is not a seed. A URL
-  // that names a run nobody is playing is the one a player bookmarks and
-  // shares.
-  //
-  // Earned first, because level 4 is one of the addresses a browser has to have
-  // played its way to: without this the router would refuse the level as well,
-  // and the test would be watching the wrong refusal.
-
+  // A seed of "rush hour" is refused: a browser encodes the space as %20, and a percent sign is
+  // not a seed.
   await page.goto("/#level=4,seed=rush hour");
 
   await expect(page).toHaveURL(/#level=4$/);
-  // Still the run that was asked for, minus the part that could not be had.
   await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
   await expect(await seedField(page)).toBeVisible();
 });
@@ -34,22 +18,16 @@ test("empties a hash whose every parameter was refused", async ({ page }) => {
   await page.goto("/#level=abc");
 
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
-  // Asserted on location.hash rather than on the whole URL: "#" resolves to a
-  // URL whose fragment is empty, which still serializes with the "#" on the end
-  // and is what page.url() would show.
+  // Checked via location.hash, not toHaveURL: an empty fragment still serializes with a
+  // trailing "#", which toHaveURL would see.
   expect(await page.evaluate(() => window.location.hash)).toBe("");
 });
 
 test("opens a level this browser has never played, and leaves the url saying so", async ({
   page,
 }) => {
-  // The last level, from a browser with nothing on record. There used to be a
-  // rule here -- a level was shut until the one before it had been cleared,
-  // and this address was answered with the furthest one reached, the key
-  // rewritten to say which. Nothing is shut now, so the address is kept
-  // exactly as it was given: the correction that used to fire here must not
-  // fire at all, which is a stronger claim than "it fires correctly".
-
+  // No level is locked, so this address must be kept exactly as given, not corrected to the
+  // furthest level reached.
   await page.goto("/#level=18,timescale=8");
 
   await expect(page).toHaveURL(/#level=18,timescale=8$/);
@@ -57,11 +35,8 @@ test("opens a level this browser has never played, and leaves the url saying so"
 });
 
 test("does not leave the refused url behind the Back button", async ({ page }) => {
-  // The reason the correction is `replaceState`. Written as a navigation it
-  // would push an entry, so Back would land on the URL that was just refused,
-  // be corrected again, and never get past it -- a page the player cannot leave
-  // backwards.
-
+  // This is why the correction uses replaceState: a pushed entry would let Back land on the
+  // refused URL, get corrected again, and never advance.
   await page.goto("/#level=2");
   await expect(page.getByRole("button", { name: "Level 2" })).toBeVisible();
 
@@ -75,13 +50,8 @@ test("does not leave the refused url behind the Back button", async ({ page }) =
 });
 
 test("opens a link written with the retired key, and re-spells it", async ({ page }) => {
-  // Every link this game has ever shared says `challenge=`, and a bookmark is
-  // not something a player can be asked to edit. The old spelling opens the run
-  // it names, in a real browser and not only against a stand-in; what the bar
-  // says afterwards is the spelling the game writes now, so the next thing
-  // copied out of it is current.
-  // Somewhere for Back to lead, so the entry the legacy URL did or did not
-  // leave behind is the only thing between here and there.
+  // Existing shared links use challenge=; opening one must still work, and the bar should then
+  // show the current level= spelling.
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
 
@@ -90,8 +60,7 @@ test("opens a link written with the retired key, and re-spells it", async ({ pag
   await expect(page).toHaveURL(/#level=4,timescale=8$/);
   await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
 
-  // And the correction is a replacement, like every other: Back lands on the
-  // page before it rather than on the legacy URL, to be corrected again.
+  // Same replaceState behavior: Back lands before the legacy URL, not on it.
   await page.goBack();
   expect(await page.evaluate(() => window.location.hash)).toBe("");
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();

@@ -1,31 +1,9 @@
 /**
- * Reflow on a phone-sized screen (WCAG 1.4.10) -- and, for the main game
- * page only, the hard floor it adopted instead.
- *
- * The two help pages may not ask to be read by panning in two directions at
- * 320px, the width the success criterion names, or at 390px, which is what
- * most phones in use actually report. This is a browser question rather than
- * a stylesheet one -- what overflowed was a table whose columns were pinned
- * in pixels and a row of buttons that would not wrap, and neither is visible
- * in the CSS on its own -- so it is checked here, against the built site,
- * rather than in Vitest.
- *
- * The main game page is checked differently: a building pane and a code pane
- * side by side need more room than a phone screen has to give, and shrinking
- * them to fit was never asked for, so the page has a hard floor --
- * `body.app { min-inline-size: 1040px; min-block-size: 600px }`, in
- * `src/app/styles/document.css` -- as its minimum supported viewport rather
- * than reflowing under it. The floor hangs off a class rather than `body`
- * itself because the same stylesheet dresses all three pages: `src/docs.ts`
- * imports it too, and the help pages are the ones that owe the 320px sweep
- * below. What is checked here, in place of that sweep, is that the floor
- * holds: the page fits without overflow at 1040x600, the smallest viewport it
- * promises to support.
- *
- * The building is deliberately not part of either check: `.world` is a
- * fixed-scale scene in its own `overflow-x: auto` box and pans on its own
- * axis, which is the two-dimensional-content exception the criterion makes
- * for diagrams.
+ * Reflow on a phone-sized screen (WCAG 1.4.10). The help pages are swept at
+ * 320px/390px against the built site, since what overflows (a fixed-width
+ * table, a row of buttons that won't wrap) isn't visible in CSS alone. The
+ * game page instead has a hard floor (`min-inline-size`/`min-block-size` on
+ * `body.app`) as its minimum supported viewport, checked separately below.
  */
 
 import { expect, test } from "@playwright/test";
@@ -33,13 +11,9 @@ import { expect, test } from "@playwright/test";
 import { openSettingsMenu } from "./game-page.ts";
 
 /**
- * The help pages the build emits, by the path they are served from.
- *
- * The translated page is measured separately rather than assumed to behave like
- * the one it was translated from. Russian prose runs perceptibly longer than the
- * English it renders — the words are longer and fewer of them break — so the
- * page that fits is not evidence about the page beside it, and the table of API
- * descriptions is exactly where that difference lands.
+ * The help pages the build emits, measured separately: Russian prose runs
+ * perceptibly longer than the English it's translated from, so one page
+ * fitting isn't evidence about the other.
  */
 const PAGES = [
   { name: "the help page", path: "/documentation.html" },
@@ -56,16 +30,14 @@ for (const { name, path } of PAGES) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-      // The document itself: how much wider than the screen it wants to be.
       const overflow = await page.evaluate(() => {
         const root = document.documentElement;
         return root.scrollWidth - root.clientWidth;
       });
       expect(overflow).toBeLessThanOrEqual(0);
 
-      // And the code samples, which is where the width went: a page that fits
-      // by hiding the tail of every example behind a scrollbar of its own has
-      // only moved the panning somewhere smaller.
+      // A page that fits by hiding an example's tail behind its own scrollbar
+      // has only moved the panning somewhere smaller.
       const clipped = await page.evaluate(() =>
         [...document.querySelectorAll("pre code")]
           .filter((sample) => sample.scrollWidth > sample.clientWidth)
@@ -76,16 +48,7 @@ for (const { name, path } of PAGES) {
   }
 }
 
-/**
- * The main game page's own floor (decision #1), rather than the 320/390px
- * sweep the two help pages above still get.
- *
- * 1040x600 is the smallest viewport the page now promises to fit -- see the
- * file's own doc comment -- so what is worth checking is not a range of
- * widths but that this one, the edge of what `src/app/styles/document.css`
- * allows
- * the viewport to shrink to, does not itself overflow.
- */
+/** 1040x600 is the smallest viewport the page promises to fit without overflow. */
 test("the game fits its own 1040x600 floor", async ({ page }) => {
   await page.setViewportSize({ width: 1040, height: 600 });
   await page.goto("/");
@@ -98,29 +61,16 @@ test("the game fits its own 1040x600 floor", async ({ page }) => {
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-/*
- * The two popovers the app bar opens are checked at that floor as well, because
- * neither of them is part of the page's own column: both are `position:
- * absolute` under the bar, so they overflow downward without widening anything
- * the test above measures, and `body.app`'s `overflow: hidden` means a popover
- * past the bottom of the window is simply gone -- no wheel, no key, no
- * scrollbar reaches it. Uncapped, the level popover ended 179px below a 600px
- * window and the settings popover 158px below it with the seed block open.
- *
- * Measured in a browser rather than in the stylesheet because the height that
- * matters is the one the content comes to, which no rule states: the level
- * popover's is however many tiles the game ships, and the settings popover's
- * depends on how long the seed explanation runs in the language on screen.
- * `level-switcher.css.test.ts` and `settings-menu.css.test.ts` pin the rules;
- * this pins the result.
+/**
+ * The app bar's popovers overflow downward without widening the column above,
+ * and `body.app`'s `overflow: hidden` means a popover past the window's
+ * bottom is simply unreachable - no wheel, no key, no scrollbar reaches it.
  */
 test.describe("at that floor, the app bar's popovers", () => {
   test.use({ viewport: { width: 1040, height: 600 } });
 
   test("open the level list inside the window, last tile and all", async ({ page }) => {
-    // The sandbox route, so that every block is drawn and the popover is at its
-    // tallest -- the learning track, both blocks of numbered levels and the
-    // "Other" block that closes the list.
+    // The sandbox route draws every block, so the popover is at its tallest.
     await page.goto("/#level=sandbox");
     await page.locator(".task-open").click();
 
@@ -128,10 +78,8 @@ test.describe("at that floor, the app bar's popovers", () => {
     await expect(menu).toBeVisible();
     await expect(menu).toBeInViewport({ ratio: 1 });
 
-    // Inside the window is not enough on its own: a popover that fits by
-    // clipping its own tail has only moved the unreachable block somewhere
-    // smaller. The sandbox tile is the last thing in the list, so scrolling the
-    // popover to its end has to bring it fully into view.
+    // Inside the window isn't enough alone: clipping its own tail would also
+    // fit. The sandbox tile is last, so scrolling to the end must reveal it.
     await menu.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });
@@ -140,8 +88,7 @@ test.describe("at that floor, the app bar's popovers", () => {
     });
   });
 
-  // Russian, because this is the one popover where the longer language is the
-  // taller one: the seed disclosure is prose, and it runs 35px longer there.
+  // Russian, since the seed disclosure's prose runs longer there.
   for (const [language, hash] of [
     ["English", "#level=sandbox"],
     ["Russian", "#level=sandbox,lang=ru"],
@@ -154,8 +101,6 @@ test.describe("at that floor, the app bar's popovers", () => {
 
       const menu = page.locator(".setmenu");
       await expect(menu).toBeVisible();
-      // Opened rather than clicked, the reason `openSettingsMenu` gives: this
-      // has to hold whatever a previous step left the disclosure in.
       await menu
         .locator("details")
         .first()
@@ -164,8 +109,7 @@ test.describe("at that floor, the app bar's popovers", () => {
         });
 
       await expect(menu).toBeInViewport({ ratio: 1 });
-      // And the About block at the foot of it, which is what the overflow put
-      // out of reach: its license notice and both source links.
+      // The About block at the foot is what the overflow put out of reach.
       await menu.evaluate((element) => {
         element.scrollTop = element.scrollHeight;
       });

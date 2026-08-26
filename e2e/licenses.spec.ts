@@ -1,8 +1,7 @@
 /**
- * The license notices: `dist/` ships code and fonts belonging to other people,
- * under terms that ask for their notices to travel with them. Unit tests can
- * check that the pages link to `licenses.txt`, but only the built site can say
- * whether the file is really there and really says what it should.
+ * `dist/` ships code and fonts belonging to other people, under terms that
+ * require their notices to travel along - only the built site can say
+ * whether the notice file is really there and says what it should.
  */
 
 import { expect, test } from "@playwright/test";
@@ -12,10 +11,7 @@ import { openSettingsMenu } from "./game-page.ts";
 test("serves the license notices from the About block's copyright line", async ({ page }) => {
   await page.goto("/");
 
-  // The game has no footer to carry a "Licenses" link, and a row of its own
-  // would have changed the About block's shape -- so the word "MIT", already
-  // in the copyright notice, is the link. This is the game's only route to the
-  // file, which is what makes it worth an end-to-end test of its own.
+  // The game's only route to the file: the word "MIT" in the copyright notice, not a footer link.
   await openSettingsMenu(page);
   const link = page.locator(".setmenu .sethint a");
   await expect(link).toHaveText("MIT");
@@ -26,11 +22,7 @@ test("serves the license notices from the About block's copyright line", async (
   expect(response.status()).toBe(200);
   const notices = await response.text();
 
-  // The game's own terms, and the two obligations that made this file exist:
-  // MIT for CodeMirror and the packages under it, OFL for the Font Awesome
-  // outlines the icons are drawn from. Oswald was a third until the interface
-  // adopted the platform's own UI face; nothing here ships a webfont now, so
-  // the notice must not claim one either.
+  // MIT for CodeMirror, OFL for the Font Awesome icon outlines; no webfont ships, so none should be claimed.
   expect(notices).toContain("The MIT License (MIT)");
   expect(notices).toContain("Magnus Wolffelt");
   expect(notices).toContain("codemirror");

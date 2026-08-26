@@ -1,101 +1,45 @@
-/**
- * The learning track's panel, in a browser.
- *
- * What the panel decides is already covered without one:
- * `src/widgets/tutorial-panel/ui/tutorial-panel.test.ts` draws every level and
- * presses everything it can press, and `src/pages/game/index.test.ts` proves the
- * wiring. What jsdom cannot answer is whether any of it is *visible*. It has no
- * layout, so it cannot tell an empty region that is hidden from one that leaves
- * a gap above the building, cannot say whether the answer under the third hint
- * fits the pane it is given, and cannot see that the region is announced as a
- * landmark a player can jump to. Those are the things measured here, in both
- * languages, because the Russian strings are materially longer than the English
- * they render and this panel is more prose than anything else on the page.
- */
+/** Browser checks for the tutorial panel's layout, visibility, and accessibility, in both languages. */
 
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 
 import { editor, languagePicker, startButton } from "./game-page.ts";
 
-/**
- * Where level 1 lives.
- *
- * The level switcher's first tutorial tile links here, and the test below
- * follows that tile rather than this constant. Everything else goes straight to
- * the address, because a level no tile points at can only be reached that way —
- * and because this is the address `router.ts` sends `#level=tutorial-9` and
- * every other wrong one on the track to.
- */
+/** Where level 1 lives, and the fallback `router.ts` sends bad levels to. */
 const FIRST_LEVEL = "/#level=tutorial-1";
 
 /** A line only level 1's *starting* program has, and only in English. */
 const LEVEL_1_MARKER = "this building has two floors";
 
 /**
- * The same line of the same program, as a Russian reader is handed it.
- *
- * The programs on the track are catalog messages like everything else a
- * player reads — `tutorial.level1.startingCode.code` — and the code inside them
- * is identical in every language, so what changes between this marker and the
- * one above is the comment and nothing else. Two markers rather than one
- * because the interesting failure is not an empty editor: it is an editor
- * holding the English program on a page that is otherwise entirely Russian.
+ * The same line, as a Russian reader sees it. Two markers, not one, because
+ * the failure worth catching is an editor stuck in English on an otherwise
+ * Russian page, not just an empty editor.
  */
 const LEVEL_1_MARKER_RU = "в этом доме два этажа";
 
-/**
- * What level 1 is called, in both languages.
- *
- * The panel is named after the level it is teaching rather than after the
- * track, so these are also the name its landmark is announced under, and the
- * level the tests below open is level 1 unless they say otherwise.
- */
+/** What level 1 is called, in both languages; also the panel's default landmark name. */
 const LEVEL_1_TITLE = "The elevator that goes nowhere";
 const LEVEL_1_TITLE_RU = "Лифт, который никуда не едет";
 
 /**
- * The panel's landmark, by the name a screen reader announces it as.
- *
- * By role and name rather than by class, for the reason `game-page.ts` gives:
- * what is asserted is what a player can reach. A `<section>` that has lost its
- * name is not a region at all — it stops being announced and stops being
- * something to jump to, with nothing on screen changing.
- *
- * There is no one name the eight lessons share any more, so the default is
- * level 1's own title: naming the landmark after the track told a player who
- * jumped to it that they were on the track, which they knew, and left the
- * question they do have — which of the eight lessons is this — to be read off
- * the heading inside.
- *
- * @param page - The page under test.
- * @param name - The landmark's accessible name in the language on screen.
- * @returns The panel.
+ * The panel's landmark, found by role and accessible name rather than class:
+ * a `<section>` that has lost its name stops being announced or reachable,
+ * with nothing on screen changing to show it.
  */
 function panel(page: Page, name = LEVEL_1_TITLE): Locator {
   return page.getByRole("region", { name });
 }
 
-/**
- * Switches the page to Russian through the control a player would use.
- *
- * @param page - The page under test.
- */
+/** Switches the page to Russian through the control a player would use. */
 async function switchToRussian(page: Page): Promise<void> {
   await (await languagePicker(page)).selectOption("ru");
 }
 
 /**
- * One element's box, refusing to measure something that is not on screen.
- *
- * `boundingBox()` answers `null` for an element with no layout, and a test that
- * compares `null` against a number silently passes on the very failure it was
- * written for -- the card pushed under the building is also the card that has
- * been laid out to nothing.
- *
- * @param locator - The element to measure.
- * @param what - What it is, for the message if it is not there.
- * @returns Its box in page coordinates.
+ * One element's box, refusing to measure something not on screen.
+ * `boundingBox()` returns null for an element with no layout, and comparing
+ * null against a number would silently pass on the exact failure this exists to catch.
  */
 async function boxOf(
   locator: Locator,
@@ -109,14 +53,8 @@ async function boxOf(
 }
 
 /**
- * Opens the level switcher's menu, where the track's levels are listed.
- *
- * Forced open rather than clicked, for the reason `openSettingsMenu` in
- * `game-page.ts` gives: a click toggles, and this is called on both sides of a
- * language change that redraws the switcher underneath it. The one click that
- * proves a player can open the menu at all is in the test below, made once.
- *
- * @param page - The page under test.
+ * Force-opens the level switcher's menu (not via click, which toggles) so it
+ * can be called on both sides of a language change that redraws the switcher.
  */
 async function openLevelMenu(page: Page): Promise<void> {
   await page.locator(".taskmenu").evaluate((menu) => {
@@ -127,18 +65,8 @@ async function openLevelMenu(page: Page): Promise<void> {
 test("opens the track from the level switcher, in the language on screen", async ({ page }) => {
   await page.goto("/");
 
-  // The way in. The shell used to ship a "Learning track" link of its own in
-  // the header, and the header is gone; the switcher's tutorial block is what
-  // is left, and it is the only entrance that does not involve knowing to type
-  // `#level=tutorial-1` into the address bar. That the tiles are built is
-  // `level-switcher.test.ts`'s to prove and where they point is the level
-  // menu model's; what neither can answer is whether a player can open the
-  // menu and see them, and whether pressing one starts a level -- the layout,
-  // the hash and the router are all outside jsdom, and a tile behind a menu
-  // that will not open leaves the track exactly as undiscoverable as no tile
-  // at all.
-  // `exact`, because the menu this opens holds a tile for every other level
-  // and "Level 1" is a prefix of "Level 10" and nine more.
+  // The switcher's tutorial block is the only entrance to the track now that
+  // the shell's own link is gone. `exact` avoids matching "Level 10" and the rest.
   const opener = page.getByRole("button", { name: "Level 1", exact: true });
   await expect(opener).toHaveAttribute("aria-expanded", "false");
   await opener.click();
@@ -149,8 +77,8 @@ test("opens the track from the level switcher, in the language on screen", async
 
   await switchToRussian(page);
 
-  // Still there under the longer label, on a switcher the language change
-  // rebuilt from the catalog rather than relabeled in place.
+  // Still there under the longer label: the switcher rebuilds from the
+  // catalog rather than relabeling in place.
   await openLevelMenu(page);
   const link = page.getByRole("link", { name: "Учебный уровень 1", exact: true });
   await expect(link).toBeVisible();
@@ -166,23 +94,16 @@ test("shows the panel on a level and nothing at all off it", async ({ page }) =>
   await expect(panel(page)).toBeVisible();
   await expect(page.getByRole("heading", { name: LEVEL_1_TITLE })).toBeVisible();
 
-  // And nothing at all about the track the level belongs to. The card used to
-  // open on a row naming the track and counting the player's place in it, close
-  // on a footnote counting the cleared levels again, and carry two buttons that
-  // left the level between the two; the app bar's level switcher says all of
-  // that already, so on the one surface whose whole job is the level in front of
-  // the player none of it is left. Counted here rather than only in jsdom
-  // because it is the rendered page that is asked, and a rule or a template that
-  // put any of it back would be answered here whichever of the two did it.
+  // No leftover track chrome (position, steps, progress): the app bar's level
+  // switcher already shows all of that. Checked on the rendered page, not just
+  // jsdom, since either a template or a stylesheet rule could bring it back.
   await expect(
     panel(page).locator(".tutorialposition, .tutorialsteps, .tutorialprogress, .tutorialtaken"),
   ).toHaveCount(0);
   await expect(panel(page).locator("button")).toHaveCount(1);
 
-  // The region stays in the page shell on every other route, so the stylesheet
-  // is what has to take it out of the flow: an empty block with margins is
-  // still a 10px gap above the building on all nineteen levels and the
-  // sandbox.
+  // The stylesheet has to take the region out of flow on other routes: an
+  // empty block with margins would still leave a gap above the building.
   await page.goto("/#level=1");
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
   await expect(panel(page)).toHaveCount(0);
@@ -193,8 +114,7 @@ test("shows the panel on a level and nothing at all off it", async ({ page }) =>
 test("keeps the answer shut until a player asks for it", async ({ page }) => {
   await page.goto(FIRST_LEVEL);
 
-  // Three hints and an explanation, every one of them closed: a level whose
-  // answer is on screen before its goal has been read is not a level.
+  // Three hints and an explanation, all closed: the answer must not show before the goal is read.
   await expect(panel(page).locator("details")).toHaveCount(4);
   await expect(panel(page).locator("details[open]")).toHaveCount(0);
   await expect(panel(page).locator(".tutorialsolution code")).toBeHidden();
@@ -210,14 +130,9 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   page,
   context,
 }) => {
-  // What `src/ui/code-highlight.test.ts`, `src/ui/line-diff.test.ts` and
-  // `src/ui/templates.test.ts` prove against jsdom: that the markup carries
-  // `tok-*` classes and a `.tutoriallinechanged` mark, and that
-  // `navigator.clipboard.writeText` is called at all. What only a real browser
-  // answers is whether `code.css` and `tutorial-panel.css` really paint those
-  // classes as anything
-  // and whether the clipboard the button claims to have written to is the one
-  // a player would paste from.
+  // jsdom already proves the markup and the clipboard call happen; only a real
+  // browser proves the CSS actually paints those classes and that the
+  // clipboard written to is the one a player would paste from.
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto(FIRST_LEVEL);
 
@@ -227,8 +142,7 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   await expect(code).toBeVisible();
   expect(await code.locator("[class^='tok-']").count()).toBeGreaterThan(0);
 
-  // The one line level 1 actually adds, marked rather than only named in the
-  // hint's prose above it.
+  // The one line level 1 actually adds, marked rather than only named in the hint's prose.
   const marked = code.locator(".tutoriallinechanged");
   await expect(marked).toHaveCount(1);
   await expect(marked).toHaveText("elevator.goToFloor(1);");
@@ -240,56 +154,41 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   await copyButton.click();
 
   await expect(status).toHaveText("Copied to your clipboard.");
-  // Character for character against what is actually on screen, not a second
-  // copy of the program kept by the test -- the same reason
-  // `editor.spec.ts`'s paste test reads storage back rather than trusting the
-  // keystrokes that produced it.
+  // Compared against what's actually rendered, not a second copy of the
+  // program kept by the test.
   const clipboard = await page.evaluate(() => navigator.clipboard.readText());
   expect(clipboard).toBe(await code.evaluate((element) => element.textContent));
   expect(clipboard).toContain("elevator.goToFloor(1);");
 });
 
 test("hands the editor the program in the language the link asks for", async ({ page }) => {
-  // `openNamedLevelBuffer` promises the starter "in the player's current
-  // language", and this is the only place that promise can be measured whole:
-  // the hash names a language, `resolveLocale` picks it, the Russian catalog
-  // is fetched as its own chunk, and only then is the level opened and the
-  // getter on the table read. Every one of those steps is missing from jsdom,
-  // and the last two are ordered -- the starter is written into storage as the
-  // buffer opens, so a level that opened before the catalog landed would keep
-  // its English program for the rest of the run with the page around it in
-  // Russian.
+  // The only place "starter in the player's current language" can be checked
+  // end-to-end: language resolution, the catalog fetch, and opening the level
+  // are all async and ordered, none of which jsdom exercises.
   await page.goto(`${FIRST_LEVEL},lang=ru`);
   await expect(panel(page, LEVEL_1_TITLE_RU)).toBeVisible();
 
   const russianEditor = editor(page, "Программа для лифтов");
   await expect(russianEditor).toContainText(LEVEL_1_MARKER_RU);
   await expect(russianEditor).not.toContainText(LEVEL_1_MARKER);
-  // And it is still the program, not a translation of one: the line the level
-  // is about survives the trip through the catalog exactly as written.
+  // Still the program, not a translation: the line survives the trip through the catalog unchanged.
   await expect(russianEditor).toContainText("elevator.goToFloor(0);");
 });
 
 test("starts the level again from the run controls without leaving the track", async ({ page }) => {
   await page.goto(FIRST_LEVEL);
 
-  // Exactly one button on the page says this. The panel used to carry a second
-  // one, which restarted the level without starting it, and two buttons under one
-  // accessible name doing two things is WCAG 3.2.4 -- this row is in the app bar
-  // above the panel, and the page never scrolls, so both were on screen at once.
+  // Exactly one button says this: a second one doing the same thing under one
+  // accessible name would fail WCAG 3.2.4.
   await expect(page.getByRole("button", { name: "Start over", exact: true })).toHaveCount(1);
   await page.getByRole("button", { name: "Start over", exact: true }).click();
 
-  // The same level, running: "Start over" is pressed by somebody who has decided
-  // to go again, so it does not stop to ask a second time. `panel` finds it by
-  // level 1's own name, so the panel being there is also the panel being drawn
-  // for the level that was restarted rather than for another one.
+  // "Start over" doesn't ask again - it restarts immediately. `panel` matching
+  // level 1's own name confirms the restarted level, not just any panel.
   await expect(panel(page)).toBeVisible();
   await expect(startButton(page, "Pause")).toBeVisible();
-  // And the button survives the restart it caused, so the focus never leaves it.
-  // The panel is redrawn whole underneath, but the run controls are drawn once
-  // for the life of the page and are not among the regions `#startRun` tears
-  // down -- which is the whole reason they were moved out of the level bar.
+  // The button survives the restart it caused: run controls are drawn once for
+  // the page's life and aren't among the regions the restart tears down.
   await expect(page.getByRole("button", { name: "Start over", exact: true })).toBeFocused();
 });
 
@@ -299,30 +198,21 @@ test("draws the panel again in the language the picker asks for", async ({ page 
 
   await switchToRussian(page);
 
-  // The landmark's own name is the level's title, so the two are translated by
-  // the same redraw or not at all -- and that they still agree is the one part
-  // of this panel a sighted player cannot see.
+  // The landmark's name is the level's title, so both translate together or
+  // not at all - agreement here is invisible to a sighted player.
   await expect(panel(page, LEVEL_1_TITLE_RU)).toBeVisible();
   await expect(page.getByRole("heading", { name: LEVEL_1_TITLE_RU })).toBeVisible();
-  // And the prose under the heading, which is the bulk of what a language
-  // change has to redraw here.
+  // The prose under the heading too, which is the bulk of what a language change redraws.
   await expect(
     panel(page, LEVEL_1_TITLE_RU).getByText("Подсказка 1", { exact: true }),
   ).toBeVisible();
 });
 
 test("paints the panel's own controls as dark as the prose around them", async ({ page }) => {
-  // The defect written up at `.tutorialpanel`: <body> paints everything white,
-  // and the document rules repair that for `p` and the headings only. A
-  // `<summary>` is neither, so the four disclosures would be the palest thing on
-  // the page -- white on the `--ds-raised` the hints are now drawn on is 1.03:1
-  // in the light theme, where WCAG 1.4.3 asks for 4.5:1.
-  //
-  // `.tutorialpanel` now reads `--ds-text` rather than the fixed `--color-text`
-  // it used to, so the color this asserts is whichever theme Playwright's own
-  // default `colorScheme` renders here -- light, per this suite's own default --
-  // not a page-wide constant any more. `--ds-text`'s light-theme value is
-  // `#1e2227`.
+  // `<summary>` isn't covered by the document rules that fix contrast for
+  // p/headings, so without this rule the disclosures would fail WCAG 1.4.3
+  // (white on `--ds-raised`). The RGB below is `--ds-text`'s light-theme
+  // value, under Playwright's default color scheme.
   await page.goto(FIRST_LEVEL);
 
   await expect(panel(page).getByText("Hint 1", { exact: true })).toHaveCSS(
@@ -338,88 +228,31 @@ test("paints the panel's own controls as dark as the prose around them", async (
 test("stands the lesson across the pane with the whole house under it, at every width", async ({
   page,
 }) => {
-  // Six things can go wrong in this column and jsdom can see none of them: the
-  // card can end up beside the building again and back at the 384px that made
-  // its answers unreadable, it can be squeezed instead of scrolled to, it can
-  // be left scrolling inside itself so that the pane has two scrollbars a few
-  // pixels apart, a line longer than the card can push a horizontal scrollbar
-  // into a box that is only meant to scroll down, the house can be pushed so
-  // far down the box that the lobby and every car parked in it are below the
-  // fold, and the statistics strip can be pushed off the bottom of the window
-  // by any of it.
-  //
-  // The layout used to be a row, and this test asserted that shape: the lesson
-  // beside the house, the two read together at every width. It is a column on
-  // the player's own instruction -- 384px of card is 45 characters of prose and
-  // an answer that has to be scrolled sideways to be read at all -- and one box
-  // over both is what pays for it, so what the widths below check now is that
-  // the lesson and the whole building are on screen together and that the card
-  // is as wide as the pane allows wherever the splitter is put.
-  //
-  // 1280x900 is the default window and a 794px pane, wide enough for the card's
-  // whole 640px. 1213x900 is a 752px pane and 1040x600 is the page's own floor;
-  // they are the two widths where a card sized from anything but a stated
-  // number would show it.
-  //
-  // The splitter pass is the narrow end of the same promise, and dragging is
-  // the only way to reach it: a window has to be under 600px wide before its
-  // own width bounds the game pane, and the game does not go there. At 1040px
-  // the split bottoms out at 36.5%, because neither pane may be driven under
-  // 380px, and fifteen presses of a 2% step get there with room to spare -- the
-  // handler clamps rather than accumulates, so the extra presses land on the
-  // bound instead of past it. The card is the pane less its 32px of inset
-  // there, and it is still the full width of what there is.
-  //
-  // It is also the one pass where the column really does scroll, and where the
-  // scroll is the only honest answer: 380px of pane is 324px of stage area once
-  // the figures below have wrapped themselves onto four rows, a card of prose
-  // 348px wide runs 280 to 390px of that, and what is left over is not a
-  // building. So the two together are asserted at the three widths the game is
-  // played at, and the narrow end is asked instead for the fallback -- the
-  // house at the foot of one scroll, with its cars in it.
-  //
-  // Both languages, because the Russian is the long one: every line of this
-  // card is prose or a disclosure's summary, the Russian of each runs half
-  // again the English, and a card whose whole height is prose is a card whose
-  // height the language sets.
-  //
-  // One document for all eight measurements, and the language changed through
-  // the picker rather than the address bar: a `goto` differing only in the hash
-  // is a same-document navigation, so a second route asking for a language the
-  // page is not already in would be measured before anything had redrawn. The
-  // splitter's own double-click -- its shipped way back to the default split --
-  // is what hands the next language a pane the width it expects.
+  // Guards several layout regressions at once (card beside the building again,
+  // double scrollbars, house or stats pushed off-screen). Language is switched
+  // via the picker, not `goto`, since a same-hash navigation wouldn't redraw.
   const check = async (where: string, height: number, roomForBoth = true): Promise<void> => {
     const card = page.locator(".tutorial");
     const lesson = await boxOf(card, `the lesson card on ${where}`);
     const world = await boxOf(page.locator(".world"), `the building on ${where}`);
 
-    // Above, not beside: the card ends before the building's box begins, and
-    // the two follow one another down the column rather than dividing its
-    // width between them. The building's box starts where the card's margin
-    // ends and pads itself from inside `.stage`, which is where the 18px
-    // between them comes from.
+    // Above, not beside: the two stack down the column rather than splitting its width.
     expect(lesson.y + lesson.height, `the lesson card on ${where}`).toBeLessThanOrEqual(world.y);
     expect(lesson.x, `the lesson card on ${where}`).toBeGreaterThanOrEqual(world.x);
     expect(lesson.x + lesson.width, `the lesson card on ${where}`).toBeLessThanOrEqual(
       world.x + world.width,
     );
 
-    // And it is as wide as this pane allows: 640px, or the whole of the box
-    // less the 16px it is inset by on each side, whichever is smaller. Read
-    // off `.stagearea`'s own content width rather than the window's, because a
-    // classic scrollbar takes its 15px out of exactly that and the percentage
-    // in the rule is resolved against what is left.
+    // As wide as the pane allows: 640px, or the pane's own content width minus
+    // its inset, whichever is smaller. Read off `.stagearea`, since a
+    // scrollbar eats into that width, not the window's.
     const room = await page
       .locator(".stagearea")
       .evaluate((area) => (area as HTMLElement).clientWidth);
     expect(lesson.width, `the lesson card on ${where}`).toBeCloseTo(Math.min(640, room - 32), 0);
 
-    // One box holds both, and while there is room for both it does not scroll
-    // at all: the house gives back exactly what the card takes, so the step and
-    // the whole building stand on screen together. Sideways it never scrolls
-    // whatever the card is doing -- the inline axis belongs to `.stage`, which
-    // scrolls a house wider than the pane inside itself.
+    // One box holds both and doesn't scroll while there's room for both.
+    // Sideways it never scrolls at all: `.stage` owns the inline axis for an oversized building.
     const shared = await page.locator(".stagearea").evaluate((area) => ({
       down: area.scrollHeight - area.clientHeight,
       across: area.scrollWidth - area.clientWidth,
@@ -429,18 +262,9 @@ test("stands the lesson across the pane with the whole house under it, at every 
       expect(shared.down, `the stage area on ${where}`).toBe(0);
     }
 
-    // And the elevator is in the window, which is what that arithmetic is for
-    // and the only thing here a player would have called a bug. The house
-    // draws itself bottom-up and every car parks at the lobby, so the cars are
-    // the first thing a house too tall for its room loses: a building left
-    // standing a whole screenful tall under a 280px card put the lobby 280px
-    // below the fold, and level 1 opened on a roof with no elevator anywhere on
-    // it. `.stage` is the box that scrolls a house too tall for its room, and
-    // `showGround` opens it at the ground.
-    //
-    // At the narrow end the column is scrolled to its foot first, because there
-    // the fallback is the promise: the house is at the floor its rule states
-    // and the cars are one scroll away rather than nowhere.
+    // The elevators must be in view: the house draws bottom-up, so a too-tall
+    // building loses its cars off-screen first. At the narrow end the column
+    // scrolls to its foot first, since that's where the fallback promises them.
     const parked = await page.locator(".stagearea").evaluate((area, scroll: boolean) => {
       if (scroll) {
         area.scrollTop = area.scrollHeight;
@@ -456,21 +280,16 @@ test("stands the lesson across the pane with the whole house under it, at every 
     expect(parked.cars, `the building on ${where}`).toBeGreaterThan(0);
     expect(parked.shown, `the elevators on ${where}`).toBe(parked.cars);
 
-    // And the card is not a second scroll container inside the first. Either
-    // number above zero is the layout this replaced: a lesson scrolling inside
-    // its own frame, with the wheel answering whichever box the pointer
-    // happened to be over.
+    // The card must not be its own scroll container - that was the old
+    // layout, with the wheel answering whichever box the pointer was over.
     const inside = await card.evaluate((element) => ({
       down: element.scrollHeight - element.clientHeight,
       across: element.scrollWidth - element.clientWidth,
     }));
     expect(inside, `the lesson card on ${where}`).toEqual({ down: 0, across: 0 });
 
-    // And the figures still stand at the foot of the pane rather than under
-    // the window, which is what keeping the card out of the pane's own column
-    // bought and what keeping the scroll inside `.stagearea` keeps: the strip
-    // used to be pushed off the bottom of a 600px window by a lesson with a
-    // disclosure open.
+    // The statistics strip stays inside the viewport, which keeping the
+    // scroll inside `.stagearea` (rather than the window) guarantees.
     const stats = await boxOf(page.locator(".statscontainer"), `the statistics on ${where}`);
     expect(stats.y + stats.height, `the statistics on ${where}`).toBeLessThanOrEqual(height);
   };
@@ -490,10 +309,8 @@ test("stands the lesson across the pane with the whole house under it, at every 
     for (let press = 0; press < 15; press += 1) {
       await page.keyboard.press("ArrowLeft");
     }
-    // 37 is the 36.5% bound rounded, and reading it back is what says the
-    // presses arrived and the pane really is at its narrowest -- without it a
-    // splitter that ignored the keyboard would leave this measuring the same
-    // 645px pane as the row above and passing.
+    // Reading the value back confirms the presses landed and the pane really
+    // is at its narrowest, not still at the wide default.
     await expect(splitter).toHaveAttribute("aria-valuenow", "37");
     await check(`${language} at 1040x600 with the game pane dragged to 380px`, 600, false);
 
@@ -511,21 +328,12 @@ test("stands the lesson across the pane with the whole house under it, at every 
 });
 
 test("shows the longest answer on the track without panning it sideways", async ({ page }) => {
-  // The complaint the column was built for, measured on the level that proves
-  // it. Level 7's answer is the longest of the eight at 68 characters, and
-  // level 8 shows the same program again. Beside the building the card was
-  // 384px wide, which left the code block 310px -- so more than half of every
-  // line of the answer stood behind a horizontal scrollbar, and a player was
-  // asked to drag a `<pre>` to read the thing the lesson had just told them to
-  // read. `pre code` keeps its `overflow-x: auto` (`shared/styles/code.css`)
-  // for a pane that really is too narrow; what is asserted here is that the
-  // window the game is played in is not one of them.
+  // Level 7 has the track's longest answer (68 characters). Beside the
+  // building the card was 384px, leaving the code block too narrow to read
+  // without scrolling sideways; this checks the game's own window isn't one of those cases.
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/#level=tutorial-7");
-  // The answer is under the third hint and a shut `<details>` has no layout to
-  // measure, so it is opened the way the test below opens all four: through the
-  // DOM, because which disclosure holds the answer is the panel's business and
-  // is asserted where the panel is.
+  // Opened through the DOM since a shut <details> has no layout to measure.
   await page
     .locator(".tutorialhint")
     .last()
@@ -538,29 +346,20 @@ test("shows the longest answer on the track without panning it sideways", async 
     spill: block.scrollWidth - block.clientWidth,
     longest: Math.max(...block.textContent.split("\n").map((line) => line.length)),
   }));
-  // The tripwire under the measurement. If the answers are ever rewritten
-  // shorter, the line above goes on passing while measuring nothing at all, and
-  // the width the card is stated at would have lost the thing holding it up.
+  // A tripwire: if the answer is ever rewritten shorter, the assertion below
+  // would keep passing while testing nothing.
   expect(measured.longest, "the longest line of level 7's answer").toBeGreaterThanOrEqual(60);
   expect(measured.spill, "level 7's answer pans sideways").toBe(0);
 });
 
 test("scrolls down to the building and back up to the lesson in one box", async ({ page }) => {
-  // The other half of what was asked for: a card too tall for the pane is
-  // scrolled past rather than scrolled *inside*, and the building is at the
-  // foot of the scroll when it gets there. Level 7 with everything open is the
-  // longest the track goes -- three hints, the answer and the explanation --
-  // and it is taller than the pane, which is the case the old layout answered
-  // by squeezing the card into a column of its own beside the house.
+  // The other half of the promise: a too-tall card scrolls past, with the
+  // building at the foot of the scroll. Level 7 fully expanded is the tallest the track gets.
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/#level=tutorial-7");
   await expect(page.locator(".tutorialpanel")).toBeVisible();
-  // Opened through the DOM rather than by clicking four summaries: which
-  // disclosure holds what is the panel's business and is asserted where the
-  // panel is, and the state survives because nothing here redraws it. There is
-  // no accordion in this widget -- a redraw restores whatever was open
-  // (`tutorial-panel.ts`), and nothing closes one disclosure when another
-  // opens -- so setting all four is a state a player can also reach.
+  // Opened through the DOM, not by clicking each summary: nothing here closes
+  // one disclosure when another opens, so all four open is a state a player can reach too.
   await page.locator(".tutorial details").evaluateAll((all) => {
     for (const disclosure of all) {
       (disclosure as HTMLDetailsElement).open = true;
@@ -590,22 +389,16 @@ test("scrolls down to the building and back up to the lesson in one box", async 
 
   expect(scrolled.room, "the stage area has nothing to scroll").toBeGreaterThan(0);
   expect(scrolled.taller, "level 7 with every hint open still fits the pane").toBeGreaterThan(0);
-  // At the foot of the scroll the building's own foot lands on the box's: it
-  // is the last thing in the column, so a house stopping short of the bottom
-  // would be one the scroll had overshot.
+  // At the foot of the scroll the building's own foot should land on the
+  // box's, since it's the last thing in the column.
   expect(
     Math.abs(scrolled.worldBottom),
     "the building at the foot of the scroll",
   ).toBeLessThanOrEqual(1);
-  // And there is still a house there to arrive at. A card this tall is the one
-  // case where the building is down at the floor its rule states -- two floors
-  // at `MIN_FLOOR` -- and the floor is what stands between "the column scrolls
-  // the difference" and a box with nothing in the bottom of it.
+  // A fully expanded card is the one case where the building sits at its minimum-floor height.
   expect(scrolled.worldHeight, "the building under a fully opened lesson").toBeCloseTo(96, 0);
-  // And back is the way it came -- the lesson at the top of the box again,
-  // under the 18px `.stagearea` insets it by. Scrolling back to the step being
-  // read is what the shared box was asked for: one wheel over both, and no
-  // reading position lost between them.
+  // Scrolling back returns to the same reading position - the whole point of
+  // sharing one box between the lesson and the building.
   expect(scrolled.start, "the lesson card before the scroll").toBeCloseTo(18, 0);
   expect(scrolled.back, "the lesson card after scrolling back").toBeCloseTo(scrolled.start, 0);
 });
@@ -613,23 +406,10 @@ test("scrolls down to the building and back up to the lesson in one box", async 
 test("costs the levels nothing: the widest building in the game still fits its pane", async ({
   page,
 }) => {
-  // The box this feature added is on every route, lesson or no lesson, and the
-  // levels are where it can do damage without anyone on the learning track ever
-  // seeing it. Level 18 builds the widest house in the game -- 1030px of it --
-  // and `.stagearea > .world` was once left on `flex: 1 1 auto`, which while
-  // this box was a flex row was a basis read off its own content, and this
-  // box's content is a building: the world sized itself to the house instead of
-  // to the pane, 1062px inside a 794px pane, 268px of it clipped away by the
-  // pane's own overflow, and `.stage` with nothing to scroll because it was
-  // never narrower than what was inside it. Two whole shafts were unreachable.
-  // The column states both of this box's sizes now -- the pane's width from the
-  // default `align-items: stretch`, a screenful of height from its own rule,
-  // bent only by whatever card stands above it, and level 18 has none -- so
-  // nothing here is read off a house and the stage scrolls whatever will not
-  // fit.
-  //
-  // Measured at both widths, because the splitter can change what this box gets
-  // without the window moving.
+  // This box affects every route, and levels (not just the tutorial) are
+  // where a regression could go unnoticed. Level 18 builds the widest house in
+  // the game; it used to size the world to the building instead of the pane, clipping two shafts.
+  // Measured at both widths, since the splitter can change the pane size without the window moving.
 
   for (const [width, height] of [
     [1280, 900],
@@ -656,9 +436,7 @@ test("costs the levels nothing: the widest building in the game still fits its p
 });
 
 /**
- * The panel is not swept at phone widths the way `reflow.spec.ts` sweeps the
- * two help pages. The main game page has a 1040x600 floor instead of
- * reflowing for a phone: a building pane and a code pane side by side need
- * more room than a phone width has to give. `reflow.spec.ts` holds that
- * floor; there is no narrower width left for this panel to be swept at.
+ * Not swept at phone widths: the game page has a 1040x600 floor instead of
+ * reflowing for a phone, since a building pane and a code pane side by side
+ * need more room than a phone width gives.
  */

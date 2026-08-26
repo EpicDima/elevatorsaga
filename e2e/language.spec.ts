@@ -1,21 +1,10 @@
 /**
- * The language the game starts in, in a real browser.
- *
- * `src/ui/preferred-locale.test.ts` proves which language is chosen and that
- * the page shell comes out in it, against a document it parsed itself. What it
- * cannot prove is the half that only exists in the built site: that the Russian
- * catalog is a chunk a browser can actually fetch — until the page asked for
- * one there was nothing in the game that reached it at all — and that what the
- * reader ends up looking at agrees with itself. The shell is rewritten from the
- * catalog and the widgets around the building are drawn from it, by different
- * code at different moments; a Russian shell around an English goal bar is
- * worse than either language on its own, and this is the only place it would
- * show.
- *
- * The Russian words below are asserted as a reader sees them, like every other
- * spec here, rather than imported from `src/i18n/ru.ts`. A test that reads the
- * same catalog the page does would pass just as happily on a catalog that
- * had quietly stopped being Russian.
+ * The language the game starts in, in a real browser: that the Russian
+ * catalog is an actual fetchable chunk, and that the shell and the widgets
+ * around the building - rewritten by different code at different moments -
+ * end up agreeing on one language. Russian words below are asserted as a
+ * reader sees them, not imported from the catalog, since a test reading the
+ * same catalog the page does would pass on one that had quietly gone stale.
  */
 
 import { expect, test } from "@playwright/test";
@@ -25,41 +14,27 @@ import { startButton } from "./game-page.ts";
 test("shows the whole game in the language a link asks for", async ({ page }) => {
   await page.goto("/#lang=ru");
 
-  // What a screen reader picks its voice from, and what a crawler is told.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
-  // The shell: shipped in English by `index.html`, rewritten from the
-  // catalog. The skip link is the whole of it that is still words -- what the
-  // header used to say is the app bar's now, and the app bar writes its own.
+  // The skip link: the shell's one remaining piece of rewritten text.
   await expect(page.getByRole("link", { name: "Перейти к редактору кода" })).toBeAttached();
-  // Not `getByText`: the same caption key now labels two live elements at
-  // once, the goal bar's meter and the (currently closed) statistics panel's
-  // own tile for the same field, so a page-wide text match is ambiguous.
+  // Not `getByText`: the same caption key labels two live elements (the goal
+  // bar's meter and the statistics panel's tile), so a page-wide match is ambiguous.
   await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
     "Перевезено",
   );
-  // The game the shell frames, drawn through the same catalog by the
-  // presenters -- and only after it had arrived, which is what keeps the two
-  // halves of the page in one language.
   await expect(page.getByRole("button", { name: "Уровень 1" })).toBeVisible();
   await expect(startButton(page, "Запустить")).toBeVisible();
-  // And nothing here still says it in English -- the button above is found by
-  // its exact translated name, but a caption pasted together from two
-  // catalog keys could still leak one's English into the other's row.
+  // A caption pasted together from two catalog keys could still leak one's English into the other's.
   await expect(page.locator(".task-name")).not.toContainText("Level");
 });
 
 test("carries the language into the links the game builds", async ({ page }) => {
-  // The reason a language that arrived in somebody else's link is not written
-  // to storage: it does not need to be. The router keeps parameters it does not
-  // recognize, so `lang` survives every navigation the level switcher offers and
-  // stays in the address bar to be copied out of again.
+  // The router keeps parameters it doesn't recognize, so `lang` survives every
+  // navigation the level switcher offers without being written to storage.
   await page.goto("/#lang=ru");
 
-  // The tile is a real link, but it sits behind the switcher's own closed
-  // popover -- opened here the way a player would, by pressing the trigger
-  // that already names the level on screen. `exact`, because the open popover
-  // also holds the track's own tiles and "Учебный уровень 2" contains the
-  // numbered one's whole name.
+  // `exact`, since the open popover also holds tiles like "Учебный уровень 2"
+  // that contain the numbered one's whole name.
   await page.getByRole("button", { name: "Уровень 1" }).click();
   await page.getByRole("link", { name: "Уровень 2", exact: true }).click();
 
@@ -68,8 +43,7 @@ test("carries the language into the links the game builds", async ({ page }) => 
 });
 
 test.describe("a browser that says it reads Russian", () => {
-  // Sets both the `Accept-Language` header and `navigator.languages`, which is
-  // the source `resolveLocale` reads when the URL and the storage say nothing.
+  // Sets `Accept-Language` and `navigator.languages`, the fallback source once URL and storage say nothing.
   test.use({ locale: "ru-RU" });
 
   test("gets Russian without being asked", async ({ page }) => {
@@ -77,24 +51,16 @@ test.describe("a browser that says it reads Russian", () => {
 
     await expect(page.locator("html")).toHaveAttribute("lang", "ru");
     await expect(page.getByRole("button", { name: "Уровень 1" })).toBeVisible();
-    // Not `getByText`: the same caption key now labels two live elements at
-    // once, the goal bar's meter and the (currently closed) statistics panel's
-    // own tile for the same field, so a page-wide text match is ambiguous.
     await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
       "Перевезено",
     );
   });
 
   test("gets the language the link names instead, when it names one", async ({ page }) => {
-    // The order the sources are in, in the only place it is visible: a link
-    // sent to a Russian-speaking reader by somebody who meant them to see the
-    // English game.
     await page.goto("/#lang=en");
 
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
-    // See the same-named field's own Russian-locale note above: the caption
-    // key labels two live elements at once, so this is scoped the same way.
     await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
       "Transported",
     );

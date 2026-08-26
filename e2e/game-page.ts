@@ -1,51 +1,28 @@
 /**
- * Shared locators for the end-to-end smoke tests.
- *
- * Everything here is anchored on what a player can see or a screen reader can
- * announce — roles, accessible names, visible text — rather than on the class
- * names the presenters happen to use. The one exception is
- * {@link statistic}, which is explained where it is defined.
+ * Shared locators for the end-to-end smoke tests, anchored on what a player
+ * can see or a screen reader can announce rather than on class names.
+ * {@link statistic} is the one exception, explained where it's defined.
  */
 
 import type { Locator, Page } from "@playwright/test";
 
 /**
- * Where the player's program used to be persisted, and still is, once: as the
- * starter {@link seedCode} plants for a page visited for the first time, which
- * `CodeEditor.#resolveLevelStarterCode` falls back to for level 1's
- * first slot when nothing has been saved under its own key yet.
- *
- * Spelled out rather than imported from `src/ui/editor.ts` deliberately: the
- * key is a compatibility promise to everyone who has a program saved in the
- * legacy game, so the test should fail if it is ever renamed, not follow it.
+ * Where the player's program was persisted, and still is once, as level 1's
+ * fallback starter. Spelled out rather than imported from `src/ui/editor.ts`
+ * deliberately: a rename there should fail this test, not follow it.
  */
 export const CODE_STORAGE_KEY = "elevatorCrushCode_v5";
 
 /**
- * Where level 1's first code slot is persisted — the buffer open on the
- * default route, and so the one a program typed with no level named lands in.
- *
- * Spelled out for the same reason {@link CODE_STORAGE_KEY} is: a rename in
- * `src/ui/editor.ts` should fail a test here rather than pass unnoticed.
+ * Where level 1's first code slot is persisted - the buffer open by default.
+ * Spelled out for the same reason {@link CODE_STORAGE_KEY} is.
  */
 export const LEVEL_ONE_SLOT_ONE_STORAGE_KEY = "develevateChallengeCode_0_1";
 
 /**
- * Plants a program in one of a level's code slots, before the page's own
- * scripts run.
- *
- * {@link seedCode} does the same for level 1 through the legacy key, which
- * is the migration source for that one slot alone. This is the way to hand a
- * program to any other level: the key is written directly, in the shape
- * `levelCodeKey` builds it, and spelled out here for the reason
- * {@link CODE_STORAGE_KEY} is.
- *
- * @param page - The page under test, before its first `goto`.
- * @param number - The level whose slot to fill, counting from 1.
- * @param code - The program to store.
- * @param slot - Which of the level's three slots, counting from 1. The first
- * one unless a spec is about the switcher: that is the slot every level opens
- * on, so it is the one a program has to be in to be the program on screen.
+ * Plants a program in one of a level's code slots before the page's own
+ * scripts run. `slot` defaults to 1, the slot every level opens on; only a
+ * spec about the switcher needs another.
  */
 export async function seedLevelCode(
   page: Page,
@@ -62,86 +39,45 @@ export async function seedLevelCode(
 }
 
 /**
- * The CodeMirror editing surface.
- *
- * Found by the name it is announced under, which is a translated string like
- * every other label on the page — so a spec reading the editor in another
- * language has to say which name it expects, the way `tutorial.spec.ts` does
- * for the learning track's landmark.
- *
- * @param page - The page under test.
- * @param name - The text box's accessible name in the language on screen.
- * @returns The editor's text box.
+ * The CodeMirror editing surface, found by its accessible name - a translated
+ * string, so a spec in another language must pass the name it expects.
  */
 export function editor(page: Page, name = "Elevator program"): Locator {
   return page.getByRole("textbox", { name });
 }
 
-/**
- * The building, including its floors, elevators and passengers.
- *
- * @param page - The page under test.
- * @returns The building region.
- */
+/** The building region: floors, elevators and passengers. */
 export function building(page: Page): Locator {
   return page.getByRole("region", { name: "Building" });
 }
 
 /**
- * The button that starts, pauses and resumes the run.
- *
- * `exact` is not decoration: the same row carries "Start over", and Playwright's
- * accessible-name matching is a substring match, so `{ name: "Start" }` on its
- * own resolves to both and fails the whole locator as ambiguous.
- *
- * @param page - The page under test.
- * @param name - The button's label in the language on screen: `Start` before a
- * run and once one has ended, `Pause` while the world is drawing, `Resume`
- * where a started run stands still, `Crunching...` during an instant run.
- * @returns The start/pause button.
+ * The button that starts, pauses and resumes the run. `exact` matters: the
+ * same row has "Start over", and accessible-name matching is a substring
+ * match, so `{ name: "Start" }` alone would match both and fail as ambiguous.
  */
 export function startButton(page: Page, name = "Start"): Locator {
   return page.getByRole("button", { name, exact: true });
 }
 
-/**
- * The run speed's group, holding both arrows and the reading between them.
- *
- * @param page - The page under test.
- * @param name - The group's accessible name in the language on screen.
- * @returns The speed control.
- */
+/** The run speed's group, holding both arrows and the reading between them. */
 export function speedControl(page: Page, name = "Run speed"): Locator {
   return page.getByRole("group", { name });
 }
 
 /**
- * The speed the control is currently on, as it is written on screen.
- *
- * By class, inside the group found by its name — the third exception alongside
- * {@link statistic} and {@link languagePicker}, and for {@link statistic}'s
- * reason: the reading is a live region rather than a control, so it has no role
- * and no name of its own to be found by.
- *
- * @param page - The page under test.
- * @param name - The group's accessible name in the language on screen.
- * @returns The `∞x` or `8x` between the two arrows.
+ * The speed the control is currently on, as shown on screen. Found by class,
+ * since the reading is a live region with no role or name of its own to
+ * search by (like {@link statistic}).
  */
 export function speedValue(page: Page, name = "Run speed"): Locator {
   return speedControl(page, name).locator(".speed-val");
 }
 
 /**
- * Puts the speed control on its last stop, where a run is crunched headlessly
- * to its result instead of being drawn.
- *
- * Pressed rather than jumped to, because there is no other way in: the stop is
- * app state and not a time scale, so no `#timescale=` in the URL reaches it.
- * "Faster" disables itself on arrival, which is what ends the loop — and what
- * makes this safe to call from any speed the URL or a previous step left.
- *
- * @param page - The page under test.
- * @param name - "Faster"'s accessible name in the language on screen.
+ * Puts the speed control on its last stop, running headlessly to the result.
+ * Pressed, not set via URL, since the stop is app state with no
+ * `#timescale=` reaching it; "Faster" disables itself on arrival, ending the loop.
  */
 export async function selectInstantSpeed(page: Page, name = "Faster"): Promise<void> {
   const faster = page.getByRole("button", { name, exact: true });
@@ -151,17 +87,9 @@ export async function selectInstantSpeed(page: Page, name = "Faster"): Promise<v
 }
 
 /**
- * The game's language picker, in the app bar's settings popover.
- *
- * The page ships one, and it is behind the popover: the header that used to
- * carry a second one is gone. Opened the same way {@link seedField} opens it,
- * because a `<select>` inside a `hidden` panel cannot be operated. By class
- * rather than by its accessible name ("Language"/"Язык"), the other exception
- * alongside {@link statistic}: the name is what the specs below assert *about*
- * this control, and a locator built out of it could not fail that assertion.
- *
- * @param page - The page under test.
- * @returns The settings popover's language `<select>`.
+ * The game's language picker, in the app bar's settings popover. Opened the
+ * same way {@link seedField} is, since a `<select>` inside a hidden panel
+ * can't be operated. Found by class, not name: the specs assert the name itself.
  */
 export async function languagePicker(page: Page): Promise<Locator> {
   await openSettingsMenu(page);
@@ -169,22 +97,9 @@ export async function languagePicker(page: Page): Promise<Locator> {
 }
 
 /**
- * One value from the statistics panel.
- *
- * A tile is a `role="group"` named by its caption, but the value inside it is
- * a bare `<span class="tile-val">` with no name of its own, so there is
- * nothing to reach the value by directly: the tile is found by its visible
- * caption and the value is then taken positionally. `exact` on that match is
- * load-bearing -- "Transported" is also the start of "Transported/s".
- *
- * Nine of the panel's thirteen figures sit behind the "Все показатели"/"All
- * figures" disclosure, closed by default -- opened directly rather than
- * clicked, so this is idempotent regardless of which figure a spec asked for
- * last and does not race a click against the panel's own redraw.
- *
- * @param page - The page under test.
- * @param label - The tile's visible caption, e.g. `"Transported"`.
- * @returns The value cell of that tile.
+ * One value from the statistics panel, found by its tile's caption (`exact`,
+ * since "Transported" prefixes "Transported/s") since the value itself has no
+ * accessible name. Opens the "All figures" disclosure directly, so repeated calls don't race a redraw.
  */
 export async function statistic(page: Page, label: string): Promise<Locator> {
   await page.locator(".statspanel .more").evaluate((details) => {
@@ -196,15 +111,7 @@ export async function statistic(page: Page, label: string): Promise<Locator> {
     .locator(".tile-val");
 }
 
-/**
- * Reads a statistic as a number.
- *
- * Units are dropped, so `"12s"` reads as `12`.
- *
- * @param page - The page under test.
- * @param label - The tile's visible caption, e.g. `"Transported"`.
- * @returns The value, or `NaN` while the panel is still empty.
- */
+/** Reads a statistic as a number, dropping units (so `"12s"` reads as `12`). */
 export async function statisticValue(page: Page, label: string): Promise<number> {
   const value = await statistic(page, label);
   const text = (await value.innerText()).replace(/[^\d.-]/g, "");
@@ -212,17 +119,9 @@ export async function statisticValue(page: Page, label: string): Promise<number>
 }
 
 /**
- * Opens the app bar's settings popover — the theme, layout, language and seed
- * blocks all live behind it, closed by default (`.setmenu[hidden]`).
- *
- * Forced open directly rather than clicked, the same reason {@link statistic}
- * forces its own disclosure open rather than clicking it: idempotent
- * regardless of what a previous call, or a click a spec made of its own, left
- * the popover in, and unaffected by the outside-click listener `createDisclosure`
- * wires onto `.setopen` — a real click risks re-closing a popover a previous
- * step already opened.
- *
- * @param page - The page under test.
+ * Opens the app bar's settings popover (theme, layout, language, seed).
+ * Forced open directly rather than clicked, so it's idempotent regardless of
+ * a previous call's state and unaffected by the popover's outside-click listener.
  */
 export async function openSettingsMenu(page: Page): Promise<void> {
   await page.locator(".setmenu").evaluate((menu) => {
@@ -231,43 +130,23 @@ export async function openSettingsMenu(page: Page): Promise<void> {
 }
 
 /**
- * The current run's seed, in the app bar's settings popover.
- *
- * A text `<input>`, and the only place in the document the seed is written:
- * the one control beside it is an icon carrying no text at all — see
- * `seedPanelTemplate`'s module comment. Being a field rather than a box of
- * prose is the whole reason this is not called `seedText`: the seed is its
- * `value`, so a caller reads it with `inputValue()` and asserts on it with
- * `toHaveValue`. `innerText` on an `<input>` is the empty string, and an
- * assertion built out of one compares nothing to nothing and passes.
- *
- * @param page - The page under test.
- * @returns The seed's field.
+ * The current run's seed, in the settings popover. A text `<input>`, so read
+ * it with `inputValue()`/`toHaveValue` - `innerText` on an `<input>` is empty
+ * and would make an assertion compare nothing to nothing.
  */
 export async function seedField(page: Page): Promise<Locator> {
   await openSettingsMenu(page);
   return page.locator(".setmenu .seedvalue");
 }
 
-/**
- * Reads the program the page has persisted for level 1's first slot — the
- * one open on the default route, and the one every spec below lands on.
- *
- * @param page - The page under test.
- * @returns The stored program, or `null` when nothing has been stored.
- */
+/** Reads the program persisted for level 1's first slot - the default route's buffer. */
 export function storedCode(page: Page): Promise<string | null> {
   return page.evaluate((key) => localStorage.getItem(key), LEVEL_ONE_SLOT_ONE_STORAGE_KEY);
 }
 
 /**
- * Seeds a program into storage before the page's own scripts run.
- *
- * Used to put the editor into a known state — a broken program, in particular —
- * without typing one in character by character.
- *
- * @param page - The page under test.
- * @param code - The program to store.
+ * Seeds a program into storage before the page's own scripts run, to put the
+ * editor in a known state (a broken program, in particular) without typing it in.
  */
 export async function seedCode(page: Page, code: string): Promise<void> {
   await page.addInitScript(
