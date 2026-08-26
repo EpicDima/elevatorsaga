@@ -88,6 +88,16 @@ function invoke(receiver: object, handler: ErasedHandler, args: readonly unknown
   Reflect.apply(handler, receiver, args);
 }
 
+/** Invokes `handler` with `receiver` as its `this` and one argument, building no argument array. */
+function invokeOne(receiver: object, handler: ErasedHandler, arg: unknown): void {
+  handler.call(receiver, arg);
+}
+
+/** Invokes `handler` with `receiver` as its `this` and no arguments at all. */
+function invokeNone(receiver: object, handler: ErasedHandler): void {
+  handler.call(receiver);
+}
+
 /**
  * Hands a handler's exception to the reporter, isolating the reporter's own
  * exceptions so a throwing reporter can't abort the dispatch too.
@@ -195,6 +205,49 @@ function dispatch(
   }
 }
 
+/**
+ * {@link dispatch} for the events a simulation step raises for every movable it
+ * touches, which carry one argument or none and never reach player code. That
+ * is what lets this loop be the tighter of the two: it hands the argument to
+ * each handler directly instead of through the array a rest parameter would
+ * build per call, and it has no error path to thread through. Folding the two
+ * together was measured, and gave back most of what this saves.
+ */
+function dispatchThin(
+  handlers: HandlerTable,
+  receiver: object,
+  event: string,
+  arg: unknown,
+  hasArg: boolean,
+): void {
+  const entries = handlers.get(event);
+  if (entries === undefined) {
+    return;
+  }
+  const count = entries.length;
+  dispatchesInFlight++;
+  try {
+    for (let i = 0; i < count; i++) {
+      const entry = entries[i];
+      if (entry === undefined || entry.removed) {
+        continue;
+      }
+      if (entry.once) {
+        removeEntry(handlers, event, entry);
+      }
+      if (entry.typed) {
+        invoke(receiver, entry.handler, hasArg ? [event, arg] : [event]);
+      } else if (hasArg) {
+        invokeOne(receiver, entry.handler, arg);
+      } else {
+        invokeNone(receiver, entry.handler);
+      }
+    }
+  } finally {
+    dispatchesInFlight--;
+  }
+}
+
 /** Minimal, fully typed event emitter. */
 export class Observable<E extends EventArgsMap> {
   readonly #handlers: HandlerTable = new Map<string, HandlerEntry[]>();
@@ -286,6 +339,22 @@ export class Observable<E extends EventArgsMap> {
    */
   trigger<K extends EventName<E>>(event: K, ...args: E[K]): this {
     dispatch(this.#handlers, this.#receiver, event, args, null);
+    return this;
+  }
+
+  /**
+   * {@link trigger} for an event carrying exactly one argument. Same dispatch,
+   * minus the array a rest parameter builds on every call — which the events a
+   * simulation step raises for each movable it touches cannot afford.
+   */
+  triggerOne<K extends EventName<E>>(event: K, arg: E[K][0]): this {
+    dispatchThin(this.#handlers, this.#receiver, event, arg, true);
+    return this;
+  }
+
+  /** {@link triggerOne} for an event that carries nothing. */
+  triggerBare(event: EventName<E>): this {
+    dispatchThin(this.#handlers, this.#receiver, event, undefined, false);
     return this;
   }
 

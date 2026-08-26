@@ -493,7 +493,7 @@ export class World extends Observable<WorldEvents> {
     // Same 0/0 guard, before any door has opened.
     this.avgPeoplePerStop =
       this.stopCount === 0 ? 0 : (this.#pickedUpCounter + this.transportedCounter) / this.stopCount;
-    this.trigger("stats_changed");
+    this.triggerBare("stats_changed");
   }
 
   /** Adds a spawned passenger to the world and starts their wait clock. */

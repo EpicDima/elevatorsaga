@@ -67,7 +67,7 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
    * site while `Movable` is generic over `E`.
    */
   protected emitMovable(event: EventName<MovableEvents>, movable: Movable): void {
-    (this as unknown as Observable<MovableEvents>).trigger(event, movable);
+    (this as unknown as Observable<MovableEvents>).triggerOne(event, movable);
   }
 
   /**

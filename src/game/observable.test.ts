@@ -393,6 +393,84 @@ describe("Observable.one", () => {
   });
 });
 
+describe("Observable.triggerOne / triggerBare", () => {
+  it("hands the argument to every handler, in registration order", () => {
+    const emitter = makeEmitter();
+    const calls: string[] = [];
+    emitter.on("up_button_pressed", (floor) => calls.push(`first ${String(floor)}`));
+    emitter.on("up_button_pressed", (floor) => calls.push(`second ${String(floor)}`));
+
+    expect(emitter.triggerOne("up_button_pressed", 4)).toBe(emitter);
+
+    expect(calls).toEqual(["first 4", "second 4"]);
+  });
+
+  it("hands a bare event nothing at all, not an undefined argument", () => {
+    // A handler reading `arguments.length` must not see a slot the event never carried.
+    const emitter = makeEmitter();
+    let received: number | null = null;
+    emitter.on("idle", function (this: unknown) {
+      received = arguments.length;
+    });
+
+    expect(emitter.triggerBare("idle")).toBe(emitter);
+
+    expect(received).toBe(0);
+  });
+
+  it("prepends the event name for a multi-name registration", () => {
+    const emitter = makeEmitter();
+    const handler = vi.fn();
+    emitter.on("up_button_pressed down_button_pressed", handler);
+
+    emitter.triggerOne("down_button_pressed", 7);
+
+    expect(handler).toHaveBeenCalledWith("down_button_pressed", 7);
+  });
+
+  it("prepends the event name for a multi-name registration of a bare event", () => {
+    const emitter = makeEmitter();
+    const handler = vi.fn();
+    emitter.on("idle up_button_pressed", handler);
+
+    emitter.triggerBare("idle");
+
+    expect(handler).toHaveBeenCalledWith("idle");
+  });
+
+  it("retires a once handler, and calls it with the emitter as `this`", () => {
+    const emitter = makeEmitter();
+    const seen: unknown[] = [];
+    emitter.once("up_button_pressed", function (this: unknown, floor) {
+      seen.push([this, floor]);
+    });
+
+    emitter.triggerOne("up_button_pressed", 1);
+    emitter.triggerOne("up_button_pressed", 2);
+
+    expect(seen).toEqual([[emitter, 1]]);
+  });
+
+  it("keeps the mutation-during-dispatch rules of trigger", () => {
+    const emitter = makeEmitter();
+    const later = vi.fn();
+    emitter.on("up_button_pressed", () => {
+      emitter.off("up_button_pressed", later);
+    });
+    emitter.on("up_button_pressed", later);
+
+    emitter.triggerOne("up_button_pressed", 3);
+
+    expect(later).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op for an event with no handlers", () => {
+    const emitter = makeEmitter();
+    expect(() => emitter.triggerOne("up_button_pressed", 1)).not.toThrow();
+    expect(() => emitter.triggerBare("idle")).not.toThrow();
+  });
+});
+
 describe("Observable mutation during dispatch", () => {
   it("lets a handler remove itself without skipping the next handler", () => {
     const emitter = makeEmitter();
