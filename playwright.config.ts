@@ -24,6 +24,11 @@ export default defineConfig({
   forbidOnly: isCI,
   // No retries: a retry would hide the exact race this suite exists to catch.
   retries: 0,
+  // A worker per core on CI, not Playwright's default half of them: these
+  // specs mostly wait on a simulated building, so half the runner sat idle.
+  // Spread because `exactOptionalPropertyTypes` won't take `undefined` for
+  // "leave it to Playwright", which is what a developer's machine wants.
+  ...(isCI ? { workers: "100%" } : {}),
   reporter: [[isCI ? "github" : "list"], ["html", { open: "never" }]],
   // Generous: a run may wait out a simulated minute of elevator traffic on a busy CI runner.
   timeout: 60_000,
