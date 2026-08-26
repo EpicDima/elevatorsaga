@@ -165,6 +165,19 @@ describe("example code", () => {
     }
   });
 
+  it("ends the programs the editor is filled with on an empty line, and only those", () => {
+    // The player's cursor starts on a line of its own, below the code. A
+    // program that is only ever read would render that line as an empty row.
+    for (const locale of LOCALES) {
+      for (const key of CODE_KEYS) {
+        const isStarter = key === "editor.defaultCode.code" || key.endsWith(".startingCode.code");
+        for (const text of forms(entry(locale, key))) {
+          expect(text.endsWith("\n"), `${locale} ${key}`).toBe(isStarter);
+        }
+      }
+    }
+  });
+
   it("has its comments translated", () => {
     for (const key of CODE_KEYS) {
       const english = entry("en", key);

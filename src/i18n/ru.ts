@@ -419,7 +419,8 @@ elevator.goingDownIndicator(false);`,
 
 function update(dt, elevators, floors) {
     // Вызывается на каждом тике — можно использовать, можно оставить пустым
-}`,
+}
+`,
 
   // Level goal descriptions.
 
@@ -645,7 +646,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level1.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -677,7 +679,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level2.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -714,7 +717,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level3.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -756,7 +760,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level4.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -801,7 +806,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level5.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -856,7 +862,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level6.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -909,7 +916,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level7.solutionCode.code": `function init(elevators, floors) {
     function pickElevator() {
         let best = elevators[0];
@@ -957,7 +965,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   // Identical to level 7's answer, on purpose: the finale asks nothing new.
   // Written out in full so every level keeps the same eight keys;
   // src/game/tutorial.test.ts checks the two stay equal.
@@ -1038,7 +1047,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky2.title": "Все начинают в холле",
   "skyscraper.sky2.briefing.html":
@@ -1073,7 +1083,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky3.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1123,7 +1134,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky4.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1154,7 +1166,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky5.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1204,7 +1217,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky6.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1235,7 +1249,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky7.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1266,7 +1281,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky8.title": "Не всякая кабина едет всюду",
   "skyscraper.sky8.briefing.html":
@@ -1321,7 +1337,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky9.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1379,7 +1396,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky10.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1437,7 +1455,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky11.title": "Никто не жмёт «вверх» и «вниз»",
   "skyscraper.sky11.briefing.html":
@@ -1463,7 +1482,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky12.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1487,7 +1507,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky13.startingCode.code": `function init(elevators, floors) {
     function insertStop(elevator, floorNum) {
@@ -1546,5 +1567,6 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 };

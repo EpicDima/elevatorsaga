@@ -102,7 +102,9 @@ Key names carry two suffixes that mean something:
   other key is plain text for `textContent`, an attribute or `confirm()`.
 - `.code` — the value is example code. Only its `//` comments are translated; the code itself is
   byte-identical in every locale, and `src/i18n/catalog.test.ts` enforces that rather than
-  trusting it.
+  trusting it. The two kinds the editor is filled with — `editor.defaultCode.code` and every
+  `startingCode.code` — end on an empty line, so a player's cursor starts on a line of its own
+  below the program; every other `.code` value is only ever read, and ends on its last character.
 
 ## Where the strings are
 
@@ -1455,14 +1457,14 @@ needs no edit to the control and none to `index.html`, which ships the `<select>
 
 ## What guards what
 
-| Test                           | What it holds                                                                                                                                                                                                                                                                                        |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the type system                | Key parity in both directions, and the right number of plural forms per language. A Russian catalog missing a key does not compile.                                                                                                                                                                  |
-| `src/i18n/catalog.test.ts`     | Key order, non-empty values, `{placeholder}` parity, markup confined to `.html` keys and opening and closing the same tags in every locale, `.code` blocks identical but for their comments, the WCAG 2.5.3 pair, and Russian typography — «ёлочки» in pairs, spaced em dashes, ё, no double spaces. |
-| `src/i18n/format.test.ts`      | `PLURAL_CATEGORIES` against what ICU actually says, so a wrong guess about a new language fails a test rather than mistranslating a count.                                                                                                                                                           |
-| `src/ui/localize-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabeled after the shell is rewritten.                                          |
-| `src/page.test.ts`             | The two documentation pages as one document in two languages, every `docs.*` message against the passage it was lifted from in both languages, no `docs.*` key left unchecked, and the popup against the page wherever their English agrees.                                                         |
-| `src/i18n/inventory.test.ts`   | This file: the keys it names, the keys it omits, the counts it prints, the `src/` paths it points at, the absence of line pins, and the learning track's quoted titles. Not the rest of its prose.                                                                                                   |
+| Test                           | What it holds                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the type system                | Key parity in both directions, and the right number of plural forms per language. A Russian catalog missing a key does not compile.                                                                                                                                                                                                                         |
+| `src/i18n/catalog.test.ts`     | Key order, non-empty values, `{placeholder}` parity, markup confined to `.html` keys and opening and closing the same tags in every locale, `.code` blocks identical but for their comments and only the editor's starters ending on an empty line, the WCAG 2.5.3 pair, and Russian typography — «ёлочки» in pairs, spaced em dashes, ё, no double spaces. |
+| `src/i18n/format.test.ts`      | `PLURAL_CATEGORIES` against what ICU actually says, so a wrong guess about a new language fails a test rather than mistranslating a count.                                                                                                                                                                                                                  |
+| `src/ui/localize-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabeled after the shell is rewritten.                                                                                                 |
+| `src/page.test.ts`             | The two documentation pages as one document in two languages, every `docs.*` message against the passage it was lifted from in both languages, no `docs.*` key left unchecked, and the popup against the page wherever their English agrees.                                                                                                                |
+| `src/i18n/inventory.test.ts`   | This file: the keys it names, the keys it omits, the counts it prints, the `src/` paths it points at, the absence of line pins, and the learning track's quoted titles. Not the rest of its prose.                                                                                                                                                          |
 
 That last row said **nothing** through two rebuildings of this document. What closes most of it
 is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it against the two

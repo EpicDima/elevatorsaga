@@ -409,7 +409,8 @@ elevator.goingDownIndicator(false);`,
 
 function update(dt, elevators, floors) {
     // Called on every tick — use it or leave it empty, both are fine
-}`,
+}
+`,
 
   // Level goal sentences (src/game/levels.ts); counted phrases are separate
   // keys so each can carry its own language's plural forms.
@@ -605,7 +606,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level1.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -637,7 +639,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level2.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -674,7 +677,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level3.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -716,7 +720,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level4.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -761,7 +766,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level5.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -816,7 +822,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level6.solutionCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
 
@@ -869,7 +876,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   "tutorial.level7.solutionCode.code": `function init(elevators, floors) {
     function pickElevator() {
         let best = elevators[0];
@@ -917,7 +925,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
   // Same as level 7's answer -- level 8 asks for nothing new. tutorial.test.ts
   // checks the two stay equal in every locale.
   "tutorial.level8.solutionCode.code": `function init(elevators, floors) {
@@ -997,7 +1006,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky2.title": "Everyone starts in the lobby",
   "skyscraper.sky2.briefing.html":
@@ -1032,7 +1042,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky3.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1082,7 +1093,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky4.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1113,7 +1125,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky5.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1163,7 +1176,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky6.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1194,7 +1208,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky7.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1225,7 +1240,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky8.title": "Not every car goes everywhere",
   "skyscraper.sky8.briefing.html":
@@ -1280,7 +1296,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky9.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1338,7 +1355,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky10.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1396,7 +1414,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky11.title": "Nobody presses up or down",
   "skyscraper.sky11.briefing.html":
@@ -1422,7 +1441,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky12.startingCode.code": `function init(elevators, floors) {
     let next = 0;
@@ -1446,7 +1466,8 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 
   "skyscraper.sky13.startingCode.code": `function init(elevators, floors) {
     function insertStop(elevator, floorNum) {
@@ -1505,5 +1526,6 @@ function update(dt, elevators, floors) {
 }
 
 function update(dt, elevators, floors) {
-}`,
+}
+`,
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;

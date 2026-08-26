@@ -95,7 +95,7 @@ function expectConditionIsReachable(level: TutorialLevel): void {
  */
 function expectPlayerCodeStyle(label: string, code: string): void {
   expect(code.startsWith("function init"), `${label}: must open on init`).toBe(true);
-  expect(code.endsWith("}"), `${label}: must close on the last declaration`).toBe(true);
+  expect(code.trimEnd().endsWith("}"), `${label}: must close on the last declaration`).toBe(true);
   expect(code, `${label}: must declare init the way the starter program does`).toContain(
     "function init(elevators, floors) {",
   );
