@@ -43,8 +43,6 @@ that cannot read is the prose — the English column, the Notes, and every claim
 module calls what — so a row can still be right about its key and wrong about everything beside
 it.
 
-Everything here was re-measured against the tree on **18 August 2026**.
-
 ## The module
 
 | File                     | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -76,8 +74,9 @@ The parameters are named and typed per key: `t("game.elevator.label")` with no a
 with `{ floor: 3 }` instead of `{ number: 3 }`, does not compile. Counts go through
 `Intl.PluralRules`, which is why Russian gets four forms where English gets two —
 `level.sandbox.spawnRate.html` renders 1 пассажир, 2 пассажира, 5 пассажиров, 1,5 пассажира
-— and numbers go through `Intl.NumberFormat`, which is why Russian gets `1,5` and a
-non-breaking space before a unit.
+— and numbers go through `Intl.NumberFormat`, which is why a level asking for 2675 people prints
+`2,675` in English and `2 675` in Russian, and why Russian gets `1,5` and a non-breaking space
+before a unit.
 
 The Russian counted phrases are not always in the dictionary form, and `src/i18n/ru.ts` says why
 at length under _Numerals_: they have to be grammatical in the sentence they are built into.
@@ -1494,24 +1493,6 @@ reads them_ column; the counts in the section headings, which count what a secti
 the catalog holds; and the 81 and 82 above, which come from a grep over the whole tree. Those
 are still prose and can still go quietly out of date. The test's own header says as much, so
 whoever reads it knows which columns are guarded and which are taken on trust.
-
-## What changed on screen when this was wired
-
-Even in English, routing text through the catalog changed three things. All three are
-improvements, and all three are visible.
-
-1. **Grouped thousands.** Level 18 asks for 2675 people —
-   `requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45)` — and used to render `2675`;
-   `Intl.NumberFormat` renders `2,675` in English and `2 675` in Russian.
-2. **Fractional time scales** render `0.5x` in English and `0,5×` in Russian.
-3. **Non-breaking spaces** appear between numbers and unit abbreviations in Russian, so `60 с`
-   cannot break across a line.
-
-There was a fourth, and it is worth recording where it went. The save confirmation under the
-editor had its time formatted through the catalog too, which took `21:03:57 GMT+0300 (Moscow
-Standard Time)` down to `21:03:57`; the line itself is gone now, with the message and the
-`formatTimeOfDay` wrapper behind it, because there is no status line under the editor and a
-confirmation that reports the same success every few seconds is not news.
 
 ## Settled overlap: the reference page
 
