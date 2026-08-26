@@ -6,14 +6,8 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A newer push to the same branch or pull request makes the run already in
-# flight irrelevant, so let it go rather than paying for it twice.
-#
-# Except on `main`, where the run ends in a deployment: canceling it half way
-# through `deploy-pages` would leave the published site in whatever state the
-# upload had reached. There a second push waits for the first run to finish
-# instead, which costs some wall-clock on a burst of pushes and never publishes
-# a partial site.
+# A newer push supersedes the run in flight, except on `main`, where canceling
+# part way through `deploy-pages` would leave the site half published.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -22,15 +16,8 @@ permissions:
   contents: read
 
 jobs:
-  # One leg, on the newer LTS line, which is also what the `e2e` and `deploy`
-  # jobs below run: a second leg on 22 doubled
-  # the minutes every push costs to re-answer a question the first one had
-  # already answered, since nothing here is version-specific — the same
-  # TypeScript compiles it, the same Vite builds it, and the only Node feature
-  # the checks lean on is the type stripping the bench step exercises, which
-  # both lines have. `engines` still says `>= 22` and the package still runs
-  # there; what this drops is the standing proof of it, which is the price of
-  # the halved bill.
+  # One Node leg, the same one `e2e` and `deploy` use. Nothing here is
+  # version-specific, so the `>= 22` in `engines` goes unproven.
   check:
     name: Checks (Node 24)
     runs-on: ubuntu-latest
@@ -58,13 +45,8 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-      # Vitest hands each worker the file it expects to be slowest first, so a
-      # run doesn't finish with three workers idle and one still simulating.
-      # What it expects comes from how long each file took last time, and that
-      # record lives under node_modules, which `npm ci` above has just emptied
-      # -- so on a fresh runner every file looks equally fast and the slowest
-      # ones start last. Carrying the 12 KB of timings between runs is worth
-      # several seconds of the step below; a miss just costs the ordering.
+      # Vitest starts the slowest file first, going by timings that `npm ci` has
+      # just emptied from node_modules. A miss only costs the ordering.
       - name: Restore the record of how long each test file takes
         uses: actions/cache@v6
         with:
@@ -78,13 +60,9 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Nothing else runs the benchmark as a command. `runBench` is tested with
-      # its streams handed to it, so the entry point, the real standard output
-      # and the type stripping Node does on a `.ts` file are exercised here or
-      # nowhere — stripping being what running the command without a build step
-      # quietly rests on. The program logs on purpose: `--json` is only pipeable
-      # while a player's own output goes to standard error, and a test that
-      # hands `console` to the code under test cannot see that contract break.
+      # The only run of the entry point itself: real standard output, and the
+      # type stripping a `.ts` command rests on. `--json` stays pipeable while
+      # the player's own logs go to standard error.
       - name: Score a program from the command line
         run: |
           cat > "$RUNNER_TEMP/program.js" <<'PROGRAM'
@@ -122,9 +100,8 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-  # A job of its own, and deliberately not a dependant of `check`: the two run
-  # side by side, so the fast checks report in about a minute whether or not a
-  # browser has to be fetched.
+  # Not a dependant of `check`: the two run side by side, so the fast checks
+  # report without waiting on a browser download.
   e2e:
     name: End-to-end (Chromium)
     runs-on: ubuntu-latest
@@ -143,17 +120,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Read from the installed package rather than parsed back out of the
-      # lockfile, so the key names the version that will actually launch.
+      # From the installed package, so the key names the version that launches.
       - name: Note which Playwright the browser has to match
         id: playwright
         run: echo "version=$(node -p 'require("./node_modules/@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
 
-      # The browser is about 100 MB and only ever changes when the Playwright
-      # version does, so it is restored from cache rather than downloaded on
-      # every push. Keyed on that version and not on the lockfile's hash, which
-      # threw the browser away and fetched it again whenever any unrelated
-      # dependency moved.
+      # The browser only changes when Playwright does, so the key is that
+      # version rather than the lockfile's hash.
       - name: Restore the Playwright browser
         id: playwright-cache
         uses: actions/cache@v6
@@ -165,29 +138,21 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium
 
-      # The cache holds the browser but not the system libraries it links
-      # against, which apt installed outside the cached directory -- except the
-      # runner image ships Chrome and Edge, so it already carries them, and
-      # `--with-deps` above plus an unconditional `install-deps` here spent
-      # 12-36 seconds on `apt-get` every run to find that out. Launching the
-      # browser asks the same question in a second or two, and still pays the
-      # apt bill on the day the image stops answering yes.
+      # The runner image ships Chrome, so its libraries are usually there
+      # already: launching asks in a second, and apt only runs when they aren't.
       - name: Install Chromium's system dependencies, if the runner is missing any
         run: |
           node -e 'require("@playwright/test").chromium.launch().then((browser) => browser.close())' ||
             npx playwright install-deps chromium
 
-      # `playwright.config.ts` runs the build and serves `dist/` itself: the
-      # tests deliberately exercise the production bundle, not the dev server.
+      # `playwright.config.ts` builds and serves `dist/`: the tests exercise the
+      # production bundle, not the dev server.
       - name: Test
         id: e2e
         run: npm run test:e2e
 
-      # Only when the tests themselves failed, and only then: on a green run
-      # there is nothing in the report anyone wants. `warn` rather than `error`
-      # because a run that died before the reporter wrote anything has already
-      # failed for a reason worth reading, and a second failure here would only
-      # bury it.
+      # Nothing in a green run's report is worth keeping. `warn`, because a run
+      # that died before the reporter wrote anything already failed loudly.
       - name: Upload Playwright report
         if: failure() && steps.e2e.conclusion == 'failure'
         uses: actions/upload-artifact@v7
@@ -197,21 +162,9 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-  # Publishes `main` to GitHub Pages, and only `main`: on a pull request
-  # `github.ref` is `refs/pull/<n>/merge`, which never matches, so the condition
-  # covers both the push that lands a commit and a manual re-publish from
-  # Actions -> CI -> "Run workflow" with `main` selected.
-  #
-  # A job here rather than a workflow of its own so that `needs` can do the
-  # gating: a `workflow_run` trigger would fire after CI finished whatever its
-  # result, and re-checking that result from inside the deployment is a worse
-  # version of the edge this already has. Nothing is published unless the
-  # checks and the browser tests both went green on these exact bytes.
-  #
-  # One prerequisite lives outside this file and cannot be set from it: Settings
-  # -> Pages -> Build and deployment -> Source has to be "GitHub Actions". While
-  # it says "Deploy from a branch" the last step below has nothing to publish to
-  # and fails the run.
+  # `main` only: on a pull request `github.ref` never matches. Settings -> Pages
+  # -> Build and deployment -> Source has to be "GitHub Actions", or the last
+  # step below has nothing to publish to.
   deploy:
     name: Deploy to GitHub Pages
     needs: [check, e2e]
@@ -219,18 +172,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 7
 
-    # Overrides the workflow-wide `contents: read` for this job alone, so the
-    # token that can write a deployment exists only where one is written.
+    # Overrides the workflow-wide `contents: read`, so the token that can write
+    # a deployment exists only where one is written.
     permissions:
       contents: read
       pages: write
       id-token: write
 
-    # Never deploy two versions of the site at once, and never cancel a
-    # deployment that is already in flight — a half-published site is worse than
-    # a stale one. Separate from the workflow-wide group above, which serializes
-    # runs; this serializes the deployments within them, including any left over
-    # from a run started before that rule was in place.
+    # Never cancel a deployment in flight — a half-published site is worse than
+    # a stale one. The group above serializes runs, this one the deployments.
     concurrency:
       group: pages
       cancel-in-progress: false
@@ -255,13 +205,9 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
-      # Built again rather than carried over from `check` as an artifact, so
-      # re-running this job on its own republishes from source. `vite build`,
-      # not `npm run build`, whose `tsc --noEmit` half asks what `check` has
-      # already answered about these exact bytes -- this job only runs once it
-      # went green. `vite.config.ts` sets `base: "./"`, so the bundle already
-      # works from a project sub-path such as /<repo>/ and needs no base-path
-      # injection here.
+      # Built again rather than carried from `check`, so re-running this job
+      # republishes from source. `vite build` skips the typecheck `check` has
+      # already run on these bytes.
       - name: Build the site
         run: npx vite build
 
@@ -274,7 +220,6 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
         with:
-          # Pages reports back in seconds; this action waits ten minutes for it
-          # by default, which outlives the job timeout above and so ends at the
-          # runner's hands rather than releasing the `pages` group on its own.
+          # The default ten-minute wait outlives the job timeout above, which
+          # would end the job without releasing the `pages` group.
           timeout: 300000
