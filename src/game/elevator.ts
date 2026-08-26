@@ -177,9 +177,10 @@ export class Elevator extends Movable<ElevatorEvents> {
     this.width = this.maxUsers * 10;
     this.destinationY = this.getYPosOfFloor(this.currentFloor);
 
-    this.on("new_state", () => {
-      this.handleNewState();
-    });
+    // The method itself rather than a closure around it: a dispatch invokes handlers
+    // with the emitter as `this`, and this one runs for every car on every step.
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- the dispatch supplies `this`
+    this.on("new_state", this.handleNewState);
 
     // Only fire on an actual change: indicatorstate_change triggers a costly boarding re-offer.
     this.on("change:goingUpIndicator change:goingDownIndicator", () => {
