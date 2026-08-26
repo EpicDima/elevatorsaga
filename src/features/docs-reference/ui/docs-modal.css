@@ -56,6 +56,11 @@
   font-size: 13px;
 }
 
+/* The browser's own placeholder gray is #757575, which misses 4.5:1 on this field in both themes. */
+.docs-find::placeholder {
+  color: var(--ds-text-muted);
+}
+
 /* The browser's own cancel button is hidden: it looks different in every engine. */
 .docs-find::-webkit-search-cancel-button {
   appearance: none;

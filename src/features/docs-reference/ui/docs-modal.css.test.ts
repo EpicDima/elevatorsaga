@@ -39,6 +39,14 @@ describe("docs and hotkeys dialogs", () => {
     }
   });
 
+  it("spells the search field's placeholder, which no browser draws readably by itself", () => {
+    // Chrome's own placeholder is #757575, which reads 3.97:1 on this field in
+    // the dark theme and 4.08:1 in the light one; the field's --ds-bg pair above covers the rest.
+    expect(
+      declaration(ruleBody(".docs-find::placeholder"), "color", ".docs-find::placeholder"),
+    ).toBe(token("ds-text-muted"));
+  });
+
   it("keeps the group heading, the empty-search message and the clear icon off --ds-text-faint", () => {
     // Reads the actual declaration, not just the token by name: a revert to
     // --ds-text-faint would otherwise still pass by measuring the wrong token.
