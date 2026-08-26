@@ -795,7 +795,7 @@ written with `innerHTML` rather than as text.
 | `game.appBar.settingsLabel`       | Settings                                                                                   | the popover trigger's visible label, `title` and `aria-label`                          |
 | `game.appBar.hotkeysOpenLabel`    | Hotkeys                                                                                    | the popover's `keysOpen` row; closes the popover before its own callback fires         |
 | `game.appBar.aboutCaption`        | About                                                                                      | the About block's `.cap` caption                                                       |
-| `game.appBar.aboutForkLabel`      | This fork                                                                                  | the name over this repository's own URL                                                |
+| `game.appBar.aboutForkLabel`      | This game                                                                                  | the name over this repository's own URL                                                |
 | `game.appBar.aboutOriginalLabel`  | Original                                                                                   | the name over the game this is forked from                                             |
 | `game.appBar.aboutCopyright.html` | Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, `<a href="licenses.txt">`MIT`</a>`. | markup; byte-identical in every locale, like a `.code` key, though not one — see above |
 

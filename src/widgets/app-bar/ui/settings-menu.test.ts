@@ -118,7 +118,7 @@ describe("appBarSettingsTemplate", () => {
       expect(link.getAttribute("target")).toBe("_blank");
       expect(link.getAttribute("rel")).toBe("noreferrer");
     }
-    expect(links[0]?.querySelector("b")?.textContent).toBe("This fork");
+    expect(links[0]?.querySelector("b")?.textContent).toBe("This game");
     expect(links[1]?.querySelector("b")?.textContent).toBe("Original");
     expect(parent.querySelector(".sethint")?.textContent).toContain("Elevator Saga");
     // The game's only route to the license file the build writes notices into.
@@ -347,7 +347,7 @@ describe("presentAppBarSettings", () => {
         const aboutBlock = requireElement('[data-set-block="about"]', parent);
         expect(aboutBlock.querySelector(".cap")?.textContent).toBe("Об игре");
         const links = [...aboutBlock.querySelectorAll("a.setlink b")];
-        expect(links.map((link) => link.textContent)).toEqual(["Этот форк", "Оригинал"]);
+        expect(links.map((link) => link.textContent)).toEqual(["Эта игра", "Оригинал"]);
         expect(aboutBlock.querySelector(".sethint")?.textContent).toBe(
           "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.",
         );

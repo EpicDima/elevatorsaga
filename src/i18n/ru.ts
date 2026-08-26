@@ -133,7 +133,7 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "game.appBar.settingsLabel": "Настройки",
   "game.appBar.hotkeysOpenLabel": "Горячие клавиши",
   "game.appBar.aboutCaption": "Об игре",
-  "game.appBar.aboutForkLabel": "Этот форк",
+  "game.appBar.aboutForkLabel": "Эта игра",
   "game.appBar.aboutOriginalLabel": "Оригинал",
   "game.appBar.aboutCopyright.html":
     'Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, <a href="licenses.txt">MIT</a>.',
