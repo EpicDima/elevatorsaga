@@ -94,13 +94,13 @@ function expectConditionIsReachable(level: TutorialLevel): void {
  * @param code - The program.
  */
 function expectPlayerCodeStyle(label: string, code: string): void {
-  expect(code.startsWith("{"), `${label}: must be an object literal`).toBe(true);
-  expect(code.endsWith("}"), `${label}: must be an object literal`).toBe(true);
+  expect(code.startsWith("function init"), `${label}: must open on init`).toBe(true);
+  expect(code.endsWith("}"), `${label}: must close on the last declaration`).toBe(true);
   expect(code, `${label}: must declare init the way the starter program does`).toContain(
-    "init: function(elevators, floors) {",
+    "function init(elevators, floors) {",
   );
   expect(code, `${label}: must declare update the way the starter program does`).toContain(
-    "update: function(dt, elevators, floors) {",
+    "function update(dt, elevators, floors) {",
   );
   for (const [index, line] of code.split("\n").entries()) {
     const where = `${label}, line ${String(index + 1)}`;

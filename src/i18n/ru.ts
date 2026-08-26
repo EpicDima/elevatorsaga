@@ -177,13 +177,12 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "game.docs.guide.tutorialLevels.body":
     "У учебных уровней рядом со зданием стоит урок: шаг за шагом, что происходит, каким событием это видно из программы и как выглядит ответ на него. Подсказки открываются по одной, а в последней лежит рабочая программа и кнопка, которая её копирует.",
   "game.docs.intro.heading": "Из чего состоит программа",
-  "game.docs.intro.example.code": `{
-  init: function (elevators, floors) {
-    // здесь подписываются на события
-  },
-  update: function (dt, elevators, floors) {
-    // вызывается всё время, пока идёт прогон
-  }
+  "game.docs.intro.example.code": `function init(elevators, floors) {
+  // здесь подписываются на события
+}
+
+function update(dt, elevators, floors) {
+  // вызывается всё время, пока идёт прогон
 }`,
   "game.docs.lead.html":
     "<code>elevator</code> — это лифт: все они лежат в <code>elevators</code>. <code>floor</code> — этаж, они в <code>floors</code>. Любую строку ниже можно раскрыть: под ней подробности и пример.",
@@ -407,20 +406,19 @@ elevator.goingDownIndicator(false);`,
   "editor.slot.tablist.label": "Слоты кода",
   "editor.slot.tab.label": "Код {number}",
   "editor.slot.tab.title": "Черновик {number}",
-  "editor.defaultCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0]; // Возьмём первый лифт
+  "editor.defaultCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0]; // Возьмём первый лифт
 
-        // Как только лифт освободится (в очереди не осталось этажей)...
-        elevator.on("idle", function() {
-            // ...поедем по всем этажам (или мы про какой-то забыли?)
-            elevator.goToFloor(0);
-            elevator.goToFloor(1);
-        });
-    },
-    update: function(dt, elevators, floors) {
-        // Обычно здесь ничего делать не нужно
-    }
+    // Как только лифт освободится (в очереди не осталось этажей)...
+    elevator.on("idle", function() {
+        // ...поедем по всем этажам (или мы про какой-то забыли?)
+        elevator.goToFloor(0);
+        elevator.goToFloor(1);
+    });
+}
+
+function update(dt, elevators, floors) {
+    // Вызывается на каждом тике — можно использовать, можно оставить пустым
 }`,
 
   // Level goal descriptions.
@@ -560,15 +558,15 @@ elevator.goingDownIndicator(false);`,
   "completion.floor.event.destinationRequested":
     "Срабатывает, когда пассажир на этаже попросил отвезти его на другой этаж — в здании, где вместо кнопок вызова называют этаж назначения. Обработчику передаётся нужный пассажиру этаж и этаж, на котором он ждёт.",
   "completion.global.skeleton":
-    "Ваш код должен объявлять объект, в котором есть хотя бы две функции — init и update.",
+    "Ваш код должен объявлять функцию init. Рядом можно объявить update — и всё остальное, что понадобится.",
   "completion.global.init":
     "Вызывается в начале уровня. Обычно основную часть кода пишут здесь: настраивают обработчики событий и логику.",
   "completion.global.update":
-    "Вызывается многократно по ходу уровня, с фиксированной частотой 100 раз в игровую секунду. dt всегда равен этому фиксированному шагу.",
-  "completion.initSkeleton.code": `init: function(elevators, floors) {
+    "Вызывается многократно по ходу уровня, с фиксированной частотой 100 раз в игровую секунду. dt всегда равен этому фиксированному шагу. Объявлять её необязательно.",
+  "completion.initSkeleton.code": `function init(elevators, floors) {
     // Делайте что-нибудь с лифтами и этажами: и те и другие — массивы объектов
 }`,
-  "completion.updateSkeleton.code": `update: function(dt, elevators, floors) {
+  "completion.updateSkeleton.code": `function update(dt, elevators, floors) {
     // Ещё что-нибудь с лифтами и этажами
 }`,
 
@@ -612,15 +610,14 @@ elevator.goingDownIndicator(false);`,
   // The only docs string the game itself renders; autocomplete inserts it as a
   // skeleton. The rest of the docs live in docs-ru.ts, outside the build.
 
-  "docs.basics.example.code": `{
-    init: function(elevators, floors) {
-        // Делайте что-нибудь с лифтами и этажами: и те и другие — массивы объектов
-    },
-    update: function(dt, elevators, floors) {
-        // Ещё что-нибудь с лифтами и этажами
-        // dt — всегда одна и та же доля игровой секунды: update вызывается 100 раз в
-        // секунду игрового времени, независимо от того, как быстро на самом деле рисует браузер
-    }
+  "docs.basics.example.code": `function init(elevators, floors) {
+    // Делайте что-нибудь с лифтами и этажами: и те и другие — массивы объектов
+}
+
+function update(dt, elevators, floors) {
+    // Ещё что-нибудь с лифтами и этажами
+    // dt — всегда одна и та же доля игровой секунды: update вызывается 100 раз в
+    // секунду игрового времени, независимо от того, как быстро на самом деле рисует браузер
 }`,
 
   // Tutorial levels. «Дом» names the building here and in the .code
@@ -638,29 +635,27 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level1.explanation.html":
     "goToFloor никуда не едет. Он дописывает этаж в конец destinationQueue и вызывает checkDestinationQueue, а дальше лифт разбирает очередь сам. Поэтому goToFloor(0), когда кабина и так стоит на нулевом этаже, — это законная поездка нулевой длины: лифт приезжает туда, где стоит, открывает двери, люди заходят, очередь снова пуста, снова срабатывает idle, и снова происходит то же самое. Вот почему кабина наполняется, а счётчик перемещений держится на нуле. Пассажир садится в момент приезда и выходит на том этаже, который попросил, а этот лифт до него не доезжает. И ещё одно, о чём стоит сказать вслух: номер этажа за пределами дома — не ошибка, его молча приводят к ближайшему настоящему этажу. Тот, кто считает этажи с единицы, напишет здесь goToFloor(2) и тоже выиграет, потому что 2 превратится в 1.",
 
-  "tutorial.level1.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level1.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            // TODO: в этом доме два этажа, а лифт заезжает только на один
-            elevator.goToFloor(0);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("idle", function() {
+        // TODO: в этом доме два этажа, а лифт заезжает только на один
+        elevator.goToFloor(0);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level1.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level1.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-            elevator.goToFloor(1);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("idle", function() {
+        elevator.goToFloor(0);
+        elevator.goToFloor(1);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level2.title": "Тот же круг, но своими руками",
@@ -675,27 +670,25 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level2.explanation.html":
     "init вызывают один раз, на первом кадре прогона и до того, как мир сделает хоть один шаг, и обычно он только подписывается на события. Первое idle игра посылает сама, строкой сразу после того, как ваш init вернул управление, поэтому одной подписки хватает, чтобы всё завертелось. Вторая функция, update(dt, elevators, floors), наоборот, вызывается на каждом шаге симуляции — 100 раз в игровую секунду. Дорожка ей ни разу не пользуется, и это намеренно: опрашивать состояние дома на каждом шаге — путь к программам похуже тех, которые просто отвечают на события. Похуже, но не запрещено: опросом проходится любой уровень дорожки.",
 
-  "tutorial.level2.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level2.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        // TODO: гоняйте лифт по всем трём этажам, круг за кругом
-    },
-    update: function(dt, elevators, floors) {
-    }
+    // TODO: гоняйте лифт по всем трём этажам, круг за кругом
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level2.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level2.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-            elevator.goToFloor(1);
-            elevator.goToFloor(2);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("idle", function() {
+        elevator.goToFloor(0);
+        elevator.goToFloor(1);
+        elevator.goToFloor(2);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level3.title": "Кнопки внутри кабины",
@@ -710,33 +703,31 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level3.explanation.html":
     "Пассажир, который зашёл в кабину, нажимает свой этаж, и игра сообщает об этом событием floor_button_pressed, передавая номер этажа аргументом. Горящие кнопки можно опрашивать и самому, через getPressedFloors(), но привычку стоит заводить другую: отвечать на событие. Заметьте, что goToFloor(0) в обработчике idle теперь никому не мешает — раз кнопки кабины обработаны, эта строка просто означает «вернуться на нулевой этаж, когда делать нечего».",
 
-  "tutorial.level3.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level3.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-        });
+    elevator.on("idle", function() {
+        elevator.goToFloor(0);
+    });
 
-        // TODO: они уже в кабине и уже нажали свои этажи
-    },
-    update: function(dt, elevators, floors) {
-    }
+    // TODO: они уже в кабине и уже нажали свои этажи
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level3.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level3.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-        });
+    elevator.on("idle", function() {
+        elevator.goToFloor(0);
+    });
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level4.title": "Очередь, которую никто не прочитал",
@@ -751,37 +742,35 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level4.explanation.html":
     "Стоящая полная кабина и стоящая пустая кабина отличаются так же, как лифт, который приехал и открыл двери, отличается от лифта, который не приехал ни разу. Посадка происходит в момент приезда, и больше нигде. Тот, кто нажал кнопку рядом со стоящей кабиной, обычно эту кабину и подталкивает: игра заново предлагает ей этот этаж вызовом goToFloor(floor, true), и на учебных уровнях с первого по третий кабину наполняло именно это. Здесь толчок не делает ничего. Очередь не пуста, в ней 0, 1, 2, 3, а goToFloor отбрасывает просьбу, совпадающую с ближним концом непустой очереди, ещё до того, как дело дойдёт до проверки очереди: просят нулевой этаж, нулевой этаж и так первый в очереди, вызов возвращается. И кабина стоит так до конца прогона. goToFloor вызывает checkDestinationQueue за вас, а присваивание очереди — нет.",
 
-  "tutorial.level4.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level4.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        // Кто-то переписал тот же круг через очередь этажей.
-        elevator.on("idle", function() {
-            elevator.destinationQueue = [0, 1, 2, 3];
-        });
+    // Кто-то переписал тот же круг через очередь этажей.
+    elevator.on("idle", function() {
+        elevator.destinationQueue = [0, 1, 2, 3];
+    });
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level4.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level4.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.destinationQueue = [0, 1, 2, 3];
-            elevator.checkDestinationQueue();
-        });
+    elevator.on("idle", function() {
+        elevator.destinationQueue = [0, 1, 2, 3];
+        elevator.checkDestinationQueue();
+    });
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level5.title": "Дом вырос",
@@ -796,43 +785,41 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level5.explanation.html":
     'Слепой объезд не масштабируется: в худшем случае человек ждёт целый круг, а круг растёт вместе с домом. Этажи умеют звать лифт сами. Оба события передают этаж аргументом, так что floor.floorNum() можно взять хоть из аргумента, хоть из замыкания — как читается лучше. Подписаться на оба события одной строкой тоже можно, floor.on("up_button_pressed down_button_pressed", …), но тогда первым аргументом придёт имя сработавшего события, а этаж сдвинется на второе место; поэтому здесь два отдельных обработчика. И честно о результате: новая программа делает не меньше перемещений, чем объезд, а больше. Выигрывает она тем, что больше не возит воздух.',
 
-  "tutorial.level5.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level5.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.destinationQueue = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-            elevator.checkDestinationQueue();
-        });
+    elevator.on("idle", function() {
+        elevator.destinationQueue = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+        elevator.checkDestinationQueue();
+    });
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
 
-        // TODO: спрашивайте у этажей, кому нужен лифт, вместо объезда всех подряд
-    },
-    update: function(dt, elevators, floors) {
-    }
+    // TODO: спрашивайте у этажей, кому нужен лифт, вместо объезда всех подряд
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level5.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level5.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+        floor.on("down_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level6.title": "Лифт, который врёт пассажирам",
@@ -847,52 +834,50 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level6.explanation.html":
     "Пассажир садится только в тот лифт, который подходит для его поездки: игра спрашивает isSuitableForTravelBetween, а тот смотрит на индикаторы. Кого не пустили, тот жмёт кнопку вызова снова. Стрелка не гаснет по отдельной причине, и по этой же причине симптом вообще видно: приехавший лифт гасит только те кнопки вызова, которые соответствуют его горящим индикаторам, так что кабина с потухшей стрелкой «вниз» физически не может погасить вызов вниз. Хуже того, стоящей кабине этаж и не предлагают заново: игра подталкивает стоящую кабину только тогда, когда её индикатор совпадает с направлением вызова. Оба индикатора включены изначально, так что эти две строки ничего не чинят. Они только ломают.",
 
-  "tutorial.level6.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level6.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        // Кто-то решил показывать пассажирам, в какую сторону едет лифт.
-        elevator.goingUpIndicator(true);
-        elevator.goingDownIndicator(false);
+    // Кто-то решил показывать пассажирам, в какую сторону едет лифт.
+    elevator.goingUpIndicator(true);
+    elevator.goingDownIndicator(false);
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
+        floor.on("down_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level6.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level6.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.goingUpIndicator(true);
-        elevator.goingDownIndicator(true);
+    elevator.goingUpIndicator(true);
+    elevator.goingDownIndicator(true);
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
+        floor.on("down_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level7.title": "Второй лифт",
@@ -906,55 +891,53 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level7.explanation.html":
     "elevators[0] — это не «лифт», это «первый лифт». В этом доме их два, а на последних уровнях игры их восемь. Программа, написанная через elevators.forEach, одинаково работает и с одной кабиной, и с восемью, и именно её вы унесёте на настоящие уровни. Выбирать по loadFactor() — самое дешёвое разумное правило: 0 — пусто, 1 — полно. Оно не единственное рабочее, годится что угодно, лишь бы обе кабины были при деле, но правило, которое сверяется с картинкой на экране, отлаживать легче.",
 
-  "tutorial.level7.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level7.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
+        });
+        floor.on("down_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
+}`,
+  "tutorial.level7.solutionCode.code": `function init(elevators, floors) {
+    function pickElevator() {
+        let best = elevators[0];
+        elevators.forEach(function(elevator) {
+            if (elevator.loadFactor() < best.loadFactor()) {
+                best = elevator;
+            }
+        });
+        return best;
+    }
+
+    elevators.forEach(function(elevator) {
         elevator.on("floor_button_pressed", function(floorNum) {
             elevator.goToFloor(floorNum);
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            pickElevator().goToFloor(floor.floorNum());
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`,
-  "tutorial.level7.solutionCode.code": `{
-    init: function(elevators, floors) {
-        function pickElevator() {
-            let best = elevators[0];
-            elevators.forEach(function(elevator) {
-                if (elevator.loadFactor() < best.loadFactor()) {
-                    best = elevator;
-                }
-            });
-            return best;
-        }
+        floor.on("down_button_pressed", function() {
+            pickElevator().goToFloor(floor.floorNum());
+        });
+    });
+}
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level8.title": "По памяти",
@@ -969,45 +952,43 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level8.explanation.html":
     "Здесь нет ничего нового, и в этом всё дело. Это дом уровня 1 и планка уровня 1, взятые намеренно: три этажа, один лифт, 15 пассажиров за 60 секунд. Выиграв здесь, вы уже прошли уровень 1 — той самой программой, которая сейчас в редакторе. И запас времени здесь самый маленький на дорожке, причём дорожка тут ни при чём: при 0,3 пассажира в секунду пятнадцатый человек появляется в доме примерно на сорок седьмой секунде из шестидесяти, так что минута теснее, чем кажется. Это свойство уровня 1, и вы столкнулись с ним заранее.",
 
-  "tutorial.level8.startingCode.code": `{
-    init: function(elevators, floors) {
-        // TODO: здесь нет ничего нового. Всё это вы уже писали.
-    },
-    update: function(dt, elevators, floors) {
-    }
+  "tutorial.level8.startingCode.code": `function init(elevators, floors) {
+    // TODO: здесь нет ничего нового. Всё это вы уже писали.
+}
+
+function update(dt, elevators, floors) {
 }`,
   // Identical to level 7's answer, on purpose: the finale asks nothing new.
   // Written out in full so every level keeps the same eight keys;
   // src/game/tutorial.test.ts checks the two stay equal.
-  "tutorial.level8.solutionCode.code": `{
-    init: function(elevators, floors) {
-        function pickElevator() {
-            let best = elevators[0];
-            elevators.forEach(function(elevator) {
-                if (elevator.loadFactor() < best.loadFactor()) {
-                    best = elevator;
-                }
-            });
-            return best;
-        }
-
+  "tutorial.level8.solutionCode.code": `function init(elevators, floors) {
+    function pickElevator() {
+        let best = elevators[0];
         elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
+            if (elevator.loadFactor() < best.loadFactor()) {
+                best = elevator;
+            }
         });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+        return best;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            pickElevator().goToFloor(floor.floorNum());
+        });
+        floor.on("down_button_pressed", function() {
+            pickElevator().goToFloor(floor.floorNum());
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   // «Учебный уровень» (the track) and «уровень N» (the game) are named
@@ -1028,555 +1009,542 @@ elevator.goingDownIndicator(false);`,
   // Skyscraper levels (src/game/skyscraper.ts): one key per level, no hints.
   // Only sky2, sky8 and sky11 carry a briefing, where a mechanic first
   // appears; "round-trip time" is «время кругового рейса» in Russian.
-  "skyscraper.sky1.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky1.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            // TODO: один вызов, одна кабина, один рейс -- по пути никого не берут
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
-                elevator.goToFloor(0);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+    function callNextElevator(floor) {
+        // TODO: один вызов, одна кабина, один рейс -- по пути никого не берут
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "skyscraper.sky2.title": "Все начинают в холле",
   "skyscraper.sky2.briefing.html":
     "Десять этажей, две кабины и здание, которое только что открыло двери. Каждый следующий уровень задаёт толпе свой ритм, а этот — <em>утренний пик</em>: пока идёт рейс, каждый пассажир появляется в холле и каждый едет вверх. Кнопки на этажах не горят, поэтому у вопроса «кто вызвал?» один ответ, и выбор кабины под вызов не решает почти ничего. Решает обратный путь. Кабина возвращается в холл пустой, что бы вы ни делали, так что единственное число, которое вы можете изменить, — сколько человек она увезла наверх. А программа, с которой вы начинаете, отправляет кабину в путь, едва первый пассажир нажал кнопку. Дальше ритм разворачивается: <em>вечерний пик</em>, когда всё здание рвётся на улицу, и <em>обед</em>, который идёт в обе стороны сразу.",
 
-  "skyscraper.sky2.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky2.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
+    function callNextElevator(floor) {
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
+    }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            // TODO: кабина уезжает, едва внутри оказался один человек
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
+}`,
+
+  "skyscraper.sky3.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
+
+    function insertStop(elevator, floorNum) {
+        // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+        // делать нечего -- кто мог сесть, тот сел.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
         }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                // TODO: кабина уезжает, едва внутри оказался один человек
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
+    function callNextElevator(floor) {
+        insertStop(elevators[next], floor.floorNum());
+        next = (next + 1) % elevators.length;
+    }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
                 elevator.goToFloor(0);
-            });
+            }
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky3.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky4.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function insertStop(elevator, floorNum) {
-            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
-            // делать нечего -- кто мог сесть, тот сел.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
-                return;
-            }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
-        }
-
-        function callNextElevator(floor) {
-            insertStop(elevators[next], floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+    function callNextElevator(floor) {
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            // TODO: в холле сегодня вечером никто не ждёт
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky4.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky5.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
+    function insertStop(elevator, floorNum) {
+        // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+        // делать нечего -- кто мог сесть, тот сел.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
         }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
-                // TODO: в холле сегодня вечером никто не ждёт
+    function callNextElevator(floor) {
+        insertStop(elevators[next], floor.floorNum());
+        next = (next + 1) % elevators.length;
+    }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
                 elevator.goToFloor(0);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`,
-
-  "skyscraper.sky5.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
-
-        function insertStop(elevator, floorNum) {
-            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
-            // делать нечего -- кто мог сесть, тот сел.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
-                return;
             }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
-        }
-
-        function callNextElevator(floor) {
-            insertStop(elevators[next], floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky6.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky6.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            // TODO: вызовы горят и в холле, и наверху одновременно
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
-                elevator.goToFloor(0);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+    function callNextElevator(floor) {
+        // TODO: вызовы горят и в холле, и наверху одновременно
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky7.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky7.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                // TODO: одно поручение за раз, и каждое пересекает всё здание
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
-                elevator.goToFloor(0);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+    function callNextElevator(floor) {
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            // TODO: одно поручение за раз, и каждое пересекает всё здание
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "skyscraper.sky8.title": "Не всякая кабина едет всюду",
   "skyscraper.sky8.briefing.html":
     "Десять этажей, и две кабины больше не делают одну и ту же работу: одна обслуживает холл и этажи с 1-го по 4-й, другая — холл и этажи с 5-го по 9-й. Настоящие башни устроены именно так, и причина — арифметика: кабина, которая останавливается на каждом этаже высокого здания, весь день только и делает, что останавливается, поэтому этажи делят на <em>зоны</em> и каждому банку кабин отдают свою. Попросите кабину о чужом этаже — машина не станет спорить: доедет, откроет двери, и никто не сядет. Хуже того, вызов останется висеть. Лампа на этаже уже горит, поэтому кнопка, которая позвала бы другую кабину, при повторном нажатии не делает ничего, и этот этаж будет ждать до конца рейса. <code>elevator.servedFloors()</code> — список этажей, которые кабина действительно обслуживает, и с него теперь начинается всякий выбор кабины.",
 
-  "skyscraper.sky8.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky8.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function insertStop(elevator, floorNum) {
-            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
-            // делать нечего -- кто мог сесть, тот сел.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
-                return;
-            }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
+    function insertStop(elevator, floorNum) {
+        // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+        // делать нечего -- кто мог сесть, тот сел.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
         }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
 
-        function callNextElevator(floor) {
-            // TODO: в этом здании не каждая кабина останавливается на каждом этаже
-            insertStop(elevators[next], floor.floorNum());
+    function callNextElevator(floor) {
+        // TODO: в этом здании не каждая кабина останавливается на каждом этаже
+        insertStop(elevators[next], floor.floorNum());
+        next = (next + 1) % elevators.length;
+    }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
+                elevator.goToFloor(0);
+            }
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
+}`,
+
+  "skyscraper.sky9.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
+
+    function insertStop(elevator, floorNum) {
+        // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+        // делать нечего -- кто мог сесть, тот сел.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
+        }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
+
+    function callNextElevator(floor) {
+        // TODO: фильтр -- лёгкая половина; серебро спрашивает, кто ждал дольше всех
+        const floorNum = floor.floorNum();
+        for (let tries = 0; tries < elevators.length; tries++) {
+            const elevator = elevators[next];
             next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
+            if (elevator.servedFloors().includes(floorNum)) {
                 insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`,
-
-  "skyscraper.sky9.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
-
-        function insertStop(elevator, floorNum) {
-            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
-            // делать нечего -- кто мог сесть, тот сел.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
                 return;
             }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
         }
-
-        function callNextElevator(floor) {
-            // TODO: фильтр -- лёгкая половина; серебро спрашивает, кто ждал дольше всех
-            const floorNum = floor.floorNum();
-            for (let tries = 0; tries < elevators.length; tries++) {
-                const elevator = elevators[next];
-                next = (next + 1) % elevators.length;
-                if (elevator.servedFloors().includes(floorNum)) {
-                    insertStop(elevator, floorNum);
-                    return;
-                }
-            }
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
+                elevator.goToFloor(0);
+            }
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky10.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky10.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function insertStop(elevator, floorNum) {
-            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
-            // делать нечего -- кто мог сесть, тот сел.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+    function insertStop(elevator, floorNum) {
+        // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+        // делать нечего -- кто мог сесть, тот сел.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
+        }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
+
+    function callNextElevator(floor) {
+        // TODO: этажи с 6 по 8 обслуживают оба банка; здесь берётся тот, чья очередь
+        const floorNum = floor.floorNum();
+        for (let tries = 0; tries < elevators.length; tries++) {
+            const elevator = elevators[next];
+            next = (next + 1) % elevators.length;
+            if (elevator.servedFloors().includes(floorNum)) {
+                insertStop(elevator, floorNum);
                 return;
             }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
         }
-
-        function callNextElevator(floor) {
-            // TODO: этажи с 6 по 8 обслуживают оба банка; здесь берётся тот, чья очередь
-            const floorNum = floor.floorNum();
-            for (let tries = 0; tries < elevators.length; tries++) {
-                const elevator = elevators[next];
-                next = (next + 1) % elevators.length;
-                if (elevator.servedFloors().includes(floorNum)) {
-                    insertStop(elevator, floorNum);
-                    return;
-                }
-            }
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
+                elevator.goToFloor(0);
+            }
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "skyscraper.sky11.title": "Никто не жмёт «вверх» и «вниз»",
   "skyscraper.sky11.briefing.html":
     "Кнопок вызова на этажах больше нет. Вместо «вверх» и «вниз» пассажир набирает нужный этаж на панели у дверей и ждёт ту кабину, которую ему пообещала система, — это <em>назначение по этажу</em>, и на нём работает любая башня, построенная в этом веке. Программа слышит <code>destination_requested</code> с этажом, который кто-то назвал, и отвечает вызовом <code>elevator.takeRequest(from, to)</code>: он закрепляет кабину за этой поездкой, и эти люди сядут в неё и ни в какую другую. Закрепить — значит пообещать кабину, а не отправить её куда-нибудь: отправлять её по-прежнему нужно самому — через <code>goToFloor</code> или через <code>destinationQueue</code>, а следом <code>checkDestinationQueue()</code>. А этаж, чья поездка закреплена, больше не просит — ему, с его точки зрения, уже ответили, — так что невыполненное обещание хуже, чем никакого.",
 
-  "skyscraper.sky11.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky11.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("destination_requested", function(destinationFloor) {
-                const elevator = elevators[next];
-                next = (next + 1) % elevators.length;
-                // TODO: кабина закреплена за поездкой, и никто её не отправил
-                elevator.takeRequest(floor.floorNum(), destinationFloor);
-            });
+    floors.forEach(function(floor) {
+        floor.on("destination_requested", function(destinationFloor) {
+            const elevator = elevators[next];
+            next = (next + 1) % elevators.length;
+            // TODO: кабина закреплена за поездкой, и никто её не отправил
+            elevator.takeRequest(floor.floorNum(), destinationFloor);
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky12.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky12.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("destination_requested", function(destinationFloor) {
-                // TODO: чья очередь, та и едет, где бы она сейчас ни стояла
-                const elevator = elevators[next];
-                next = (next + 1) % elevators.length;
-                if (elevator.takeRequest(floor.floorNum(), destinationFloor)) {
-                    elevator.goToFloor(floor.floorNum());
-                }
-            });
+    floors.forEach(function(floor) {
+        floor.on("destination_requested", function(destinationFloor) {
+            // TODO: чья очередь, та и едет, где бы она сейчас ни стояла
+            const elevator = elevators[next];
+            next = (next + 1) % elevators.length;
+            if (elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+                elevator.goToFloor(floor.floorNum());
+            }
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky13.startingCode.code": `{
-    init: function(elevators, floors) {
-        function insertStop(elevator, floorNum) {
-            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
-            // делать нечего -- кто мог сесть, тот сел.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+  "skyscraper.sky13.startingCode.code": `function init(elevators, floors) {
+    function insertStop(elevator, floorNum) {
+        // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+        // делать нечего -- кто мог сесть, тот сел.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
+        }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
+
+    function nearestWithRoom(floorNum) {
+        let best = null;
+        elevators.forEach(function(elevator) {
+            if (elevator.loadFactor() > 0.7) {
                 return;
             }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
+            const distance = Math.abs(elevator.currentFloor() - floorNum);
+            if (best === null || distance < best.distance) {
+                best = { elevator: elevator, distance: distance };
             }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
-        }
-
-        function nearestWithRoom(floorNum) {
-            let best = null;
-            elevators.forEach(function(elevator) {
-                if (elevator.loadFactor() > 0.7) {
-                    return;
-                }
-                const distance = Math.abs(elevator.currentFloor() - floorNum);
-                if (best === null || distance < best.distance) {
-                    best = { elevator: elevator, distance: distance };
-                }
-            });
-            return best === null ? null : best.elevator;
-        }
-
-        floors.forEach(function(floor) {
-            floor.on("destination_requested", function(destinationFloor) {
-                // TODO: одна поездка -- одна кабина, а очередь на этом этаже
-                // едет сейчас в восемь разных мест
-                const elevator = nearestWithRoom(floor.floorNum());
-                if (elevator !== null && elevator.takeRequest(floor.floorNum(), destinationFloor)) {
-                    insertStop(elevator, floor.floorNum());
-                }
-            });
         });
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+        return best === null ? null : best.elevator;
     }
+
+    floors.forEach(function(floor) {
+        floor.on("destination_requested", function(destinationFloor) {
+            // TODO: одна поездка -- одна кабина, а очередь на этом этаже
+            // едет сейчас в восемь разных мест
+            const elevator = nearestWithRoom(floor.floorNum());
+            if (elevator !== null && elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+                insertStop(elevator, floor.floorNum());
+            }
+        });
+    });
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
+                elevator.goToFloor(0);
+            }
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 };

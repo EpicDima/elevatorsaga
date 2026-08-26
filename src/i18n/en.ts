@@ -177,13 +177,12 @@ export const EN_MESSAGES = {
   "game.docs.guide.tutorialLevels.body":
     "Tutorial levels have a lesson standing next to the building: step by step, what's happening, which event a program sees it through, and what answering it looks like. The hints open one at a time, and the last of them holds a working program with a button that copies it.",
   "game.docs.intro.heading": "What a program is made of",
-  "game.docs.intro.example.code": `{
-  init: function (elevators, floors) {
-    // subscribe to events here
-  },
-  update: function (dt, elevators, floors) {
-    // called continuously while a run is in progress
-  }
+  "game.docs.intro.example.code": `function init(elevators, floors) {
+  // subscribe to events here
+}
+
+function update(dt, elevators, floors) {
+  // called continuously while a run is in progress
 }`,
   "game.docs.lead.html":
     "<code>elevator</code> is an elevator: all of them live in <code>elevators</code>. <code>floor</code> is a floor, and they're in <code>floors</code>. Any row below can be expanded — details and an example live underneath.",
@@ -397,20 +396,19 @@ elevator.goingDownIndicator(false);`,
   // "Draft," not "version": there is no history, just three slots.
   "editor.slot.tab.label": "Code {number}",
   "editor.slot.tab.title": "Draft {number}",
-  "editor.defaultCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0]; // Let's use the first elevator
+  "editor.defaultCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0]; // Let's use the first elevator
 
-        // Whenever the elevator is idle (has no more queued destinations) ...
-        elevator.on("idle", function() {
-            // let's go to all the floors (or did we forget one?)
-            elevator.goToFloor(0);
-            elevator.goToFloor(1);
-        });
-    },
-    update: function(dt, elevators, floors) {
-        // We normally don't need to do anything here
-    }
+    // Whenever the elevator is idle (has no more queued destinations) ...
+    elevator.on("idle", function() {
+        // let's go to all the floors (or did we forget one?)
+        elevator.goToFloor(0);
+        elevator.goToFloor(1);
+    });
+}
+
+function update(dt, elevators, floors) {
+    // Called on every tick — use it or leave it empty, both are fine
 }`,
 
   // Level goal sentences (src/game/levels.ts); counted phrases are separate
@@ -525,15 +523,15 @@ elevator.goingDownIndicator(false);`,
   "completion.floor.event.destinationRequested":
     "Triggered when someone at a floor has asked to be taken to another floor, in a building whose passengers announce a destination instead of pressing a call button. The handler is passed the floor they want to reach and the floor they are waiting on.",
   "completion.global.skeleton":
-    "Your code must declare an object containing at least two functions called init and update.",
+    "Your code must declare a function called init. It can declare update alongside it, and anything else it needs.",
   "completion.global.init":
     "Called when the level starts. Normally you will put most of your code in here, to set up event listeners and logic.",
   "completion.global.update":
-    "Called repeatedly during the level, at a fixed rate of 100 times per game second. dt is always that fixed step.",
-  "completion.initSkeleton.code": `init: function(elevators, floors) {
+    "Called repeatedly during the level, at a fixed rate of 100 times per game second. dt is always that fixed step. Declaring it is optional.",
+  "completion.initSkeleton.code": `function init(elevators, floors) {
     // Do stuff with the elevators and floors, which are both arrays of objects
 }`,
-  "completion.updateSkeleton.code": `update: function(dt, elevators, floors) {
+  "completion.updateSkeleton.code": `function update(dt, elevators, floors) {
     // Do more stuff with the elevators and floors
 }`,
 
@@ -571,15 +569,14 @@ elevator.goingDownIndicator(false);`,
 
   // The one help-page string the game itself renders; the rest is in docs-en.ts.
 
-  "docs.basics.example.code": `{
-    init: function(elevators, floors) {
-        // Do stuff with the elevators and floors, which are both arrays of objects
-    },
-    update: function(dt, elevators, floors) {
-        // Do more stuff with the elevators and floors
-        // dt is always the same fraction of a game second: update runs 100 times per
-        // simulated second, however fast or slow the browser is actually drawing
-    }
+  "docs.basics.example.code": `function init(elevators, floors) {
+    // Do stuff with the elevators and floors, which are both arrays of objects
+}
+
+function update(dt, elevators, floors) {
+    // Do more stuff with the elevators and floors
+    // dt is always the same fraction of a game second: update runs 100 times per
+    // simulated second, however fast or slow the browser is actually drawing
 }`,
 
   // Tutorial levels (src/game/tutorial.ts). Every per-level key ends in
@@ -598,29 +595,27 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level1.explanation.html":
     "goToFloor does not drive anywhere. It appends the floor to the end of destinationQueue and calls checkDestinationQueue, and the elevator works through that queue on its own. So goToFloor(0) while the car is already on floor 0 is a legal trip of zero length: the car arrives where it stands, opens its doors, people get in, the queue is empty again, idle fires again, and the same thing happens again. That is why the car fills up while the moves counter stays at zero. A passenger boards on arrival and gets out on the floor they asked for, and this elevator never reaches it. One more thing worth saying out loud: a floor number outside the building is not an error, it is quietly clamped to the nearest real floor. Somebody who counts floors from one writes goToFloor(2) here and wins as well, because 2 becomes 1.",
 
-  "tutorial.level1.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level1.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            // TODO: this building has two floors, and the elevator only visits one
-            elevator.goToFloor(0);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("idle", function() {
+        // TODO: this building has two floors, and the elevator only visits one
+        elevator.goToFloor(0);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level1.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level1.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-            elevator.goToFloor(1);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("idle", function() {
+        elevator.goToFloor(0);
+        elevator.goToFloor(1);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level2.title": "The same loop, written by hand",
@@ -635,27 +630,25 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level2.explanation.html":
     "init is called once, on the first frame of the run and before the world has taken a single step, and all it normally does is subscribe to events. The first idle is sent by the game itself, on the line right after your init returns, so subscribing is enough to set the whole thing going. The other function, update(dt, elevators, floors), is called on every simulated tick instead — 100 times a game second. The track never uses it, and that is deliberate: asking the building about its state on every tick gives worse programs than answering the events it sends you. Worse, not forbidden — polling will get you through any level on this track.",
 
-  "tutorial.level2.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level2.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        // TODO: send the elevator round all three floors, over and over
-    },
-    update: function(dt, elevators, floors) {
-    }
+    // TODO: send the elevator round all three floors, over and over
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level2.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level2.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-            elevator.goToFloor(1);
-            elevator.goToFloor(2);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("idle", function() {
+        elevator.goToFloor(0);
+        elevator.goToFloor(1);
+        elevator.goToFloor(2);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level3.title": "The buttons inside the car",
@@ -670,33 +663,31 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level3.explanation.html":
     "A passenger who has got in presses their own floor, and the game reports it with floor_button_pressed, carrying the floor number as the argument. The lit buttons can also be read by polling them yourself, with getPressedFloors(), but reacting to the event is the habit worth building. Notice that the goToFloor(0) in the idle handler is no longer in anybody's way: now that the cabin buttons are answered, it simply means the car goes back to the ground floor when it has nothing else to do.",
 
-  "tutorial.level3.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level3.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-        });
+    elevator.on("idle", function() {
+        elevator.goToFloor(0);
+    });
 
-        // TODO: they are already aboard and have already pressed their floors
-    },
-    update: function(dt, elevators, floors) {
-    }
+    // TODO: they are already aboard and have already pressed their floors
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level3.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level3.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-        });
+    elevator.on("idle", function() {
+        elevator.goToFloor(0);
+    });
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level4.title": "The queue nobody read",
@@ -711,37 +702,35 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level4.explanation.html":
     "A full car standing still and an empty car standing still differ the way an elevator that arrived and opened its doors differs from an elevator that never arrived at all. Boarding happens on arrival, and nowhere else. Someone who presses a button beside a standing car usually nudges it: the game re-offers the floor to the car with goToFloor(floor, true), and on tutorial levels 1 to 3 that is what kept filling the cabin. Here the nudge does nothing. The queue is not empty, it holds 0, 1, 2, 3, and goToFloor drops a request that equals the adjacent end of a non-empty queue before it ever gets as far as checking the queue: floor 0 is asked for, floor 0 is already at the head, and the call returns. The car stands there for the rest of the run. goToFloor calls checkDestinationQueue for you; assigning the queue does not.",
 
-  "tutorial.level4.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level4.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        // Somebody rewrote the round trip as a queue.
-        elevator.on("idle", function() {
-            elevator.destinationQueue = [0, 1, 2, 3];
-        });
+    // Somebody rewrote the round trip as a queue.
+    elevator.on("idle", function() {
+        elevator.destinationQueue = [0, 1, 2, 3];
+    });
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level4.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level4.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.destinationQueue = [0, 1, 2, 3];
-            elevator.checkDestinationQueue();
-        });
+    elevator.on("idle", function() {
+        elevator.destinationQueue = [0, 1, 2, 3];
+        elevator.checkDestinationQueue();
+    });
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level5.title": "The building grew",
@@ -756,43 +745,41 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level5.explanation.html":
     'A blind sweep does not scale: its worst waiting time is the length of one lap, and the lap grows with the building. Floors can call an elevator themselves. Both events hand the floor over as the argument, so floor.floorNum() can come from the argument or from the closure, whichever reads better. Subscribing to both events in one line is possible — floor.on("up_button_pressed down_button_pressed", …) — but then the first argument is the name of the event that fired and the floor moves along into second place; that is why there are two separate handlers here. And to be honest about the result: the new program makes more moves than the sweep did, not fewer. It wins by no longer carrying air.',
 
-  "tutorial.level5.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level5.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("idle", function() {
-            elevator.destinationQueue = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-            elevator.checkDestinationQueue();
-        });
+    elevator.on("idle", function() {
+        elevator.destinationQueue = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+        elevator.checkDestinationQueue();
+    });
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
 
-        // TODO: ask the floors who wants an elevator instead of visiting them all
-    },
-    update: function(dt, elevators, floors) {
-    }
+    // TODO: ask the floors who wants an elevator instead of visiting them all
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level5.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level5.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+        floor.on("down_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level6.title": "The elevator that lies to its passengers",
@@ -807,52 +794,50 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level6.explanation.html":
     "A passenger only gets into a car that suits the trip they are making: the game asks isSuitableForTravelBetween, and that looks at the indicators. A passenger turned away presses the call button again. The arrow stays lit for a separate reason, and it is the same reason the symptom is visible at all: an arriving elevator clears only the call buttons that correspond to the indicators it has lit, so a car with the down arrow dark physically cannot clear a call to go down. Worse, a standing car is not re-offered either — the game nudges a standing car only when its indicator matches the direction of the call. Both indicators are on to begin with, so those two lines fix nothing. They only break.",
 
-  "tutorial.level6.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level6.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        // Somebody decided to show the passengers which way the elevator is going.
-        elevator.goingUpIndicator(true);
-        elevator.goingDownIndicator(false);
+    // Somebody decided to show the passengers which way the elevator is going.
+    elevator.goingUpIndicator(true);
+    elevator.goingDownIndicator(false);
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
+        floor.on("down_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
-  "tutorial.level6.solutionCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level6.solutionCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
-        elevator.goingUpIndicator(true);
-        elevator.goingDownIndicator(true);
+    elevator.goingUpIndicator(true);
+    elevator.goingDownIndicator(true);
 
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
+        floor.on("down_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level7.title": "The second elevator",
@@ -866,55 +851,53 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level7.explanation.html":
     "elevators[0] is not the elevator, it is the first elevator. This building has two of them, and the last levels of the game have eight. A program written with elevators.forEach works with one car and with eight alike, and it is the program you will carry into the real levels. Choosing by loadFactor() is the cheapest sensible rule: 0 is empty, 1 is full. It is not the only rule that clears this building, anything that keeps both cars busy will do, but a rule you can check against the picture on screen is easier to debug.",
 
-  "tutorial.level7.startingCode.code": `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+  "tutorial.level7.startingCode.code": `function init(elevators, floors) {
+    const elevator = elevators[0];
 
+    elevator.on("floor_button_pressed", function(floorNum) {
+        elevator.goToFloor(floorNum);
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
+        });
+        floor.on("down_button_pressed", function() {
+            elevator.goToFloor(floor.floorNum());
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
+}`,
+  "tutorial.level7.solutionCode.code": `function init(elevators, floors) {
+    function pickElevator() {
+        let best = elevators[0];
+        elevators.forEach(function(elevator) {
+            if (elevator.loadFactor() < best.loadFactor()) {
+                best = elevator;
+            }
+        });
+        return best;
+    }
+
+    elevators.forEach(function(elevator) {
         elevator.on("floor_button_pressed", function(floorNum) {
             elevator.goToFloor(floorNum);
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            pickElevator().goToFloor(floor.floorNum());
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`,
-  "tutorial.level7.solutionCode.code": `{
-    init: function(elevators, floors) {
-        function pickElevator() {
-            let best = elevators[0];
-            elevators.forEach(function(elevator) {
-                if (elevator.loadFactor() < best.loadFactor()) {
-                    best = elevator;
-                }
-            });
-            return best;
-        }
+        floor.on("down_button_pressed", function() {
+            pickElevator().goToFloor(floor.floorNum());
+        });
+    });
+}
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+function update(dt, elevators, floors) {
 }`,
 
   "tutorial.level8.title": "From memory",
@@ -929,44 +912,42 @@ elevator.goingDownIndicator(false);`,
   "tutorial.level8.explanation.html":
     "Nothing here is new, and that is the point. This is the building of level 1 and the bar of level 1, copied deliberately: three floors, one elevator, 15 passengers in 60 seconds. Win here and level 1 is already solved, by the very program now in the editor. The margin here is also the thinnest on the track, and that is not the track's doing: at 0.3 passengers a second the fifteenth passenger does not appear in the building until about the forty-seventh second of the sixty, so the minute is tighter than it looks. That is a property of level 1, and you have met it early.",
 
-  "tutorial.level8.startingCode.code": `{
-    init: function(elevators, floors) {
-        // TODO: nothing here is new. You have written all of it already.
-    },
-    update: function(dt, elevators, floors) {
-    }
+  "tutorial.level8.startingCode.code": `function init(elevators, floors) {
+    // TODO: nothing here is new. You have written all of it already.
+}
+
+function update(dt, elevators, floors) {
 }`,
   // Same as level 7's answer -- level 8 asks for nothing new. tutorial.test.ts
   // checks the two stay equal in every locale.
-  "tutorial.level8.solutionCode.code": `{
-    init: function(elevators, floors) {
-        function pickElevator() {
-            let best = elevators[0];
-            elevators.forEach(function(elevator) {
-                if (elevator.loadFactor() < best.loadFactor()) {
-                    best = elevator;
-                }
-            });
-            return best;
-        }
-
+  "tutorial.level8.solutionCode.code": `function init(elevators, floors) {
+    function pickElevator() {
+        let best = elevators[0];
         elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
+            if (elevator.loadFactor() < best.loadFactor()) {
+                best = elevator;
+            }
         });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+        return best;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            pickElevator().goToFloor(floor.floorNum());
+        });
+        floor.on("down_button_pressed", function() {
+            pickElevator().goToFloor(floor.floorNum());
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   // "Tutorial level" (the track) and "level {number}" (the game) are named
@@ -987,555 +968,542 @@ elevator.goingDownIndicator(false);`,
   // Skyscraper levels: one key per level, no hints or explanation. Only sky2,
   // sky8 and sky11 carry a title/briefing, where a new mechanic first
   // appears; briefings never quote a scored number.
-  "skyscraper.sky1.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky1.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            // TODO: one call, one car, one trip -- nobody is picked up on the way
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
-                elevator.goToFloor(0);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+    function callNextElevator(floor) {
+        // TODO: one call, one car, one trip -- nobody is picked up on the way
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "skyscraper.sky2.title": "Everyone starts in the lobby",
   "skyscraper.sky2.briefing.html":
     'Ten floors, two cars, and a building that has just opened its doors. Every level from here on sets the crowd a rhythm of its own, and this one is the <em>morning up-peak</em>: for as long as the run lasts every passenger appears in the lobby and every one of them is going up. The buttons upstairs stay dark, so "which floor called?" is a question with one answer, and picking a car for the call decides almost nothing. What decides the run is the trip back. A car returns to the lobby empty whatever you do, so the only figure you can change is how many people it carried on the way out — and the program you start with sends a car off the moment the first passenger presses a button. The levels after this one turn the rhythm around: an <em>evening down-peak</em> with the whole building trying to reach the street, and <em>lunch traffic</em> running both ways at once.',
 
-  "skyscraper.sky2.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky2.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
+    function callNextElevator(floor) {
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
+    }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            // TODO: the car leaves the instant one person is aboard
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
+}`,
+
+  "skyscraper.sky3.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
+
+    function insertStop(elevator, floorNum) {
+        // A stopped car that is asked for the floor it is already on has
+        // nothing to do -- whoever could board has boarded.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
         }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                // TODO: the car leaves the instant one person is aboard
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
+    function callNextElevator(floor) {
+        insertStop(elevators[next], floor.floorNum());
+        next = (next + 1) % elevators.length;
+    }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
                 elevator.goToFloor(0);
-            });
+            }
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky3.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky4.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function insertStop(elevator, floorNum) {
-            // A stopped car that is asked for the floor it is already on has
-            // nothing to do -- whoever could board has boarded.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
-                return;
-            }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
-        }
-
-        function callNextElevator(floor) {
-            insertStop(elevators[next], floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+    function callNextElevator(floor) {
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            // TODO: the lobby is where nobody is waiting this evening
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky4.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky5.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
+    function insertStop(elevator, floorNum) {
+        // A stopped car that is asked for the floor it is already on has
+        // nothing to do -- whoever could board has boarded.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
         }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
-                // TODO: the lobby is where nobody is waiting this evening
+    function callNextElevator(floor) {
+        insertStop(elevators[next], floor.floorNum());
+        next = (next + 1) % elevators.length;
+    }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
                 elevator.goToFloor(0);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`,
-
-  "skyscraper.sky5.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
-
-        function insertStop(elevator, floorNum) {
-            // A stopped car that is asked for the floor it is already on has
-            // nothing to do -- whoever could board has boarded.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
-                return;
             }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
-        }
-
-        function callNextElevator(floor) {
-            insertStop(elevators[next], floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky6.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky6.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            // TODO: the calls are in the lobby and upstairs at the same time
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
-                elevator.goToFloor(0);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+    function callNextElevator(floor) {
+        // TODO: the calls are in the lobby and upstairs at the same time
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky7.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky7.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function callNextElevator(floor) {
-            elevators[next].goToFloor(floor.floorNum());
-            next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                // TODO: one errand at a time, and every errand crosses the building
-                elevator.goToFloor(floorNum);
-            });
-            elevator.on("idle", function() {
-                elevator.goToFloor(0);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+    function callNextElevator(floor) {
+        elevators[next].goToFloor(floor.floorNum());
+        next = (next + 1) % elevators.length;
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            // TODO: one errand at a time, and every errand crosses the building
+            elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", function() {
+            elevator.goToFloor(0);
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "skyscraper.sky8.title": "Not every car goes everywhere",
   "skyscraper.sky8.briefing.html":
     "Ten floors, and the two cars no longer do the same job: one of them serves the lobby and floors 1 to 4, the other the lobby and floors 5 to 9. Real towers are built this way, and the reason is arithmetic — a car that stops at every floor of a tall building spends its whole day stopping, so the floors are split into <em>zones</em> and each bank of cars is given one. Ask a car for a floor outside its zone and the machine does not argue: it drives there, opens its doors, and nobody gets in. Worse, the call is still outstanding. The floor's lamp is already lit, so the button that would have called somebody else does nothing when it is pressed again, and that floor waits for the rest of the run. <code>elevator.servedFloors()</code> is the list of floors a car will actually serve, and from here on choosing a car starts with it.",
 
-  "skyscraper.sky8.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky8.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function insertStop(elevator, floorNum) {
-            // A stopped car that is asked for the floor it is already on has
-            // nothing to do -- whoever could board has boarded.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
-                return;
-            }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
+    function insertStop(elevator, floorNum) {
+        // A stopped car that is asked for the floor it is already on has
+        // nothing to do -- whoever could board has boarded.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
         }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
 
-        function callNextElevator(floor) {
-            // TODO: in this building not every car stops at every floor
-            insertStop(elevators[next], floor.floorNum());
+    function callNextElevator(floor) {
+        // TODO: in this building not every car stops at every floor
+        insertStop(elevators[next], floor.floorNum());
+        next = (next + 1) % elevators.length;
+    }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
+                elevator.goToFloor(0);
+            }
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
+}`,
+
+  "skyscraper.sky9.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
+
+    function insertStop(elevator, floorNum) {
+        // A stopped car that is asked for the floor it is already on has
+        // nothing to do -- whoever could board has boarded.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
+        }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
+
+    function callNextElevator(floor) {
+        // TODO: the filter is the easy half -- silver asks who waited longest
+        const floorNum = floor.floorNum();
+        for (let tries = 0; tries < elevators.length; tries++) {
+            const elevator = elevators[next];
             next = (next + 1) % elevators.length;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
+            if (elevator.servedFloors().includes(floorNum)) {
                 insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`,
-
-  "skyscraper.sky9.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
-
-        function insertStop(elevator, floorNum) {
-            // A stopped car that is asked for the floor it is already on has
-            // nothing to do -- whoever could board has boarded.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
                 return;
             }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
         }
-
-        function callNextElevator(floor) {
-            // TODO: the filter is the easy half -- silver asks who waited longest
-            const floorNum = floor.floorNum();
-            for (let tries = 0; tries < elevators.length; tries++) {
-                const elevator = elevators[next];
-                next = (next + 1) % elevators.length;
-                if (elevator.servedFloors().includes(floorNum)) {
-                    insertStop(elevator, floorNum);
-                    return;
-                }
-            }
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
+                elevator.goToFloor(0);
+            }
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky10.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky10.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        function insertStop(elevator, floorNum) {
-            // A stopped car that is asked for the floor it is already on has
-            // nothing to do -- whoever could board has boarded.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+    function insertStop(elevator, floorNum) {
+        // A stopped car that is asked for the floor it is already on has
+        // nothing to do -- whoever could board has boarded.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
+        }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
+
+    function callNextElevator(floor) {
+        // TODO: floors 6 to 8 are served by both banks; this takes whichever is next
+        const floorNum = floor.floorNum();
+        for (let tries = 0; tries < elevators.length; tries++) {
+            const elevator = elevators[next];
+            next = (next + 1) % elevators.length;
+            if (elevator.servedFloors().includes(floorNum)) {
+                insertStop(elevator, floorNum);
                 return;
             }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
-            }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
         }
-
-        function callNextElevator(floor) {
-            // TODO: floors 6 to 8 are served by both banks; this takes whichever is next
-            const floorNum = floor.floorNum();
-            for (let tries = 0; tries < elevators.length; tries++) {
-                const elevator = elevators[next];
-                next = (next + 1) % elevators.length;
-                if (elevator.servedFloors().includes(floorNum)) {
-                    insertStop(elevator, floorNum);
-                    return;
-                }
-            }
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                callNextElevator(floor);
-            });
-            floor.on("down_button_pressed", function() {
-                callNextElevator(floor);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
     }
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
+                elevator.goToFloor(0);
+            }
+        });
+    });
+
+    floors.forEach(function(floor) {
+        floor.on("up_button_pressed", function() {
+            callNextElevator(floor);
+        });
+        floor.on("down_button_pressed", function() {
+            callNextElevator(floor);
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
   "skyscraper.sky11.title": "Nobody presses up or down",
   "skyscraper.sky11.briefing.html":
     "The hall buttons are gone. Instead of pressing up or down, a passenger keys the floor they want into a panel by the doors and waits for whichever car the system promises them — this is <em>destination dispatch</em>, and every tower built this century is run on it. Your program hears <code>destination_requested</code> with the floor somebody wants, and answers it with <code>elevator.takeRequest(from, to)</code>: that books the car for that trip, and those people will board that car and no other. Booking is a promise about which car, not an instruction to go anywhere: the car still has to be sent, by <code>goToFloor</code> or by filling its <code>destinationQueue</code> and calling <code>checkDestinationQueue()</code>. And a floor whose journey is booked stops asking — it has been answered, as far as it knows — so a promise nobody keeps is worse than no promise at all.",
 
-  "skyscraper.sky11.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky11.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("destination_requested", function(destinationFloor) {
-                const elevator = elevators[next];
-                next = (next + 1) % elevators.length;
-                // TODO: the car is booked for this trip, and nothing has sent it
-                elevator.takeRequest(floor.floorNum(), destinationFloor);
-            });
+    floors.forEach(function(floor) {
+        floor.on("destination_requested", function(destinationFloor) {
+            const elevator = elevators[next];
+            next = (next + 1) % elevators.length;
+            // TODO: the car is booked for this trip, and nothing has sent it
+            elevator.takeRequest(floor.floorNum(), destinationFloor);
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky12.startingCode.code": `{
-    init: function(elevators, floors) {
-        let next = 0;
+  "skyscraper.sky12.startingCode.code": `function init(elevators, floors) {
+    let next = 0;
 
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            elevator.goToFloor(floorNum);
         });
+    });
 
-        floors.forEach(function(floor) {
-            floor.on("destination_requested", function(destinationFloor) {
-                // TODO: whoever's turn it is, wherever that car happens to be
-                const elevator = elevators[next];
-                next = (next + 1) % elevators.length;
-                if (elevator.takeRequest(floor.floorNum(), destinationFloor)) {
-                    elevator.goToFloor(floor.floorNum());
-                }
-            });
+    floors.forEach(function(floor) {
+        floor.on("destination_requested", function(destinationFloor) {
+            // TODO: whoever's turn it is, wherever that car happens to be
+            const elevator = elevators[next];
+            next = (next + 1) % elevators.length;
+            if (elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+                elevator.goToFloor(floor.floorNum());
+            }
         });
-    },
-    update: function(dt, elevators, floors) {
-    }
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 
-  "skyscraper.sky13.startingCode.code": `{
-    init: function(elevators, floors) {
-        function insertStop(elevator, floorNum) {
-            // A stopped car that is asked for the floor it is already on has
-            // nothing to do -- whoever could board has boarded.
-            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+  "skyscraper.sky13.startingCode.code": `function init(elevators, floors) {
+    function insertStop(elevator, floorNum) {
+        // A stopped car that is asked for the floor it is already on has
+        // nothing to do -- whoever could board has boarded.
+        if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+            return;
+        }
+        const queue = elevator.destinationQueue.slice();
+        if (queue.indexOf(floorNum) === -1) {
+            queue.push(floorNum);
+        }
+        const here = elevator.currentFloor();
+        queue.sort(function(a, b) {
+            return Math.abs(a - here) - Math.abs(b - here);
+        });
+        elevator.destinationQueue = queue;
+        elevator.checkDestinationQueue();
+    }
+
+    function nearestWithRoom(floorNum) {
+        let best = null;
+        elevators.forEach(function(elevator) {
+            if (elevator.loadFactor() > 0.7) {
                 return;
             }
-            const queue = elevator.destinationQueue.slice();
-            if (queue.indexOf(floorNum) === -1) {
-                queue.push(floorNum);
+            const distance = Math.abs(elevator.currentFloor() - floorNum);
+            if (best === null || distance < best.distance) {
+                best = { elevator: elevator, distance: distance };
             }
-            const here = elevator.currentFloor();
-            queue.sort(function(a, b) {
-                return Math.abs(a - here) - Math.abs(b - here);
-            });
-            elevator.destinationQueue = queue;
-            elevator.checkDestinationQueue();
-        }
-
-        function nearestWithRoom(floorNum) {
-            let best = null;
-            elevators.forEach(function(elevator) {
-                if (elevator.loadFactor() > 0.7) {
-                    return;
-                }
-                const distance = Math.abs(elevator.currentFloor() - floorNum);
-                if (best === null || distance < best.distance) {
-                    best = { elevator: elevator, distance: distance };
-                }
-            });
-            return best === null ? null : best.elevator;
-        }
-
-        floors.forEach(function(floor) {
-            floor.on("destination_requested", function(destinationFloor) {
-                // TODO: one journey answered, one car sent -- the queue on this
-                // floor is going to eight different places this minute
-                const elevator = nearestWithRoom(floor.floorNum());
-                if (elevator !== null && elevator.takeRequest(floor.floorNum(), destinationFloor)) {
-                    insertStop(elevator, floor.floorNum());
-                }
-            });
         });
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                insertStop(elevator, floorNum);
-            });
-            elevator.on("idle", function() {
-                if (elevator.currentFloor() !== 0) {
-                    elevator.goToFloor(0);
-                }
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
+        return best === null ? null : best.elevator;
     }
+
+    floors.forEach(function(floor) {
+        floor.on("destination_requested", function(destinationFloor) {
+            // TODO: one journey answered, one car sent -- the queue on this
+            // floor is going to eight different places this minute
+            const elevator = nearestWithRoom(floor.floorNum());
+            if (elevator !== null && elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+                insertStop(elevator, floor.floorNum());
+            }
+        });
+    });
+
+    elevators.forEach(function(elevator) {
+        elevator.on("floor_button_pressed", function(floorNum) {
+            insertStop(elevator, floorNum);
+        });
+        elevator.on("idle", function() {
+            if (elevator.currentFloor() !== 0) {
+                elevator.goToFloor(0);
+            }
+        });
+    });
+}
+
+function update(dt, elevators, floors) {
 }`,
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;

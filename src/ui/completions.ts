@@ -7,7 +7,7 @@ import type { FloorInterfaceEvents } from "../game/floor-interface.ts";
 import { t, type MessageKey } from "../i18n/index.ts";
 
 /** Icon the popup draws beside an entry; one of CodeMirror's own categories. */
-type ApiCompletionType = "method" | "property" | "constant" | "text";
+type ApiCompletionType = "method" | "property" | "constant" | "function" | "text";
 
 /** One entry in the completion popup; a structural subset of CodeMirror's `Completion`. */
 export interface ApiCompletion {
@@ -318,23 +318,23 @@ export function floorEvents(): readonly ApiCompletion[] {
 const GLOBAL_COMPLETIONS: readonly KeyedCompletion[] = [
   {
     label: "skeleton",
-    detail: "{ init, update }",
+    detail: "init, update",
     info: "completion.global.skeleton",
     type: "text",
     apply: "docs.basics.example.code",
   },
   {
     label: "init",
-    detail: "init: function(elevators, floors)",
+    detail: "function init(elevators, floors)",
     info: "completion.global.init",
-    type: "property",
+    type: "function",
     apply: "completion.initSkeleton.code",
   },
   {
     label: "update",
-    detail: "update: function(dt, elevators, floors)",
+    detail: "function update(dt, elevators, floors)",
     info: "completion.global.update",
-    type: "property",
+    type: "function",
     apply: "completion.updateSkeleton.code",
   },
 ];

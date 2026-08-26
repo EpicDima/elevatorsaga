@@ -111,7 +111,7 @@ describe("docsModalTemplate", () => {
     expect(topHeadings[0]).toBe("What a program is made of");
     const code = dialog.querySelector(".docs-intro code");
     expect(code?.querySelector("span")).not.toBeNull();
-    expect(code?.textContent).toContain("init: function (elevators, floors)");
+    expect(code?.textContent).toContain("function init(elevators, floors)");
     const leadCode = [...dialog.querySelectorAll(".docs-lead code")].map((el) => el.textContent);
     expect(leadCode).toEqual(["elevator", "elevators", "floor", "floors"]);
   });

@@ -341,6 +341,7 @@ export const DOCS_PAGE: readonly Block[] = [
   { block: "code" },
   { block: "prose", key: "docs.basics.called.html" },
   { block: "prose", key: "docs.basics.initPurpose.html" },
+  { block: "prose", key: "docs.basics.oldForm.html" },
   { block: "prose", key: "docs.basics.noLibraries.html" },
 
   { block: "heading", level: 2, key: "docs.examples.heading" },

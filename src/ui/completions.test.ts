@@ -191,7 +191,7 @@ describe("the program skeleton", () => {
         halves.map((option) => option.label),
         locale,
       ).toEqual(["init", "update"]);
-      const program = `{ ${halves.map((option) => option.apply ?? "").join(",\n")} }`;
+      const program = halves.map((option) => option.apply ?? "").join("\n\n");
       const codeObj = getCodeObjFromCode(program);
       expect(typeof codeObj.init, locale).toBe("function");
       expect(typeof codeObj.update, locale).toBe("function");

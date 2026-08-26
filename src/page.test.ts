@@ -1048,6 +1048,7 @@ const PARAGRAPHS: readonly PageKey[] = [
   "docs.basics.declare.html",
   "docs.basics.called.html",
   "docs.basics.initPurpose.html",
+  "docs.basics.oldForm.html",
   "docs.basics.noLibraries.html",
   "docs.examples.events.intro.html",
   "docs.examples.events.perElevator.html",
