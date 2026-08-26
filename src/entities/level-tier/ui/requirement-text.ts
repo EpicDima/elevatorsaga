@@ -1,32 +1,13 @@
-/**
- * One tier requirement in words: what it asks of a run, and where the run
- * stands against it right now.
- *
- * Both tables below were `#widgets/goal-bar/ui/goal-bar.ts`'s own
- * module-private `REQ_TEXT`/`TIER_NOW` until the run's verdict card wanted the
- * same two sentences for its "what is still missing" hint. A widget may not
- * import another widget, and a second copy of either table would be a second
- * place to remember when a level starts metering a field — so they moved
- * down here beside {@link "./tier-badge.ts"!tierBadgeMarkup}, the other piece
- * of tier presentation the goal bar and the verdict card already share.
- *
- * The pair is deliberately two functions over one requirement rather than the
- * two field-keyed tables it was: every caller had a {@link
- * TierRequirementInfo} in hand and was reaching into it for the field twice,
- * once per table, which is what let the goal bar ask one table about one
- * requirement and the other about a different one without the compiler
- * noticing.
- */
+/** Renders one tier requirement in words: what it asks of a run, and where the run stands against it now. */
 
 import type { LevelWorldStats } from "#game/levels.ts";
 import type { TierRequirementInfo } from "#game/level-tiers.ts";
 import { decimal, format, percent, seconds, t } from "#i18n/index.ts";
 
 /**
- * One requirement's own sentence, keyed by the field it reads. Built from
- * nested `t()` calls exactly like `src/game/levels.ts`'s own condition
- * factories — every key has to reach `t` as a literal, so this is written out
- * by hand rather than assembled from the field's name.
+ * One requirement's own sentence, keyed by the field it reads. Written out by
+ * hand rather than assembled from the field's name, since every `t()` key
+ * must reach it as a literal.
  */
 const REQ_TEXT: Readonly<Record<keyof LevelWorldStats, (threshold: number) => string>> = {
   transportedCounter: (threshold) =>
@@ -91,30 +72,14 @@ const REQ_NOW: Readonly<Record<keyof LevelWorldStats, (world: LevelWorldStats) =
 
 /**
  * What a tier requirement asks for, as a sentence fragment: "average delivery
- * no later than 1.1 s".
- *
- * Trusted markup, not plain text — the numbers inside come wrapped in the span
- * the game paints figures with — so a caller interpolates it through `raw()`
- * or writes it with `innerHTML`, never with `textContent`.
- *
- * @param requirement - The figure, direction and bar to describe.
- * @returns The requirement's own sentence, in the active language.
+ * no later than 1.1 s". Trusted markup, not plain text; interpolate with
+ * `raw()` or `innerHTML`, never `textContent`.
  */
 export function tierRequirementText(requirement: TierRequirementInfo): string {
   return REQ_TEXT[requirement.field](requirement.threshold);
 }
 
-/**
- * The figure a tier requirement reads, as the run has it now: "1.3 s".
- *
- * Plain text, unlike {@link tierRequirementText} — it is one number with its
- * unit and nothing to mark up.
- *
- * @param requirement - The requirement whose field to read.
- * @param world - The run's statistics.
- * @returns The current value of the requirement's field, formatted for the
- * active language.
- */
+/** The figure a tier requirement reads, as the run has it now: "1.3 s". Plain text, unlike {@link tierRequirementText}. */
 export function tierRequirementNow(
   requirement: TierRequirementInfo,
   world: LevelWorldStats,

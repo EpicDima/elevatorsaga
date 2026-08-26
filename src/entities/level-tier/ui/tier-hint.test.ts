@@ -39,14 +39,10 @@ describe("nextTierHint", () => {
   });
 
   it("says nothing to a run that already has every star", () => {
-    // A hint here would be a second helping of congratulation, which is not
-    // what the line is for.
     expect(nextTierHint(TIERS, "gold", FINISHED)).toBe("");
   });
 
   it("names the silver bar and where a bronze run actually finished", () => {
-    // Both figures: naming the tier without saying by how much the run missed
-    // it is a reproach rather than a hint.
     expect(nextTierHint(TIERS, "bronze", FINISHED)).toBe(
       "For silver: deliver everyone within " +
         "<span class='emphasis-color'>21.0</span> seconds (now 23.4s)",
@@ -62,8 +58,6 @@ describe("nextTierHint", () => {
   });
 
   it("leaves out the requirements the run did clear", () => {
-    // A tier missed on one count of three is not three things to fix, and
-    // saying so would bury the one that matters.
     const tiers: LevelTierRequirements = {
       silver: requireAll(underElapsedTime(60), underMoveCount(80), underMaxWaitTime(21)),
       gold: underMaxWaitTime(5),
@@ -75,9 +69,8 @@ describe("nextTierHint", () => {
   });
 
   it("says nothing when a tier was missed on something it does not advertise", () => {
-    // A predicate may test more than the requirements it publishes, and a hint
-    // listing nothing at all would promise that clearing nothing earns the
-    // star. Silence is the honest answer.
+    // A predicate may test more than the requirements it publishes; listing
+    // nothing here would wrongly promise that clearing nothing earns the star.
     const opaque: TierPredicate = Object.assign(() => false, {
       requirements: underElapsedTime(60).requirements,
     });

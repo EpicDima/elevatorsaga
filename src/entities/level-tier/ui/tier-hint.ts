@@ -1,17 +1,7 @@
 /**
  * What a run still owes the next star, in one sentence — the `.verdict-more`
- * line on the verdict card.
- *
- * The rule is about tone rather than arithmetic: naming the tier without saying
- * by how much the run missed it is a reproach rather than a hint. So every
- * unmet requirement is named with both figures — the bar and where the run
- * actually finished — and a run that has nothing left to earn says nothing at
- * all rather than congratulating itself a second time.
- *
- * Here rather than in the widget that draws it for the same reason
- * {@link "./requirement-text.ts"!tierRequirementText} is: it is made entirely
- * of tier vocabulary, and the widget it serves is deliberately kept free of
- * any way to work a tier out for itself.
+ * line on the verdict card. Names every unmet requirement with both the bar
+ * and where the run finished, and says nothing once there is nothing left to earn.
  */
 
 import type { LevelWorldStats } from "#game/levels.ts";
@@ -22,27 +12,9 @@ import { requirementMet } from "../model/tier-progress.ts";
 import { tierRequirementNow, tierRequirementText } from "./requirement-text.ts";
 
 /**
- * The sentence naming what the run would need for its next star, or `""` when
- * there is no next star to name.
- *
- * Trusted markup, like {@link tierRequirementText} it is built from: the
- * figures inside arrive already wrapped in the span the game paints numbers
- * with.
- *
- * Empty in each of the four cases where the line would be noise rather than
- * help: a level with no silver/gold bars at all, a run already rated gold,
- * a run that did not win (its caller has no tier to pass, so it never gets
- * here), and the defensive case of a tier whose predicate failed without any
- * of its own {@link LevelTierRequirements} being missed — a predicate is
- * free to test more than the requirements it advertises, and a hint listing
- * nothing would be a promise that clearing nothing earns the star.
- *
- * @param tiers - The level's silver and gold bars, or `undefined` for a
- * level that has none.
- * @param earned - The tier the run was actually rated, from
- * {@link "#game/level-tiers.ts"!evaluateLevelTier}.
- * @param world - The run's final statistics.
- * @returns The hint, in the active language, or `""`.
+ * The sentence naming what a run needs for its next star, as trusted markup,
+ * or `""` when there is nothing to hint at: no tiers, already gold, or a
+ * predicate that failed without missing any of its advertised requirements.
  */
 export function nextTierHint(
   tiers: LevelTierRequirements | undefined,
@@ -52,9 +24,7 @@ export function nextTierHint(
   if (tiers === undefined || earned === "gold") {
     return "";
   }
-  // Written as the two-step ladder `LevelTierRequirements` itself is,
-  // rather than indexed out of `LEVEL_TIERS`: that array holds bronze too,
-  // which is the level's own condition and has no entry here to look up.
+  // LEVEL_TIERS also holds bronze, which has no entry in LevelTierRequirements.
   const next = earned === "bronze" ? "silver" : "gold";
   const missed = tiers[next].requirements.filter(
     (requirement) => !requirementMet(requirement, world),

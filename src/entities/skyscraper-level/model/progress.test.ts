@@ -7,16 +7,7 @@ import {
   recordSkyscraperTier,
 } from "./progress.ts";
 
-/**
- * A `Storage` that throws from everything, as Safari does in private mode.
- *
- * Written out here rather than taken from `src/ui/test-helpers.ts`, which only
- * shares the store that reads back and refuses writes: a store that cannot even
- * be read is the other half of the failure story, and the two suites that need
- * it each keep their own.
- *
- * @returns The refusing store.
- */
+/** A `Storage` that throws from everything, as Safari does in private mode. */
 function deniedStorage(): Storage {
   const denied = (): never => {
     throw new Error("denied");
@@ -35,25 +26,23 @@ function deniedStorage(): Storage {
 
 describe("SKYSCRAPER_TIER_STORAGE_KEY", () => {
   it("is the name already written on every browser that holds a medal", () => {
-    // Spelled out rather than read back through the constant, the argument
-    // `e2e/game-page.ts` makes about `CODE_STORAGE_KEY`: the key is an on-disk
-    // contract, so a rename should fail here instead of being followed
-    // silently and losing every medal earned so far.
+    // Spelled out rather than compared to itself: the key is an on-disk
+    // contract, so a rename should fail here rather than silently lose medals.
     expect(SKYSCRAPER_TIER_STORAGE_KEY).toBe("develevateSkyscraperTiers");
     expect(SKYSCRAPER_TIER_STORAGE_KEY.startsWith("elevator")).toBe(false);
   });
 
   it("is not the key the numbered levels keep their medals under", () => {
-    // That key is read back through `Number(...)`, so a `"sky-N"` row stored
-    // there would be dropped on the next read and gone at the next win.
+    // That key is read back through Number(...), so a "sky-N" row stored there
+    // would be dropped on the next read.
     expect(SKYSCRAPER_TIER_STORAGE_KEY).not.toBe("develevateChallengeTiers");
   });
 });
 
 describe("recordSkyscraperTier", () => {
   it("stores the medal against the level's id, not its position in the block", () => {
-    // The property that survives the block being reordered: a level inserted
-    // in the middle must not hand this medal to its neighbor.
+    // Survives the block being reordered: a level inserted in the middle must
+    // not hand this medal to its neighbor.
     const storage = new MemoryStorage();
 
     recordSkyscraperTier(storage, "sky-1", "silver");
@@ -107,9 +96,8 @@ describe("recordSkyscraperTier", () => {
   });
 
   it("keeps a level this build has never heard of", () => {
-    // A cached older build loaded after a newer one has run. It has no level
-    // to show that medal on, and deleting what it cannot show is the one loss
-    // that cannot be undone.
+    // A cached older build has no level to show this medal on; deleting what
+    // it can't show would be unrecoverable.
     const storage = new MemoryStorage();
     storage.setItem(SKYSCRAPER_TIER_STORAGE_KEY, JSON.stringify({ "sky-99": "gold" }));
 
@@ -124,8 +112,6 @@ describe("recordSkyscraperTier", () => {
   });
 
   it("does not throw when the store refuses to be written to", () => {
-    // A won run may not be turned into an exception by the bookkeeping that
-    // follows it.
     expect(() => {
       recordSkyscraperTier(fullStorage(), "sky-1", "gold");
     }).not.toThrow();
@@ -148,9 +134,7 @@ describe("readBestSkyscraperTiers", () => {
   });
 
   it("reads nothing out of an entry that is not a record of ids to medals", () => {
-    // Whatever wrote these, a corrupt entry is not something a player can act
-    // on and no run depends on the answer, so it reads as "nothing earned yet"
-    // and the next win rewrites it.
+    // A corrupt entry reads as "nothing earned yet"; the next win rewrites it.
     for (const corrupt of ["", "not json at all", "7", '"gold"', "null", '["sky-1"]']) {
       const storage = new MemoryStorage();
       storage.setItem(SKYSCRAPER_TIER_STORAGE_KEY, corrupt);
@@ -174,8 +158,6 @@ describe("readBestSkyscraperTiers", () => {
   });
 
   it("keeps a row for a level this build does not have", () => {
-    // The read side of the same promise the write side keeps: a caller filters
-    // against its own level list, this module does not decide what exists.
     const storage = new MemoryStorage();
     storage.setItem(SKYSCRAPER_TIER_STORAGE_KEY, JSON.stringify({ "sky-99": "gold" }));
 

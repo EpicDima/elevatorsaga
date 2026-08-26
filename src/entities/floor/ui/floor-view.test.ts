@@ -10,12 +10,7 @@ import { renderElement } from "#shared/ui/markup.ts";
 
 import { floorCallDownLabel, floorCallUpLabel } from "../../../ui/templates.ts";
 
-/**
- * How many floors the building these fixtures come from has.
- *
- * Six, so that levels 1 through 4 are all middle floors carrying both lamps
- * and the two ends are unambiguously the ends.
- */
+/** Six, so levels 1-4 are middle floors with both lamps and the ends are unambiguous. */
 const FLOOR_COUNT = 6;
 
 /** A floor with no error handler wired, for tests that never throw one. */
@@ -37,20 +32,10 @@ function dispatchFloor(level = 2): Floor {
   );
 }
 
-/**
- * A car that serves everything, since none of these specs is about zoning.
- *
- * Both indicators dark, as `floor.test.ts` builds them: a booking is answered
- * by name, and a car picked up on its indicators here would be a bug.
- */
+/** A car that serves everything, with both indicators dark so a booking picked up on indicator state would be a bug. */
 const ANY_CAR = { goingUpIndicator: false, goingDownIndicator: false, serves: () => true };
 
-/**
- * What a destination panel is drawing, chip by chip.
- *
- * The chip standing for the journeys there was no room to draw has no floor
- * inside it, so `floor` falls back to the chip's own text and reads `+2`.
- */
+/** Reads a destination panel's chips; the overflow chip has no floor and falls back to its own text (e.g. "+2"). */
 function drawnDestinations(
   element: HTMLElement,
 ): { floor: string; count: string | null; booked: boolean }[] {
@@ -100,9 +85,8 @@ describe("createFloorView", () => {
   });
 
   it("stays wired to the world through an end floor's missing lamp", () => {
-    // The lamp that is there still answers, and the state change that arrives
-    // for the lamp that is not there is simply not drawn -- the engine keeps
-    // both directions on every floor whatever the building shows.
+    // The engine tracks both directions on every floor; a missing lamp on an
+    // end floor just isn't drawn.
     const lobby = fixtureFloor(0);
     const lobbyView = createFloorView(lobby, FLOOR_COUNT);
     const roof = fixtureFloor(FLOOR_COUNT - 1);
@@ -123,8 +107,8 @@ describe("createFloorView", () => {
     view.setGeometry(64);
 
     expect(view.element.style.height).toBe("64px");
-    // The column is a flex stack: a floor that positioned itself would leave
-    // the one below it drawing through it.
+    // The column is a flex stack; a floor that positioned itself would draw
+    // through its neighbor.
     expect(view.element.style.top).toBe("");
   });
 });
@@ -139,8 +123,8 @@ describe("a destination-dispatch floor's panel", () => {
   });
 
   it("opens with the journeys already standing on the floor", () => {
-    // Nothing builds a view mid-run today, but the panel is drawn from the book
-    // rather than accumulated from events, so it does not depend on that.
+    // The panel is drawn from the book, not accumulated from events, so this
+    // doesn't depend on when the view is created.
     const floor = dispatchFloor(0);
     floor.requestDestination(4);
 
@@ -190,11 +174,8 @@ describe("a destination-dispatch floor's panel", () => {
   });
 
   it("draws a full panel without counting anything", () => {
-    // Four is exactly the two rows the panel has, so every journey is drawn and
-    // there is nothing left to count. The boundary rather than a middling
-    // number: a cap that started counting one journey early would swallow the
-    // fourth chip and say "+1" in its place, and four is the likeliest crowd to
-    // find that with.
+    // Four is exactly the panel's two rows, so nothing is left to count; a cap
+    // that started one journey early would swallow the fourth chip as "+1".
     const floor = dispatchFloor(0);
     const view = createFloorView(floor, FLOOR_COUNT);
 
@@ -211,7 +192,7 @@ describe("a destination-dispatch floor's panel", () => {
   });
 
   it("counts the journeys it has no room to draw instead of dropping them", () => {
-    // Five destinations in a six-floor building is every floor but this one, so
+    // Five destinations in a six-floor building reaches every other floor, so
     // the cap is reachable rather than theoretical.
     const floor = dispatchFloor(0);
     const view = createFloorView(floor, FLOOR_COUNT);
@@ -245,8 +226,7 @@ describe("floorTemplate", () => {
   });
 
   it("leaves the lamp that could never light off each end floor", () => {
-    // Nothing is called up from the roof and nothing down from the lobby:
-    // `spawnUserRandomly` cannot produce either call at any seed.
+    // spawnUserRandomly never calls up from the roof or down from the lobby.
     const lobby = renderElement(floorTemplate(0, FLOOR_COUNT));
     expect(lobby.querySelector("button.up")).not.toBeNull();
     expect(lobby.querySelector("button.down")).toBeNull();
@@ -255,7 +235,6 @@ describe("floorTemplate", () => {
     expect(roof.querySelector("button.up")).toBeNull();
     expect(roof.querySelector("button.down")).not.toBeNull();
 
-    // And every floor between them keeps both, however tall the building is.
     for (const level of [1, 2, FLOOR_COUNT - 2]) {
       const floor = renderElement(floorTemplate(level, FLOOR_COUNT));
       expect(floor.querySelector("button.up")).not.toBeNull();
@@ -275,9 +254,8 @@ describe("floorTemplate", () => {
   });
 
   it("leaves no whitespace around the lamps, however many there are", () => {
-    // `.calls` is a flex column with its own gap, so a stray text node between
-    // the two buttons -- or where an end floor's missing one used to be --
-    // would be a flex item of its own.
+    // .calls is a flex column with its own gap; a stray text node between the
+    // buttons would be a flex item of its own.
     const middle = renderElement(floorTemplate(1, FLOOR_COUNT)).querySelector(".calls");
     expect(middle?.childNodes.length).toBe(2);
     const lobby = renderElement(floorTemplate(0, FLOOR_COUNT)).querySelector(".calls");
@@ -294,17 +272,16 @@ describe("floorTemplate", () => {
   });
 
   it("keeps the destination panel out of the accessibility tree", () => {
-    // The row's own hover card counts who is waiting and lists where they are
-    // going, and it is what a focused row is described by; a label here would
-    // be the same sentence read a second time.
+    // The row's hover card already lists who is waiting and where; a label
+    // here would repeat it.
     const floor = renderElement(floorTemplate(2, FLOOR_COUNT, true));
 
     expect(floor.querySelector(".destinations")?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("draws the direction lamps unless a building asks for destinations", () => {
-    // The default is the argument's, not the caller's: every building written
-    // before destination dispatch existed goes through this signature.
+    // The destinations parameter defaults false, so buildings written before
+    // dispatch existed are unaffected.
     const floor = renderElement(floorTemplate(2, FLOOR_COUNT));
 
     expect(floor.querySelector(".destinations")).toBeNull();
@@ -314,11 +291,9 @@ describe("floorTemplate", () => {
 
 describe("the two names a floor can be renamed from", () => {
   it("hands the call buttons the very labels the relabeller writes back in", () => {
-    // relabelWorld renames a floor that is already on screen by calling
-    // floorCallUpLabel/floorCallDownLabel directly, and this template calls the
-    // same two. Two copies of a message key, one in each path, is how a renamed
-    // message ends up renaming only half a floor; there is one copy, and this
-    // is the assertion that the template still goes through it.
+    // relabelWorld renames a floor already on screen by calling
+    // floorCallUpLabel/floorCallDownLabel directly; this template must call the
+    // same functions, or a renamed message key only takes effect on half a floor.
     const floor = renderElement(floorTemplate(2, FLOOR_COUNT));
     expect(floor.querySelector("button.up")?.getAttribute("aria-label")).toBe(floorCallUpLabel(2));
     expect(floor.querySelector("button.down")?.getAttribute("aria-label")).toBe(

@@ -3,11 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MemoryStorage } from "../../../ui/test-helpers.ts";
 import { LEVEL_TIER_STORAGE_KEY, readBestLevelTiers, recordLevelTier } from "./best-tier.ts";
 
-/**
- * A `Storage` that throws from everything, as Safari does in private mode.
- *
- * @returns The refusing store.
- */
+/** A `Storage` that throws from everything, as Safari does in private mode. */
 function deniedStorage(): Storage {
   const denied = (): never => {
     throw new Error("denied");
@@ -24,11 +20,7 @@ function deniedStorage(): Storage {
   };
 }
 
-/**
- * A `Storage` that reads back but refuses every write, as a full quota does.
- *
- * @returns The full store.
- */
+/** A `Storage` that reads back but refuses every write, as a full quota does. */
 function fullStorage(): Storage {
   const storage = new MemoryStorage();
   return {
@@ -154,8 +146,6 @@ describe("readBestLevelTiers", () => {
   });
 
   it("keeps an entry for a level this build no longer has", () => {
-    // A cached older build loaded after a newer one has run, the same
-    // "keep what cannot be shown" treatment tutorial progress gets.
     const storage = new MemoryStorage();
     storage.setItem(LEVEL_TIER_STORAGE_KEY, JSON.stringify({ "99": "gold" }));
 

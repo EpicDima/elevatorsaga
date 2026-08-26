@@ -1,24 +1,11 @@
 /*
- * One elevator: its shaft, the strip of order marks beside it, the car, and the
- * doors that open on it.
- *
- * The `.building:not([data-density="full"])` rules are the same car drawn in a
- * building too crowded to give every part of it room; the stage sets that
- * attribute, this file decides what it costs.
+ * One elevator: shaft, order strip, car, and doors.
+ * `.building:not([data-density="full"])` is the crowded-building variant of each part below.
  */
 
 /*
- * One elevator's shaft.
- *
- * Shafts are placed one by one, at the coordinates the simulation really uses,
- * because passengers walk to them -- so `inline-size` and `inset-inline-start`
- * are written by the widget. `box-sizing` is restated because the root element
- * carries `.elevator` too, which is opted back out to `content-box`: the width
- * written here counts the two side borders, and without this every shaft would
- * be drawn two pixels wider than the car inside it.
- *
- * `--ds-shaft-pad` is the widget's too -- the wall on either side of the car,
- * taken out of the 20 world units the engine leaves between two cars.
+ * inline-size/inset-inline-start are written by the widget from simulation
+ * coordinates. box-sizing is restated because .elevator opts back to content-box.
  */
 .shaft {
   position: absolute;
@@ -32,24 +19,12 @@ html[data-theme="light"] .shaft {
   background: rgb(0 0 0 / 3%);
 }
 
-/*
- * Inset, like the floor rows: a shaft can stand hard against the building's
- * clipped edge, and an outward ring would be cut off down one side.
- */
+/* Inset ring: a shaft can sit against the building's clipped edge. */
 .shaft:focus-visible {
   outline-offset: -2px;
 }
 
-/*
- * The order strip: which floors this car has been asked for, each marked at its
- * own floor's height.
- *
- * It is exactly the room the car leaves it -- the shaft's wall less the pixel
- * the car's own border stands on -- so it shrinks with the building rather than
- * eating into the cabin when the whole thing is scaled down. No rule down its
- * inner edge, for the same reason: at half scale the strip is three pixels wide
- * and a border would be a third of it.
- */
+/* Sized to the wall the car leaves; no inner border since at half scale the strip is only ~3px wide. */
 .shaft-marks {
   position: absolute;
   box-sizing: border-box;
@@ -60,26 +35,9 @@ html[data-theme="light"] .shaft {
 }
 
 /*
- * One floor's mark: the button, which is what a pointer and a focus ring get,
- * and `::before`, which is the tick that is drawn. The widget writes the middle
- * of that floor's band into `inset-block-end` and the translate centers the
- * button on it, so nothing outside this file has to know how big either is.
- *
- * The two are different sizes on purpose. A tick has to be small -- its height
- * on the shaft is which floor it stands for, and a mark as tall as a quarter of
- * a floor would say the wrong one -- but the button is a real control that a
- * player clicks to ask this car for that floor, and a 3px-tall control is
- * target practice. So the button takes the whole width of the strip and 24px of
- * its height, the size WCAG 2.5.8 asks of a target: floors are never shorter
- * than `layoutBuilding()`'s 48px, so two of them never meet.
- *
- * The width is the strip's, which measures 3px at the game's narrowest window
- * and 5px at a desk, and it cannot honestly be more: the car begins at the
- * strip's inner edge and paints over it, and outside the shaft is the next
- * shaft, 43px away at that same narrowest window. That leaves the width under
- * the 24px 2.5.8 asks for, which the spacing exception allows at exactly these
- * distances -- 24px circles centered on marks 43px apart across and 48px apart
- * up the shaft do not meet either.
+ * 24px button height meets WCAG 2.5.8's target size (floors are always
+ * >=48px, so targets never meet); the tick stays small so it doesn't misread
+ * as a neighboring floor. Width is under 24px, which 2.5.8's spacing exception allows here.
  */
 .mark {
   position: absolute;
@@ -94,16 +52,7 @@ html[data-theme="light"] .shaft {
   cursor: pointer;
 }
 
-/*
- * The tick. Centered in the button both ways -- vertically because the button's
- * own center is the floor's, and horizontally so it narrows to whatever the
- * strip has left instead of overflowing it at half scale.
- *
- * An unrequested mark is drawn in --ds-text-muted rather than in the wall's own
- * color. These are `<button>`s -- clickable, tabbable, and named -- so an unlit
- * one has to be findable, and that is the only pair clearing 3:1 against both
- * this strip's dark composite and its light one.
- */
+/* --ds-text-muted, not the wall's color, so an unlit (but clickable) mark stays findable: the only pair clearing 3:1 on both themes. */
 .mark::before {
   content: "";
   position: absolute;
@@ -116,12 +65,7 @@ html[data-theme="light"] .shaft {
   background: var(--ds-text-muted);
 }
 
-/*
- * --ds-accent-hi rather than plain --ds-accent, which is 2.52:1 on this strip's
- * light-theme composite: the strip is two black washes darker than the
- * --ds-shaft the accent family is tuned against. The high step is the same
- * color at the contrast the tuning was for -- 3.43:1 light, 11.45:1 dark.
- */
+/* --ds-accent-hi, not plain --ds-accent: plain is only 2.52:1 on this strip's darker light-theme composite. */
 .mark.is-lit::before {
   background: var(--ds-accent-hi);
 }
@@ -131,15 +75,9 @@ html[data-theme="dark"] .mark.is-lit::before {
 }
 
 /*
- * The car. One cabin serves every floor, so its height comes from the shortest
- * floor in the building rather than from whichever one it is standing at, and
- * it is centered in that floor's band -- written as the arithmetic it is, so it
- * stays centered when `layoutBuilding()` picks a different pair.
- *
- * It rides on a transform the view writes from `worldY` every tick. There is no
- * transition on it: a car's vertical position is simulated, at whatever speed
- * the level gives it, and interpolating on top of that would draw a car
- * that is not where the game says it is.
+ * Height comes from the shortest floor, centered in its band. No transition:
+ * position is simulated and written every tick, so interpolating would draw
+ * the car somewhere the game doesn't say it is.
  */
 .car {
   --ds-car-top-h: 17px;
@@ -156,32 +94,18 @@ html[data-theme="dark"] .mark.is-lit::before {
   z-index: 1;
 }
 
-/*
- * The strip with the floor number and the arrows is the one thing a car never
- * loses: a floor is never shorter than 48px, and the strip still reads in the
- * 36px car that leaves.
- */
+/* Still readable at the minimum floor height (48px leaves a 36px car). */
 .building:not([data-density="full"]) .car {
   --ds-car-top-h: 14px;
 }
 
-/*
- * Aimed at the shaft rather than at the car: hitting a moving cabin with a
- * pointer is target practice. The focus ring is the shaft's too, for the same
- * reason -- it is the shaft that is in the tab order.
- */
+/* Targets the shaft, not the moving car: hitting a moving cabin with a pointer is impractical. */
 .shaft:hover .car,
 .shaft:focus-visible .car {
   border-color: var(--ds-accent);
 }
 
-/*
- * The top strip, whose parts have to be allowed to shrink. A car is ten pixels
- * per seat times the building's scale, and level 18 draws one 30px wide -- 28px
- * of content, into which `4px + 9 + "18" + 9 + 4px` does not go. Unshrinkable,
- * `overflow: hidden` takes the whole answer out of the second arrow and the car
- * reads as having one lamp.
- */
+/* Parts must shrink: a narrow car can be smaller than its content, so overflow: hidden clips it instead of losing a whole arrow. */
 .car-top {
   display: flex;
   box-sizing: border-box;
@@ -200,11 +124,7 @@ html[data-theme="dark"] .mark.is-lit::before {
   padding-inline: 2px;
 }
 
-/*
- * The floor the car is at -- the one marking a player reads off a moving car.
- * --ds-car-ink clears 4.5:1 against both --ds-car values with real margin
- * (9.97 dark, 7.31 light) and keeps it over the darkened top strip.
- */
+/* --ds-car-ink clears 4.5:1 against --ds-car in both themes (9.97 dark, 7.31 light). */
 .car-floor {
   flex: none;
   font-family: var(--ds-font-mono);
@@ -217,23 +137,12 @@ html[data-theme="dark"] .mark.is-lit::before {
 }
 
 /*
- * The boarding lamps, and not decoration: `goingUpIndicator`/`goingDownIndicator`
- * are what decide who is allowed to board.
- *
- * An unlit arrow is 45% white -- a contrast an off state can be read at (3.54:1
- * on the light theme's car, more on the dark one), still visibly dimmer than
- * the lit one beside it. The lit color is --ds-car-ink rather than
- * --ds-accent-hi for the reason the floor number above gives: the accent family
- * is tuned against --ds-shaft and lands at 1.35:1 on the light theme's car.
+ * Not decoration: goingUpIndicator/goingDownIndicator decide who may board.
+ * Unlit is 45% white (still >=3.54:1); lit uses --ds-car-ink rather than
+ * --ds-accent-hi, which lands at only 1.35:1 on the light theme's car.
  */
 .car-dir {
-  /*
-   * The one part of the strip that gives way when the car is too narrow for all
-   * of it (see `.car-top`): the floor number is the reading, and an arrow that
-   * is a pixel or two smaller still points the way it pointed. `min-inline-size`
-   * has to be stated because a flex item's automatic minimum is its own width,
-   * which would refuse the shrink and clip the arrow off the end instead.
-   */
+  /* min-inline-size overrides the flex item's automatic minimum (its own width), which would block shrinking. */
   flex: 0 1 auto;
   min-inline-size: 0;
   inline-size: 11px;
@@ -256,13 +165,7 @@ html[data-theme="dark"] .mark.is-lit::before {
   block-size: calc(100% - var(--ds-car-top-h));
 }
 
-/*
- * The doors, open exactly while the car is standing still on a floor -- which
- * is exactly when the simulation offers boarding. They are drawn under the
- * riders rather than over them: a rider is a real passenger element in the
- * stage's own `.people` layer, walking through world coordinates that happen to
- * be inside this cabin, and it cannot be clipped by a box it does not live in.
- */
+/* Drawn under riders, not over them: a rider is a real element in the stage's own layer, not clippable by this box. */
 .doors {
   position: absolute;
   inset: 0;
@@ -284,10 +187,7 @@ html[data-theme="dark"] .mark.is-lit::before {
   transform: translateX(100%);
 }
 
-/*
- * The doors still open and close -- that is state, not decoration -- they just
- * stop sliding to get there.
- */
+/* Doors still open and close; they just stop sliding to get there. */
 @media (prefers-reduced-motion: reduce) {
   .door {
     transition: none;

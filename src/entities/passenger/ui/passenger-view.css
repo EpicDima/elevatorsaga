@@ -1,30 +1,7 @@
 /*
- * A passenger: one flat silhouette, sized from a single custom property and
- * positioned by the simulation rather than by any layout.
- *
- * The last comment in the file is deliberately a comment and not a rule; it
- * records why `.is-leaving` has no paint of its own and must not be given any.
- */
-
-/*
- * A passenger: one flat silhouette, sized from `--ds-person-h`.
- *
- * The figure has to arrive at its picture by arithmetic rather than by a
- * layout, because a passenger is positioned by the simulation: they stand at
- * `floor.yPosition + 30` of the 50 world units a story is tall, and that
- * coordinate is the *top* of the box, so the figure hangs from it instead of
- * standing on anything. `--ds-person-line` is the fraction of whatever height
- * the layout picked that puts the feet on the floor line, and the margin below
- * is the difference between it and the height actually drawn -- so the feet
- * land on the line at every scale, and go on landing there when the clamp or
- * the seat below shortens the figure. The clamp itself: never smaller than a
- * smudge, never taller than the figure is drawn.
- *
- * `z-index` is load-bearing and not decoration. `.car` lifts itself to 1 so it
- * draws over its own shaft's order strip, and nothing between here and the
- * page root establishes a stacking context, so that 1 competes with this
- * element directly however far apart the two layers sit in the DOM. Without a
- * 2 here every rider would be behind the doors of the car they are riding in.
+ * Position comes from the simulation (floor.yPosition + 30 of a 50-unit floor
+ * is the box's top), so the margin below keeps the feet on --ds-person-line.
+ * z-index: 2 beats .car's own 1, so a rider draws above the car's doors.
  */
 .person {
   --ds-person-line: calc(var(--ds-floor-h) * 0.32);
@@ -34,9 +11,8 @@
   inset-block-start: 0;
   inset-inline-start: 0;
   display: block;
-  /* Feet on the line, however short the figure standing on it has to be. */
   margin-block-start: calc(var(--ds-person-line) - var(--ds-person-h));
-  /* 11 by 20 is the glyph's own box, and 0.55 is that ratio. */
+  /* 0.55 is the glyph's own 11:20 aspect ratio. */
   inline-size: calc(var(--ds-person-h) * 0.55);
   block-size: var(--ds-person-h);
   color: var(--ds-person);
@@ -44,20 +20,9 @@
 }
 
 /*
- * A passenger reads against two different surfaces depending on whether they
- * are still on a floor or already in a car: --ds-shaft (or a floor band over
- * it), which flips light/dark with the theme, and --ds-car, which does not.
- * `.is-rider` is the DOM's own record of which one applies -- set from
- * `user.parent` in passenger-view.ts -- so each surface gets a color tuned
- * against it, rather than one flat value trying to survive both.
- *
- * A rider is also the one passenger whose width is not its own business. A
- * seat is ten world units (`Elevator.userSlots`), and how many pixels that is
- * only the geometry pass knows, which is what it writes `--ds-scale-x` down
- * for. A car squeezed toward the narrowest the layout will build would
- * otherwise draw its riders overlapping each other and spilling out through
- * the doors, so the figure shrinks to its seat instead; the 8px floor stops
- * the very narrowest car from erasing them altogether.
+ * .is-rider (set from user.parent) picks --ds-shaft vs --ds-car for color.
+ * Width follows the seat width from --ds-scale-x (a 10-unit seat), floored at
+ * 8px so a narrow car doesn't erase the figure.
  */
 .person.is-rider {
   --ds-person-h: min(var(--ds-person-tall), max(8px, calc(10px * var(--ds-scale-x, 1) / 0.55)));
@@ -66,18 +31,9 @@
 }
 
 /*
- * The passenger whose wait is the one the level is about to be lost on.
- *
- * The stats panel reports a max delivery time, and without this a player has no
- * way to tell which of thirty identical figures it belongs to.
- * `src/game/world.ts` remembers whose it is for as long as they are
- * un-delivered -- which, per its own `#setLongestWaitingUser`, includes the
- * ride and not only the wait for one, so this has to work boarded too.
- *
- * A passenger is a graphical object, so the bar is WCAG 1.4.11's 3:1.
- * --ds-accent -- the color the rest of the page uses for "this needs
- * attention" -- clears it against --ds-shaft in both themes (8.63 dark, 3.53
- * light), with the car handled separately below through `.is-rider`.
+ * Marks the passenger the stats panel's max-delivery-time reading points to.
+ * Graphical-object contrast bar is WCAG 1.4.11's 3:1; --ds-accent clears it
+ * against --ds-shaft in both themes.
  */
 .person.is-waiting-long {
   color: var(--ds-accent);
@@ -88,14 +44,7 @@
 }
 
 /*
- * `.person.is-leaving` -- a delivered passenger, walking off to the right over
- * the second or so `User.handleExit` draws for the walk -- deliberately has no
- * rule, and this note is here so that the next reader does not take that for an
- * oversight and add one. Fading is exactly what cannot be done: --ds-person
- * clears WCAG 1.4.11's 3:1 against the light theme's shaft by 3.52:1 and no
- * more, so *any* alpha below 1 puts a passenger under the bar (0.85 already
- * reads 2.82:1). A muted color is worse than nothing -- the light theme's
- * muted ink is the darker of the two, so it would make a finished passenger
- * louder rather than quieter. The class stays because it is a real state and a
- * real hook; what it is not is a color.
+ * .is-leaving (a delivered passenger walking off) deliberately has no rule:
+ * --ds-person clears WCAG 1.4.11's 3:1 against the light shaft by only 3.52:1,
+ * so any opacity or muted color would drop it below the bar. Kept as a hook.
  */

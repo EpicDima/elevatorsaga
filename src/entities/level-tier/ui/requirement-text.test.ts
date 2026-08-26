@@ -20,14 +20,7 @@ const FINISHED: LevelWorldStats = {
   avgPeoplePerStop: 1.135,
 };
 
-/**
- * A requirement over one field, with the bar and direction the field's own
- * sentence is written for.
- *
- * @param field - The figure the requirement reads.
- * @param threshold - The bar it sets.
- * @returns The requirement.
- */
+/** A requirement over one field, with the bar and direction the field's own sentence is written for. */
 function asking(field: keyof LevelWorldStats, threshold: number): TierRequirementInfo {
   return { field, comparison: "atMost", threshold };
 }
@@ -55,11 +48,8 @@ describe("tierRequirementText", () => {
   });
 
   it("has a sentence for every figure a level can meter", () => {
-    // The table is keyed by `keyof LevelWorldStats`, so a field added to
-    // the statistics without an entry here is a compile error rather than
-    // something this could catch. What it does catch is an entry that throws
-    // or comes back empty -- a `t()` key renamed out from under one of them,
-    // for instance, which type-checks perfectly.
+    // A missing entry is a compile error; this catches one that throws or
+    // comes back empty, e.g. a t() key renamed out from under it.
     for (const field of Object.keys(FINISHED) as (keyof LevelWorldStats)[]) {
       expect(tierRequirementText(asking(field, 1)), field).not.toBe("");
     }
@@ -73,9 +63,8 @@ describe("tierRequirementNow", () => {
   });
 
   it("rounds each field the way its own bar is written", () => {
-    // The point of the pair being two functions over one requirement: the
-    // figure and the bar it is read against have to agree on their decimals,
-    // or a run misses "no later than 21.0 seconds" by "now 21s".
+    // Figure and bar must agree on decimals, or a run misses "no later than
+    // 21.0 seconds" by "now 21s".
     expect(tierRequirementNow(asking("elapsedTime", 60), FINISHED)).toBe("72s");
     expect(tierRequirementNow(asking("avgLoadFactorOnMove", 0.5), FINISHED)).toBe("31%");
     expect(tierRequirementNow(asking("transportedPerSec", 0.6), FINISHED)).toBe("0.59");

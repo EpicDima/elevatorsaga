@@ -1,28 +1,7 @@
 /**
- * A passenger's DOM element, positioned from the responsive building's own
- * geometry.
- *
- * The position multiplies `worldX`/`worldY` by {@link StageScale}'s current
- * `scaleX`/`scaleY`, read fresh on every `new_display_state` rather than
- * cached, the same way `entities/elevator` does. `is-rider`, from
- * `user.parent`, records whether the figure stands in the corridor or in a car:
- * the two are painted differently enough that a passenger's color has to know
- * which one it is in. This view does not append itself to a parent —
- * `widgets/building-stage` owns that, the same way it owns appending floors and
- * cars.
- *
- * ## The figure itself
- *
- * A flat filled silhouette in an 11x20 box, sized entirely from CSS through
- * `--ds-person-h`, derived from the floor height so that a figure in a
- * twenty-story building shrinks with the story rather than sticking out of it.
- * Nothing about the figure's size is written from here, which is why this view
- * has no `setGeometry` while every other entity in the building does: a
- * passenger is the one thing whose only per-frame number is its position, and
- * the position is the simulation's, not the layout's.
- *
- * The three `displayType`s draw as three glyphs — `SPRITE_ICONS.person` and its
- * neighbors.
+ * A passenger's DOM element, positioned from the building's live scale.
+ * Position is read fresh every frame from the simulation; there is no
+ * setGeometry because size comes entirely from CSS, not from here.
  */
 
 import type { User } from "#game/user.ts";
@@ -33,36 +12,19 @@ import { spriteIconMarkup, type SpriteIconName } from "#shared/ui/icon.ts";
 /** How a passenger is drawn; mirrors the simulation's `UserDisplayType`. */
 export type UserDisplayType = "child" | "female" | "male";
 
-/**
- * Which silhouette each `displayType` draws.
- *
- * `male` is the plain `person`, not a `person-male`, because it is the default
- * the other two are variations on.
- */
+/** Which silhouette each `displayType` draws; `male` is the plain `person` icon, not `person-male`. */
 const PERSON_ICONS: Readonly<Record<UserDisplayType, SpriteIconName>> = {
   child: "person-child",
   female: "person-female",
   male: "person",
 };
 
-/**
- * A passenger.
- *
- * @param displayType - Which person glyph to draw.
- * @param leaving - Whether the passenger has already been delivered.
- * @returns The passenger markup.
- */
+/** Renders a passenger's markup; `leaving` marks a passenger who has already been delivered. */
 export function userTemplate(displayType: UserDisplayType, leaving: boolean): string {
   return spriteIconMarkup(PERSON_ICONS[displayType], leaving ? "person is-leaving" : "person");
 }
 
-/**
- * Parses the markup for one passenger into its element.
- *
- * @param displayType - Which person glyph to draw.
- * @param leaving - Whether the passenger has already been delivered.
- * @returns The passenger element.
- */
+/** Parses a passenger's markup into its element. */
 function renderPassenger(displayType: UserDisplayType, leaving: boolean): SVGElement {
   const template = document.createElement("template");
   template.innerHTML = userTemplate(displayType, leaving);
@@ -79,13 +41,7 @@ export interface PassengerView {
   readonly element: SVGElement;
 }
 
-/**
- * Builds a passenger's view and wires it to the simulation.
- *
- * @param user - The passenger to present.
- * @param scale - The stage's current scale, read fresh on every position update.
- * @returns The mounted view.
- */
+/** Builds a passenger's view and wires it to the simulation. */
 export function createPassengerView(user: User, scale: StageScale): PassengerView {
   const element = renderPassenger(user.displayType ?? "male", user.done);
 

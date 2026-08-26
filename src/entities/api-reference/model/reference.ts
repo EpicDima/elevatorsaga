@@ -1,24 +1,15 @@
 /**
- * The API reference table `docs-modal.ts` draws below the guide: an `elevator` group and a
- * `floor` group, each in the order a player meets its members.
- *
- * Plain data, with no `t()` call of its own — {@link API_REFERENCE} names a catalog key for
- * every piece of prose a row needs rather than holding the prose itself, the same purity
- * `#entities/level/model/level-list.ts` keeps for the same reason: a presenter reads the
- * active locale, this module does not need to know one exists.
+ * The API reference table `docs-modal.ts` draws below the guide. Plain data
+ * with no `t()` call of its own; each row names a catalog key rather than
+ * holding prose, so this module doesn't need to know a locale exists.
  */
 
 import type { MessageArgs, MessageKey } from "#i18n/index.ts";
 
 /**
- * A message key that takes no parameters.
- *
- * Every field below names a key `docs-modal.ts` hands straight to `t()` with
- * no second argument, so it is typed to the keys that allow that rather than
- * the whole of {@link MessageKey} — otherwise the call would demand a
- * parameter object, since some member of that wider union does. The same
- * trick, under the same name, as `#widgets/goal-bar/ui/goal-bar.ts`'s and
- * `#widgets/stats-panel/ui/stats-panel.ts`'s own `NoParamMessageKey`.
+ * A message key that takes no parameters. Narrower than the full
+ * {@link MessageKey}, since a key with parameters would force every call
+ * site to pass one.
  */
 type NoParamMessageKey = { [K in MessageKey]: MessageArgs<K> extends [] ? K : never }[MessageKey];
 

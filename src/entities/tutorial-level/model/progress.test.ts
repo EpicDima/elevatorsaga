@@ -7,11 +7,7 @@ import {
   recordClearedTutorialLevel,
 } from "./progress.ts";
 
-/**
- * A `Storage` that throws from everything, as Safari does in private mode.
- *
- * @returns The refusing store.
- */
+/** A `Storage` that throws from everything, as Safari does in private mode. */
 function deniedStorage(): Storage {
   const denied = (): never => {
     throw new Error("denied");
@@ -28,12 +24,7 @@ function deniedStorage(): Storage {
   };
 }
 
-/**
- * A `Storage` that reads back but refuses every write, as a full quota does.
- *
- * @param entries - What the store is already holding.
- * @returns The full store.
- */
+/** A `Storage` that reads back but refuses every write, as a full quota does. */
 function fullStorage(entries: Readonly<Record<string, string>> = {}): Storage {
   const storage = new MemoryStorage();
   for (const [key, value] of Object.entries(entries)) {
@@ -59,9 +50,8 @@ function fullStorage(entries: Readonly<Record<string, string>> = {}): Storage {
 
 describe("TUTORIAL_PROGRESS_STORAGE_KEY", () => {
   it("is under the fork's own prefix, not the inherited one", () => {
-    // A player may have this game and the game it was forked from in one
-    // browser profile. Everything this fork invented stays out of the
-    // `elevatorCrush*` namespace, which means something else over there.
+    // A player may have this game and the fork's source game in one browser
+    // profile; `elevatorCrush*` means something else over there.
     expect(TUTORIAL_PROGRESS_STORAGE_KEY).toBe("develevateTutorialProgress");
     expect(TUTORIAL_PROGRESS_STORAGE_KEY.startsWith("elevator")).toBe(false);
   });
@@ -69,9 +59,8 @@ describe("TUTORIAL_PROGRESS_STORAGE_KEY", () => {
 
 describe("recordClearedTutorialLevel", () => {
   it("stores the identifier of the level, and not its position", () => {
-    // The property that survives the track being reordered: a ninth level
-    // inserted at number two must not hand every stored number to a different
-    // lesson.
+    // Survives the track being reordered: a ninth level inserted at number two
+    // must not hand every stored number to a different lesson.
     const storage = new MemoryStorage();
 
     recordClearedTutorialLevel(storage, "tutorial-3");
@@ -103,9 +92,8 @@ describe("recordClearedTutorialLevel", () => {
   });
 
   it("keeps an identifier this build has never heard of", () => {
-    // A cached older build loaded after a newer one has run. It cannot show
-    // level 9, and deleting what it cannot show is the one loss that cannot be
-    // undone.
+    // A cached older build can't show level 9; deleting what it can't show
+    // would be unrecoverable.
     const storage = new MemoryStorage();
     storage.setItem(TUTORIAL_PROGRESS_STORAGE_KEY, JSON.stringify(["tutorial-9"]));
 
@@ -115,8 +103,6 @@ describe("recordClearedTutorialLevel", () => {
   });
 
   it("does not throw when the store refuses to be written to", () => {
-    // A won run may not be turned into an exception by the bookkeeping that
-    // follows it.
     const storage = fullStorage();
 
     expect(() => {
@@ -143,9 +129,7 @@ describe("readClearedTutorialLevels", () => {
   });
 
   it("reads nothing out of an entry that is not a list of identifiers", () => {
-    // Whatever wrote these, a corrupt entry is not something a player can act
-    // on and no run depends on the answer, so it reads as "nothing yet" and the
-    // next win rewrites it.
+    // A corrupt entry reads as "nothing yet"; the next win rewrites it.
     for (const corrupt of ["", "not json at all", "7", '"tutorial-1"', '{"tutorial-1":true}']) {
       const storage = new MemoryStorage();
       storage.setItem(TUTORIAL_PROGRESS_STORAGE_KEY, corrupt);

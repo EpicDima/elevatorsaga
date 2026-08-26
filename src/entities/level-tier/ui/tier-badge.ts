@@ -1,11 +1,4 @@
-/**
- * The star badge for a level's best tier: three stars, lit up to the tier
- * earned, tinted by CSS keyed off `data-tier`.
- *
- * One function draws it wherever it appears. The level switcher passes a
- * tile's own best tier, or `undefined` for none earned yet; a tier popover row
- * passes that row's tier, which is always defined.
- */
+/** The star badge for a level's best tier: stars lit up to the tier earned, tinted by CSS keyed off `data-tier`. */
 
 import { LEVEL_TIERS } from "#game/level-tiers.ts";
 import type { LevelTier } from "#game/level-tiers.ts";
@@ -16,15 +9,9 @@ import { markup, raw } from "#shared/ui/markup.ts";
 const STAR_COUNT = LEVEL_TIERS.length;
 
 /**
- * Markup for a tier badge: {@link STAR_COUNT} stars, the first `n` lit for a
- * tier ranked `n` (bronze = 1 ... gold = {@link STAR_COUNT}), none lit for
- * `undefined`.
- *
- * `data-tier` carries the earned tier for CSS to tint the lit stars by; with
- * no tier earned there is nothing to tint, so it falls back to `"bronze"`.
- *
- * @param tier - The tier to badge, or `undefined` for none earned yet.
- * @returns The `<span class="stars">` markup.
+ * Markup for a tier badge: the first `n` of {@link STAR_COUNT} stars lit for a
+ * tier ranked `n`, none lit for `undefined`. `data-tier` falls back to
+ * `"bronze"` when nothing is earned, since CSS needs some tier to tint by.
  */
 export function tierBadgeMarkup(tier: LevelTier | undefined): string {
   const earned = tier === undefined ? 0 : LEVEL_TIERS.indexOf(tier) + 1;

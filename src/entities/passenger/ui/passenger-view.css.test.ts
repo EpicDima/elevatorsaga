@@ -1,8 +1,4 @@
-/**
- * A passenger is a graphical object rather than text, so 1.4.11's 3:1 is the
- * bar throughout — but they are drawn on two different surfaces over the course
- * of a trip, and only one of the two follows the theme.
- */
+/** A passenger is a graphical object, so 1.4.11's 3:1 is the bar throughout, checked against both surfaces of a trip. */
 
 import { describe, expect, it } from "vitest";
 
@@ -23,9 +19,8 @@ describe("a passenger", () => {
   it.each(THEMES)(
     "keeps a passenger readable against the shaft and the car, %s theme",
     (_, palette) => {
-      // Waiting or walking, they read against --ds-shaft (themed); boarded,
-      // `.is-rider` switches them to a color fixed across both themes, tuned
-      // against --ds-car instead -- see the palette comment above --ds-car-ink.
+      // Waiting or walking, reads against --ds-shaft (themed); boarded,
+      // .is-rider switches to a fixed color tuned against --ds-car instead.
       expect(declaration(ruleBody(".person"), "color", ".person")).toBe(token("ds-person"));
       expect(declaration(ruleBody(".person.is-rider"), "color", ".person.is-rider")).toBe(
         token("ds-car-person"),
@@ -38,11 +33,8 @@ describe("a passenger", () => {
   );
 
   it("leaves a delivered passenger's color alone, because no fade would clear 3:1", () => {
-    // The regression guard behind passenger-view.css's note at `.person.is-leaving`:
-    // --ds-person has 3.52:1 of room over the light theme's shaft and nothing
-    // more, so any fade at all takes a passenger under the bar 1.4.11 sets for
-    // a graphical object. This is what would catch someone adding one, and the
-    // arithmetic below is why it should not be added.
+    // --ds-person has only 3.52:1 of room over the light theme's shaft, so any
+    // fade at all would drop below 1.4.11's 3:1.
     expect(styleSource).not.toMatch(/^\.person\.is-leaving\s*\{/m);
     const shaft = themed(LIGHT_PALETTE, "ds-shaft");
     for (const percent of [50, 62, 85]) {
@@ -52,9 +44,8 @@ describe("a passenger", () => {
   });
 
   it.each(THEMES)("keeps the longest-waiting passenger readable, %s theme", (_, palette) => {
-    // The same shaft/car split as the plain passenger above, for the marked
-    // one: --ds-accent on the shaft, --ds-car-attention -- fixed, like every
-    // other car-body color -- once boarded.
+    // Same shaft/car split as the plain passenger: --ds-accent on the shaft,
+    // --ds-car-attention (fixed) once boarded.
     expect(
       contrast(themed(palette, "ds-accent"), themed(palette, "ds-shaft")),
     ).toBeGreaterThanOrEqual(3);

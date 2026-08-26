@@ -1,16 +1,6 @@
-/*
- * One floor's row in the column beside the building: its number and its two
- * call lamps, lit and unlit.
- */
+/* One floor's row: its number and its two call lamps, lit and unlit. */
 
-/*
- * `box-sizing` is restated because `.floor` is opted back out to `content-box`
- * for the sake of the scene's geometry: the height the widget writes here has
- * to be the height the row really occupies, or the rows drift a pixel per floor
- * away from the floor bands drawn beside them in `.tracks`. `--ds-floor-h` is
- * only the fallback -- floors are not all the same height, so the widget writes
- * each row's own.
- */
+/* box-sizing restated since .floor opts back to content-box; the widget writes each row's real height (--ds-floor-h is only the fallback). */
 .floor {
   box-sizing: border-box;
   display: flex;
@@ -22,34 +12,19 @@
   border-block-end: 1px solid var(--ds-shaft-line);
 }
 
-/*
- * `.levels` is `column-reverse`, so the row standing on the building's own
- * bottom border is the first one; it drops the line it would otherwise draw
- * over that border.
- */
+/* .levels is column-reverse, so the first child sits on the building's own bottom border. */
 .floor:first-child {
   border-block-end: 0;
 }
 
-/*
- * Inset: the row runs the full width of a column that is flush against the
- * building's clipped edge, so an outward ring would be cut down its left side.
- */
+/* Inset ring: the column is flush against the building's clipped edge. */
 .floor:focus-visible {
   outline-offset: -2px;
 }
 
 /*
- * The number stands in a column two digits wide, aligned to its right edge.
- * Otherwise "20" and "9" start in different places and a twenty-floor
- * building's column looks ragged.
- *
- * --ds-text-muted, not --ds-text-faint: the number is 17px at most, where 1.4.3
- * asks 4.5:1, and the faint step reaches only 3.77:1 dark and 2.83:1 light on
- * the column's own composite. Resting is the state the number is read in -- the
- * accent below comes and goes with a pointer -- so unlike a call lamp it cannot
- * claim the "the lit state carries the information" exemption, and neither ink
- * is allowed to fall short of 4.5:1.
+ * --ds-text-muted, not --ds-text-faint: at up to 17px this needs WCAG 1.4.3's
+ * 4.5:1, and faint reaches only 3.77:1 dark / 2.83:1 light on this column.
  */
 .level-num {
   min-inline-size: 2ch;
@@ -60,20 +35,9 @@
 }
 
 /*
- * The row's half of the mark on the floor being pointed at; the band washed
- * across the building beside it is the other half, and `widgets/building-stage`
- * puts the class on both. The number is what lights, for the reason the car's
- * border is what lights in a hovered shaft: the rest of the row is two call
- * lamps, and a lamp's color already means something.
- *
- * Not `.floor:hover`, because half the floor is not in this element -- pointing
- * anywhere along the corridor marks the floor too, and the corridor is a strip
- * in the building's own layer.
- *
- * --ds-accent-hi rather than the plain accent the band beside it is washed in,
- * for the reason `.emphasis-color` gives: marked or not this is still a number
- * being read at 17px, and the base accent falls to 4.11:1 on the light theme's
- * column. A band has only 1.4.11's 3:1 to clear; text has 4.5:1.
+ * Marks the number, not the lamps: a lamp's color already carries meaning.
+ * --ds-accent-hi, not the plain accent, since that falls to 4.11:1 on the
+ * light theme (text needs 4.5:1, not just a band's 3:1).
  */
 .floor.is-hot .level-num {
   color: var(--ds-accent-hi);
@@ -85,17 +49,7 @@
   gap: 3px;
 }
 
-/*
- * A real `<button>`, so this resets the browser's own button chrome down to a
- * 20x18 box.
- *
- * The arrow gets --ds-text-muted for the reason the floor number above does,
- * and for one more: unlit, the arrow is the whole of what says a control is
- * here. The border cannot help carry that --
- * --ds-line-strong is 1.55:1 dark and 1.43:1 light on this column, well under
- * 1.4.11's 3:1 -- so the glyph has to clear the bar on its own, which
- * --ds-text-muted does with room to spare in both themes.
- */
+/* The border can't help carry contrast (--ds-line-strong is well under 3:1 here), so the glyph alone carries --ds-text-muted. */
 .call {
   box-sizing: border-box;
   display: grid;
@@ -116,42 +70,22 @@
   stroke-width: 2.4;
 }
 
-/*
- * Lit, the lamp says which way a waiting passenger asked to go. Unlike the
- * direction arrow inside a car, it is drawn on the floor column rather than on
- * the car body, so the themed accent survives the light theme: --ds-accent on
- * its own --ds-accent-soft badge over this column is 6.45:1 dark and 3.58:1
- * light, past the 3:1 a graphical indicator is asked for.
- */
+/* Drawn on the column, not the car body, so the accent badge clears 3:1 in both themes (6.45 dark, 3.58 light). */
 .call.is-lit {
   border-color: var(--ds-accent);
   background: var(--ds-accent-soft);
   color: var(--ds-accent);
 }
 
-/*
- * Only in the dark theme. In the light one the bloom would be a gray smudge,
- * and there is nothing to glow.
- */
+/* Dark theme only: in the light theme the bloom would be a gray smudge. */
 html[data-theme="dark"] .call.is-lit {
   box-shadow: 0 0 8px rgb(232 163 63 / 30%);
 }
 
 /*
- * A destination-dispatch floor's journeys, in place of the two lamps: chips in
- * rows of two rather than a column, and `entities/floor` draws at most four of
- * them, so the panel is two rows deep whatever is standing on the floor. That
- * bound is the whole design -- a row's height is the building's to set, and the
- * shortest floor a building is squeezed to has room for two rows, not four.
- *
- * `flex: 1` and not the shrink-to-fit a `.calls` gets: the panel takes the whole
- * of what the floor number leaves, so its half is the same half on every floor,
- * and the chips stand in two columns down the building instead of sliding left
- * and right with how much each floor happens to be asking for.
- *
- * `overflow: hidden` is the backstop under all of it rather than the plan. What
- * it guards is a chip too wide for its half, which is clipped at the panel's
- * edge instead of pushing its neighbor onto a row of its own.
+ * Two rows of chips max, since `entities/floor` draws at most four. `flex: 1`
+ * keeps this panel's width constant across floors, rather than shrinking to
+ * content; `overflow: hidden` is a backstop, not the plan.
  */
 .destinations {
   flex: 1;
@@ -164,25 +98,9 @@ html[data-theme="dark"] .call.is-lit {
 }
 
 /*
- * Exactly half the panel, less half the gap between two of them: what makes the
- * rows of two a fact rather than a hope. Chips sized to their contents would put
- * a wide pair on two rows instead of one, and four rows are twice the height the
- * panel has. `min-inline-size: 0` is half of that same fact -- a flex item's
- * automatic minimum is its contents, which would let a wide chip win against the
- * width set here and wrap its neighbor away. The column is cut to the widest
- * chip the tallest building can produce, so what this turns off is a fallback
- * nothing should reach.
- *
- * The height comes from the floor rather than from a constant, the way the
- * floor number beside it does: two rows of chips have to fit inside a row whose
- * height the widget decides.
- *
- * The ink is a full 4.5:1 job and not 1.4.11's 3:1 -- a chip is a number being
- * read, not a lamp being noticed -- which is what rules out the badge a lit
- * call lamp wears: --ds-accent on --ds-accent-soft over this column reaches
- * 3.58:1 in the light theme. So the chip carries no fill, and its two inks are
- * the two this column has already proved at text sizes: --ds-accent-hi, the
- * step a marked floor number lights in, and --ds-text-muted, the resting one.
+ * Fixed to half the panel's width so two chips can't wrap onto separate rows;
+ * `min-inline-size: 0` overrides the flex item's automatic (content) minimum,
+ * which would otherwise let a wide chip win and push its neighbor down.
  */
 .dest {
   box-sizing: border-box;
@@ -201,32 +119,19 @@ html[data-theme="dark"] .call.is-lit {
   color: var(--ds-accent-hi);
 }
 
-/*
- * Answered: a car is booked for this journey and the people are waiting on it
- * rather than on the program. The chip stays -- they have not gone anywhere --
- * and the accent leaves it for the journeys still asking.
- */
+/* Answered: a car is booked, but the chip stays until boarding actually happens. */
 .dest.is-booked {
   border-color: var(--ds-line-strong);
   color: var(--ds-text-muted);
 }
 
-/*
- * The journeys a crowded floor has no room to draw. Quiet like an answered one,
- * because it is a footnote and not a call.
- */
+/* Journeys with no room to draw; quiet, like an answered one. */
 .dest.is-more {
   border-color: var(--ds-line-strong);
   color: var(--ds-text-muted);
 }
 
-/*
- * How many people are making one journey, when it is more than one. Smaller and
- * quieter than the floor number it hangs off, so that a chip reads as a place
- * with a tally on it rather than as two numbers -- and quieter in the one ink
- * this column has proved at rest, never by going translucent, which would take
- * a number below the bar it just cleared.
- */
+/* Smaller and quieter than the floor number, so a chip reads as a tally, not two numbers. */
 .dest-count {
   font-size: 0.9em;
   color: var(--ds-text-muted);

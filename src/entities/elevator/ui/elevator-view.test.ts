@@ -30,8 +30,8 @@ describe("createElevatorView", () => {
     for (const button of buttons) {
       expect(button.getAttribute("aria-pressed")).toBe("false");
       expect(button.classList.contains("is-lit")).toBe(false);
-      // Every mark is also a `.buttonpress`: that is the selector relabelWorld
-      // and the e2e specs reach an in-car floor button by.
+      // .buttonpress is the selector relabelWorld and the e2e specs use to
+      // reach an in-car floor button.
       expect(button.classList.contains("buttonpress")).toBe(true);
     }
   });
@@ -45,7 +45,7 @@ describe("createElevatorView", () => {
     elevator.moveTo(200, 100);
     elevator.updateDisplayPosition();
     // x stays 0 whatever worldX says: the shaft holds the car's horizontal
-    // place, and setGeometry is what puts the shaft there.
+    // place; setGeometry is what positions the shaft.
     expect(car.style.transform).toBe("translate3d(0px, 100px, 0)");
 
     scale.scaleX = 0.5;
@@ -60,8 +60,8 @@ describe("createElevatorView", () => {
     const view = createElevatorView(elevator, 0, { scaleX: 1, scaleY: 1 });
     const label = requireElement(".car-floor", view.element);
 
-    // A fresh car sits at world y 0, which is the top floor of a five-floor
-    // building — the number is read from the simulation, not assumed to be 0.
+    // World y 0 is the top floor of a five-floor building; the label is read
+    // from the simulation, not assumed to be 0.
     expect(label.textContent).toBe("4");
 
     elevator.moveTo(null, elevator.getYPosOfFloor(1));
@@ -91,9 +91,8 @@ describe("createElevatorView", () => {
     const up = requireElement(".car-dir-up", view.element);
     const down = requireElement(".car-dir-down", view.element);
 
-    // A car advertises both directions until a program says otherwise, and the
-    // view has to read that rather than assume it: indicatorstate_change is
-    // only raised on a change.
+    // A car advertises both directions until a program says otherwise; the
+    // view reads that initial state since indicatorstate_change only fires on change.
     expect(up.classList.contains("is-on")).toBe(true);
     expect(down.classList.contains("is-on")).toBe(true);
 
@@ -125,8 +124,8 @@ describe("createElevatorView", () => {
     elevator.updateDisplayPosition(true);
     expect(car.classList.contains("is-open")).toBe(false);
 
-    // Arriving does not move the car, so new_display_state is not raised for
-    // it — stopped_at_floor is what opens the doors here.
+    // Arriving doesn't move the car, so new_display_state isn't raised;
+    // stopped_at_floor is what opens the doors here.
     elevator.isMoving = false;
     elevator.trigger("stopped_at_floor", 2);
     expect(car.classList.contains("is-open")).toBe(true);
@@ -144,8 +143,8 @@ describe("createElevatorView", () => {
 
     expect(view.element.style.left).toBe("154px");
     expect(view.element.style.width).toBe("52px");
-    // The pad is a variable rather than a width because the car is inset by it
-    // from both walls, and the mark strip is drawn in it.
+    // The pad is a variable since the car is inset by it on both walls, and
+    // the mark strip is drawn in it.
     expect(view.element.style.getPropertyValue("--ds-shaft-pad")).toBe("6px");
     expect(marks(view).map((mark) => mark.style.bottom)).toEqual([
       "24px",
@@ -170,7 +169,7 @@ describe("elevatorTemplate", () => {
     expect(shaft.querySelector(".car .car-top .car-dir-down")).not.toBeNull();
     expect(shaft.querySelector(".car-floor")?.textContent).toBe("0");
     expect(shaft.querySelectorAll(".car-cabin .doors .door")).toHaveLength(2);
-    // Empty until createElevatorView fills it: a template does not know how
+    // Empty until createElevatorView fills it; a template doesn't know how
     // many floors the building has.
     expect(shaft.querySelector(".shaft-marks")?.children).toHaveLength(0);
     expect(shaft.getAttribute("aria-label")).toBe("Elevator 1");
@@ -182,9 +181,8 @@ describe("elevatorButtonTemplate", () => {
     const button = renderElement(elevatorButtonTemplate(7));
     expect(button.tagName).toBe("BUTTON");
     expect(button.className).toBe("mark buttonpress");
-    // A mark is four pixels wide, so the digit that used to be in here is gone
-    // from the drawing — but not from the name, which is all a screen reader
-    // ever had.
+    // A mark is four pixels wide, too narrow to draw a digit; the aria-label
+    // is all a screen reader has.
     expect(button.textContent).toBe("");
     expect(button.getAttribute("aria-label")).toBe("Go to floor 7");
   });
@@ -198,11 +196,9 @@ describe("elevatorButtonTemplate", () => {
 
 describe("the two names a car can be renamed from", () => {
   it("hands the car and its floor buttons the very labels the relabeller writes back in", () => {
-    // relabelWorld renames a car that is already on screen by calling
-    // elevatorLabel/elevatorFloorButtonLabel directly, and these templates call
-    // the same two. Two copies of a message key, one in each path, is how a
-    // renamed message ends up renaming only half a car; there is one copy, and
-    // this is the assertion that the templates still go through it.
+    // relabelWorld renames a car already on screen by calling
+    // elevatorLabel/elevatorFloorButtonLabel directly; these templates must
+    // call the same functions, or a renamed message key only takes effect on half a car.
     expect(renderElement(elevatorTemplate(1)).getAttribute("aria-label")).toBe(elevatorLabel(1));
     expect(renderElement(elevatorButtonTemplate(7)).getAttribute("aria-label")).toBe(
       elevatorFloorButtonLabel(7),
@@ -225,10 +221,8 @@ describe("the language a car comes out in", () => {
   });
 
   it("is settled when a template runs, not when the module was loaded", () => {
-    // The trap `src/ui/templates.ts`'s docblock is about: a `const` holding a
-    // translated string would be filled in at import time, when no catalog
-    // but English has been loaded, and would stay English for the rest of the
-    // session.
+    // A const holding a translated string would be filled in at import time,
+    // before any non-English catalog loads, and stay English for the session.
     expect(renderElement(elevatorTemplate(0)).getAttribute("aria-label")).toBe("Elevator 0");
 
     setLocale("ru");
