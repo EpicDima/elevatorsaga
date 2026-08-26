@@ -19,22 +19,7 @@ import {
 import type { TextEditorView, TextReplacement } from "./editor.ts";
 import { FakeTextEditorView, MemoryStorage, fullStorage } from "./test-helpers.ts";
 
-/**
- * The shared fake, taught the difference between an edit and a swap.
- *
- * {@link FakeTextEditorView} predates {@link TextReplacement} and raises
- * `onChange` for every replacement, while the surface that ships raises nothing
- * for a swap — it builds a new state, and a document a state is built with is
- * not a document change. A fake that is wrong in that direction hides exactly
- * the bugs this file is here to catch: an autosave the editor is supposed to
- * cancel gets rescheduled by the fake's spurious `onChange` and canceled
- * again, so removing the cancellation breaks nothing that the fake can see.
- *
- * It belongs in `test-helpers.ts` beside the fake it corrects, but that file is
- * shared with tests being written next door; this subclass is the version that
- * only affects this file, and it should disappear into the shared fake once the
- * dust settles.
- */
+/** A fake view where a "swap" replacement, unlike an edit, raises no `onChange` — matching the real surface. */
 class SwapAwareView extends FakeTextEditorView {
   override setValue(value: string, replacement: TextReplacement = "edit"): void {
     if (replacement === "swap") {
@@ -45,12 +30,6 @@ class SwapAwareView extends FakeTextEditorView {
   }
 }
 
-/**
- * Builds an editor over a fake view and hands both back.
- *
- * @param storage - Where the editor should persist the program.
- * @returns The editor and the view it is driving.
- */
 function setUp(storage: Storage = new MemoryStorage()): {
   editor: CodeEditor;
   view: FakeTextEditorView;
@@ -70,11 +49,7 @@ function setUp(storage: Storage = new MemoryStorage()): {
   return { editor, view, storage };
 }
 
-/**
- * A `Storage` that throws from everything, as Safari does in private mode.
- *
- * @returns The refusing store.
- */
+/** A `Storage` that throws from everything, as Safari does in private mode. */
 function deniedStorage(): Storage {
   const denied = (): never => {
     throw new Error("denied");
@@ -92,16 +67,9 @@ function deniedStorage(): Storage {
 }
 
 /**
- * A `Storage` with room for the keys it already has and not one more.
- *
- * What a real quota does, rather than what the crude version of it does: the
- * budget is a number of bytes, so overwriting an existing key with something no
- * longer keeps working long after a *new* key has stopped fitting. That
- * asymmetry is the whole hazard — a failed backup followed by a successful
- * overwrite of the program it was meant to protect.
- *
- * @param entries - What the store is already holding.
- * @returns The crowded store.
+ * A `Storage` with room for its existing keys and not one more: overwriting a
+ * key with something no longer keeps working after a *new* key has stopped
+ * fitting, mirroring a real quota's byte budget.
  */
 function crowdedStorage(entries: Readonly<Record<string, string>> = {}): Storage {
   const storage = new MemoryStorage();
@@ -130,15 +98,8 @@ function crowdedStorage(entries: Readonly<Record<string, string>> = {}): Storage
 }
 
 /**
- * A `Storage` that is holding text and will not say what it is.
- *
- * `getItem` throwing while `setItem` works is what a store looks like when the
- * page is not allowed to read it — blocked site data, a `SecurityError` — and
- * it is the case where "the store said nothing" and "the store has nothing" are
- * different facts about somebody's afternoon.
- *
- * @param entries - What the store is holding, out of sight.
- * @returns The store, and a way for the test to see what is really in it.
+ * A `Storage` that holds text but refuses to reveal it: `getItem` throws while
+ * `setItem` works, as with blocked site data (`SecurityError`).
  */
 function unreadableStorage(entries: Readonly<Record<string, string>> = {}): {
   storage: Storage;
@@ -172,14 +133,9 @@ function unreadableStorage(entries: Readonly<Record<string, string>> = {}): {
 }
 
 beforeAll(() => {
-  // jsdom lays nothing out, so `Range.getClientRects` is missing from it
-  // altogether, and CodeMirror's measure cycle throws without it. That cycle
-  // runs from a `requestAnimationFrame` callback, long after the test that
-  // scheduled it has finished — out of reach of any `expect`, and out of reach
-  // of a hook that would put jsdom back, which is why this is installed once
-  // for the file and left in place. An empty list is the truthful answer for a
-  // document nothing ever laid out: measurement returns zeroes and scrolling
-  // becomes the no-op it always was here.
+  // jsdom has no layout, so CodeMirror's measure cycle throws without a stub
+  // for this. It runs from a `requestAnimationFrame` callback outside any
+  // test, so it's installed once here rather than reset per test.
   Range.prototype.getClientRects = function getClientRects(): DOMRectList {
     return Object.assign([], { item: () => null });
   };
@@ -195,13 +151,8 @@ afterEach(() => {
 
 describe("storage keys", () => {
   it("are exactly the keys the legacy game wrote", () => {
-    // These two strings are an on-disk compatibility contract with the browser
-    // of every player who has ever played: their program is under this exact
-    // key in their own localStorage, and the game only finds it again if the
-    // key never changes. Renaming either constant compiles, and every test
-    // that goes through the constant keeps passing, while silently destroying
-    // the saved program of every existing player — so the literals are pinned
-    // here. Do not "fix" these to match a constant; change nothing at all.
+    // Pinned as literals, not the constants: renaming a constant must not
+    // silently change the on-disk key existing players' saves are under.
     expect(CODE_STORAGE_KEY).toBe("elevatorCrushCode_v5");
     expect(BACKUP_STORAGE_KEY).toBe("develevateBackupCode");
   });
@@ -264,10 +215,6 @@ describe("CodeEditor storage", () => {
   });
 
   it("says out loud that a write was refused", () => {
-    // Every refused write announces itself, from the one place all writes go
-    // through. A player whose quota filled up mid-session otherwise has a
-    // "Code saved 14:32" line on screen, no reason to doubt it, and nothing
-    // written since — the failure is silent exactly when it costs the most.
     const { editor, view } = setUp(fullStorage());
     const refused = vi.fn();
     const saved = vi.fn();
@@ -315,10 +262,7 @@ describe("CodeEditor buffers", () => {
     view.type("// my attempt at level 3");
     editor.openNamedLevelBuffer("tutorial-4", "// level 4 skeleton");
 
-    // Pinned as literals for the same reason the two keys above are: the
-    // spelling is what a half-finished attempt is found under a week later, and
-    // asserting through the editor's own constant would let a rename pass every
-    // test while quietly orphaning the work of everyone who had started.
+    // Literals again, for the reason above: a rename must not orphan existing attempts.
     expect(storage.getItem("develevateTutorialCode_tutorial-3")).toBe("// my attempt at level 3");
     expect(storage.getItem("develevateTutorialCode_tutorial-4")).toBe("// level 4 skeleton");
   });
@@ -329,8 +273,7 @@ describe("CodeEditor buffers", () => {
     editor.openNamedLevelBuffer("tutorial-1", "// fill this in");
 
     expect(view.getValue()).toBe("// fill this in");
-    // Stored at once, so closing the tab without typing loses nothing and does
-    // not reopen the level on someone else's text.
+    // Stored at once, so closing the tab without typing loses nothing.
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// fill this in");
   });
 
@@ -357,12 +300,8 @@ describe("CodeEditor buffers", () => {
   });
 
   it("does not claim the player's key for a program they typed and took back", () => {
-    // Typed and undone is not the same as written. The editor knows an edit
-    // happened, and one did, but what is on screen is the program every
-    // untouched install starts with, and storage saying nothing already says
-    // exactly that. Writing it would claim the player's own key on their
-    // behalf, and an install nobody has written a program in would start
-    // looking like a played one.
+    // Typed-then-reverted must not write the default program to the player's
+    // key, or an untouched install would look like a played one.
     const { editor, view, storage } = setUp();
     view.type("// second thoughts");
     view.type(defaultCode());
@@ -398,8 +337,7 @@ describe("CodeEditor buffers", () => {
     editor.openPlayerBuffer();
 
     expect(view.getValue()).toBe(defaultCode());
-    // Nobody typed, so nothing claimed the player's key on their behalf: an
-    // untouched install still looks untouched after a walk through the track.
+    // Walking the track without typing must not claim the player's key.
     expect(storage.getItem(CODE_STORAGE_KEY)).toBeNull();
   });
 
@@ -421,13 +359,8 @@ describe("CodeEditor buffers", () => {
   });
 
   it("does not write a buffer nobody edited over another tab's work", () => {
-    // Two tabs, one store. The second was opened before the afternoon's work
-    // happened in the first and still shows the older program, with no way to
-    // know. Before there were buffers an idle tab wrote nothing until somebody
-    // typed in it, and one click on a level link must not be what changes that:
-    // writing the screen back on the way out of a buffer is right for text the
-    // player changed and is somebody else's work destroyed for text they never
-    // touched.
+    // Two tabs sharing one store: an idle tab must not write its stale copy
+    // back over work saved from another tab just for opening a level link.
     const storage = new MemoryStorage();
     storage.setItem(CODE_STORAGE_KEY, "// version 1");
     const setItem = vi.spyOn(storage, "setItem");
@@ -439,23 +372,19 @@ describe("CodeEditor buffers", () => {
     idleTab.editor.openNamedLevelBuffer("tutorial-1", "// level 1");
 
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// version 2, an afternoon of work");
-    // Nor is the idle tab holding a stale copy in its own memory of what it has
-    // written: coming back to the player's buffer shows the other tab's work.
+    // The idle tab isn't holding a stale in-memory copy either.
     idleTab.editor.openPlayerBuffer();
     expect(idleTab.view.getValue()).toBe("// version 2, an afternoon of work");
 
-    // The working tab leaving its buffer does not write it a second time
-    // either. It was written a moment ago and nothing has changed since; the
-    // key is touched once, by the save the player asked for.
+    // Leaving the working tab's buffer doesn't write it again: the key was
+    // already touched once, by the explicit save.
     workingTab.editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     expect(setItem.mock.calls.filter(([key]) => key === CODE_STORAGE_KEY)).toHaveLength(1);
   });
 
   it("stops counting the text as edited the moment the buffer is left", () => {
-    // "There is typing here that has not been written" is a fact about the
-    // buffer on screen, and a switch hands the screen to another buffer. Left
-    // standing, the *next* switch writes a buffer nobody has typed in -- the
-    // same stale write that costs the other tab its work, one buffer along.
+    // A switch must clear the "unsaved" flag with the old buffer, or the next
+    // switch would write a buffer nobody has typed in.
     const storage = new MemoryStorage();
     const setItem = vi.spyOn(storage, "setItem");
     const { editor, view } = setUp(storage);
@@ -465,16 +394,15 @@ describe("CodeEditor buffers", () => {
     const writesSoFar = setItem.mock.calls.length;
     editor.openNamedLevelBuffer("tutorial-2", "// level 2");
 
-    // Level 2's own key, holding the starter it was just opened on, and nothing
-    // else: level 1 was read, looked at and left alone.
+    // Only level 2's key is touched; level 1 is read but not rewritten.
     expect(setItem.mock.calls.slice(writesSoFar).map(([key]) => key)).toEqual([
       "develevateTutorialCode_tutorial-2",
     ]);
   });
 
   it("does not let a countdown started in one buffer go off in the next", () => {
-    // The autosave is debounced by a second, so a switch always happens with a
-    // write pending. It must land in the buffer whose text it is, and once.
+    // A pending debounced autosave must land in the buffer it belongs to, not
+    // fire after a switch into the next one.
     const storage = new MemoryStorage();
     const setItem = vi.spyOn(storage, "setItem");
     const { editor, view } = setUp(storage);
@@ -490,12 +418,8 @@ describe("CodeEditor buffers", () => {
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// typed in level 1");
     expect(storage.getItem("develevateTutorialCode_tutorial-2")).toBe("// level 2");
     expect(view.getValue()).toBe("// level 2");
-    // Canceled, not merely harmless. A countdown left running fires with the
-    // next level open; today it would write that level's own starter program back
-    // over itself, which looks like nothing, and announce "Code saved ..." for a
-    // save nobody asked for. The day the switch stops seeding storage up front
-    // it would be one level's work under the other's key instead, so what is
-    // pinned is that nothing at all happens a second after a switch.
+    // Canceled, not merely harmless: left running it would write the new
+    // level's own starter back over itself and falsely announce a save.
     expect(setItem.mock.calls.length).toBe(writesBeforeTheCountdown);
     expect(saved).not.toHaveBeenCalled();
   });
@@ -512,8 +436,7 @@ describe("CodeEditor buffers", () => {
   });
 
   it("leaves the buffer already on screen alone when it is opened again", () => {
-    // Routers and interfaces repeat themselves; a redundant open must not
-    // replace the document under a player who is typing in it.
+    // A redundant open must not replace the document under a player typing in it.
     const { editor, view, storage } = setUp();
     editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     view.type("// half a thought");
@@ -530,9 +453,8 @@ describe("CodeEditor buffers", () => {
   });
 
   it("takes the newest starter program for the level on screen", () => {
-    // Only the comments in a level's starter program are translated, but that is
-    // enough: the same level hands over different text after a language switch,
-    // and "Reset" owes the player the version they can read.
+    // "Reset" owes the player the version of the starter program they can
+    // read, even if the level was opened in a different language.
     const { editor, view } = setUp();
     editor.openNamedLevelBuffer("tutorial-1", "// level 1 in English");
     view.type("// half a thought");
@@ -554,18 +476,16 @@ describe("CodeEditor buffers", () => {
     editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
-    // The program in the editor is a different program, so anything describing
-    // it is stale. Nothing was saved on the player's behalf, though, and
+    // The program changed, but nothing was saved on the player's behalf, and
     // claiming otherwise in the "Code saved ..." line would be a lie.
     expect(changed).toHaveBeenCalledTimes(1);
     expect(saved).not.toHaveBeenCalled();
   });
 
   it("refuses a level whose name is blank", () => {
-    // Identifiers reach the game from a URL the player can type by hand, and an
-    // empty one spells the bare prefix: one key that every malformed route
-    // would pour its text into, and the first two to try it would each find the
-    // other's program waiting.
+    // A level id reaches the game from a URL the player can type by hand; an
+    // empty one would spell the bare key prefix, shared by every malformed
+    // route, so any two of them would collide.
     const { editor, view, storage } = setUp();
 
     for (const levelId of ["", " ", "\t\n"]) {
@@ -580,13 +500,9 @@ describe("CodeEditor buffers", () => {
   });
 
   it("finds a level's attempt under the level's own name, wherever it sits in the track", () => {
-    // Keyed by the level's identifier and never by its position. The track's
-    // `TutorialLevel.id` exists for exactly this: the position is the one thing
-    // about a level that is expected to change, and a half-written attempt is
-    // precisely a level surviving being written down. Keyed by position, a ninth
-    // level inserted at number two would hand its opener everybody's attempt at
-    // the old level 2, and shift the six after it by one — no error, no warning,
-    // every program filed under somebody else's level.
+    // Keyed by `TutorialLevel.id`, never by position: a level's position is
+    // expected to change, and keying by position would let an inserted level
+    // silently steal a later level's saved attempt.
     const storage = new MemoryStorage();
     storage.setItem("develevateTutorialCode_tutorial-2", "// my attempt at the old level 2");
     const { editor, view } = setUp(storage);
@@ -599,13 +515,9 @@ describe("CodeEditor buffers", () => {
   });
 
   it("does not put a level's starting point over an attempt it could not read", () => {
-    // "The store has nothing" and "the store would not say" arrive as the same
-    // silence and mean opposite things. Read as "nothing", a store that has
-    // simply refused to answer gets the skeleton written into it, over an
-    // attempt that was there all along — and the player, looking at a skeleton,
-    // has no way to know anything was lost. The skeleton on screen is
-    // unavoidable; nothing can show text nobody is allowed to read. Storing it
-    // is not.
+    // "The store has nothing" and "the store won't say" must not be treated
+    // the same: showing the skeleton on screen is unavoidable, but writing it
+    // over an unreadable attempt would destroy that attempt for good.
     const { storage, kept } = unreadableStorage({
       "develevateTutorialCode_tutorial-1": "// three evenings of work",
     });
@@ -618,8 +530,7 @@ describe("CodeEditor buffers", () => {
   });
 
   it("opens a level whose stored attempt was emptied on its starting point", () => {
-    // An empty entry is no more use than a missing one, and a level that opens
-    // on a blank page has no way back to its own starting point.
+    // An empty entry is no more use than a missing one.
     const storage = new MemoryStorage();
     storage.setItem("develevateTutorialCode_tutorial-2", "");
     const { editor, view } = setUp(storage);
@@ -630,8 +541,7 @@ describe("CodeEditor buffers", () => {
   });
 
   it("still switches buffers when the browser refuses storage", () => {
-    // Nothing can be kept past this page, but the editor must stay usable:
-    // every level opens on its starter program instead of on an exception.
+    // Every level must open on its starter program instead of an exception.
     const { editor, view } = setUp(deniedStorage());
 
     expect(() => {
@@ -645,10 +555,8 @@ describe("CodeEditor buffers", () => {
   });
 
   it("keeps a switch lossless for as long as the tab lives when nothing can be stored", () => {
-    // A store that has been working and stops — a full quota, or a private
-    // window — must not turn a buffer switch into a shredder: leaving writes
-    // nowhere, coming back reads nothing, and the starting program would take
-    // the screen. Whatever was typed is safe for as long as the page is open.
+    // A store that stops accepting writes must not turn a buffer switch into a
+    // shredder; whatever was typed stays safe for as long as the page is open.
     const { editor, view } = setUp(fullStorage({ [CODE_STORAGE_KEY]: "// yesterday's program" }));
     view.type("// an afternoon of work");
 
@@ -662,8 +570,8 @@ describe("CodeEditor buffers", () => {
   });
 
   it("says nothing was saved when nothing could be", () => {
-    // The in-page memory is not persistence, and "Code saved ..." would be
-    // promising the player a next visit that the store cannot honor.
+    // In-page memory isn't persistence; "Code saved ..." would promise a next
+    // visit the store can't honor.
     const { editor, view } = setUp(fullStorage());
     const saved = vi.fn();
     editor.on("saved", saved);
@@ -685,10 +593,7 @@ describe("CodeEditor level buffers", () => {
     view.type("// level 7, slot 3");
     editor.openLevelBuffer(7, 2);
 
-    // Pinned as literals for the reason the tutorial keys above are: the
-    // spelling is what a half-finished attempt is found under later, and
-    // asserting through a helper would let a rename pass every test while
-    // quietly orphaning every slot already in play.
+    // Literals again, for the reason above.
     expect(storage.getItem("develevateChallengeCode_6_2")).toBe("// level 7, slot 2");
     expect(storage.getItem("develevateChallengeCode_6_3")).toBe("// level 7, slot 3");
   });
@@ -699,8 +604,7 @@ describe("CodeEditor level buffers", () => {
     editor.openLevelBuffer(4, 2);
 
     expect(view.getValue()).toBe(defaultCode());
-    // Stored at once, so leaving without typing loses nothing and does not
-    // reopen the slot on someone else's text.
+    // Stored at once, so leaving without typing loses nothing.
     expect(storage.getItem("develevateChallengeCode_4_2")).toBe(defaultCode());
   });
 
@@ -715,10 +619,7 @@ describe("CodeEditor level buffers", () => {
   });
 
   it("carries a slot's program forward from the newest lower level that has one", () => {
-    // A player who has never touched slot 2 of level 9 still expects to
-    // find slot 2 of level 8's program there, the same way starting
-    // level 9 for the first time in the legacy game picked up wherever
-    // level 8 left off.
+    // An untouched slot falls back to the same slot in the newest lower level that has something.
     const storage = new MemoryStorage();
     storage.setItem("develevateChallengeCode_5_2", "// slot 2 as of level 6");
     const { editor, view } = setUp(storage);
@@ -733,8 +634,8 @@ describe("CodeEditor level buffers", () => {
     storage.setItem("develevateChallengeCode_3_2", "// slot 2 as of level 4");
     const { editor, view } = setUp(storage);
 
-    // Nothing under levels 4 through 7's second slot, so the search must
-    // not stop at the level immediately before the one being opened.
+    // Nothing in levels 4-7's slot 2, so the search must not stop at the
+    // immediately preceding level.
     editor.openLevelBuffer(7, 2);
 
     expect(view.getValue()).toBe("// slot 2 as of level 4");
@@ -775,12 +676,9 @@ describe("CodeEditor level buffers", () => {
   });
 
   it("carries typing not yet autosaved into the first level's first slot", () => {
-    // The legacy key `#resolveLevelStarterCode` falls back to is exactly
-    // the key the buffer on screen is still writing to the first time a
-    // player ever opens a numbered level -- the player's own buffer is
-    // open by default. Resolving the starter program before flushing that
-    // buffer would carry forward whatever the key held before this keystroke
-    // rather than what is on screen right now.
+    // The player's own buffer is open by default the first time a numbered
+    // level opens, so its starter program must resolve against what's on
+    // screen right now, not against whatever the key held before this flush.
     const { editor, view, storage } = setUp();
     view.type("// typed a moment ago, not yet autosaved");
 
@@ -826,11 +724,8 @@ describe("CodeEditor reset", () => {
   });
 
   it("leaves the program where it is when there is nothing to undo", () => {
-    // The legacy game emptied the editor here, and the autosave a second later
-    // made that permanent. The button is offered whether or not anything was
-    // reset, and now that every buffer has a backup slot of its own, "nothing
-    // to undo" is the ordinary state of every level never reset — pressing it
-    // there must not be the quickest way to lose an afternoon's work.
+    // "Nothing to undo" is the ordinary state for a level never reset, so
+    // pressing "Undo reset" there must not clear the editor.
     const { editor, view, storage } = setUp();
     view.type("// worth keeping");
 
@@ -866,19 +761,15 @@ describe("CodeEditor reset", () => {
     editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     editor.undoReset();
 
-    // Level 1's own attempt, not level 2's, and the player's backup slot is
-    // untouched by any of it.
+    // Level 1's own attempt, not level 2's; the player's backup slot is untouched.
     expect(view.getValue()).toBe("// my level 1");
     expect(storage.getItem("develevateTutorialBackupCode_tutorial-1")).toBe("// my level 1");
     expect(storage.getItem(BACKUP_STORAGE_KEY)).toBeNull();
   });
 
   it("keeps the first backup when Reset is pressed a second time", () => {
-    // Reset asks for confirmation, so a second press is a real possibility --
-    // the dialog dismissed twice, or a player making sure. Backing the starter
-    // program up over the first backup would mean "Undo reset" brings back the
-    // skeleton, which is the same as bringing back nothing, and the program the
-    // first Reset replaced is then in no copy anywhere.
+    // A second press must not overwrite the first backup, or "Undo reset"
+    // would bring back the skeleton instead of the program Reset replaced.
     const { editor, view, storage } = setUp();
     view.type("// worth keeping");
 
@@ -891,10 +782,8 @@ describe("CodeEditor reset", () => {
   });
 
   it("keeps the backup when Reset follows an emptied editor", () => {
-    // The same slot, lost the other way: select-all, delete, Reset. An empty
-    // backup is one `undoReset` refuses to restore, so writing it would leave
-    // the recovery button doing nothing at all -- the worst version of this,
-    // because the player is looking straight at the thing that should help.
+    // An empty backup is one `undoReset` refuses to restore, so writing an
+    // empty backup over a real one would leave the recovery button doing nothing.
     const { editor, view, storage } = setUp();
     view.type("// worth keeping");
     editor.reset();
@@ -908,12 +797,9 @@ describe("CodeEditor reset", () => {
   });
 
   it("refuses to reset a program the store will not take a copy of", () => {
-    // A quota is a byte budget, and a *new* key is what stops fitting first
-    // while overwriting an old one with something shorter still succeeds. So
-    // the backup silently fails, the starter program takes the screen, and the
-    // autosave a second later writes it over the stored program -- successfully
-    // -- and announces "Code saved ...". The program is then in no copy
-    // anywhere. Resetting is worth nothing next to that; refusing is free.
+    // A silently failed backup followed by the autosave overwriting the
+    // stored program would leave it in no copy anywhere, so reset must refuse
+    // rather than risk that.
     const program = "// an afternoon of work";
     const storage = crowdedStorage({ [CODE_STORAGE_KEY]: program });
     const { editor, view } = setUp(storage);
@@ -929,33 +815,25 @@ describe("CodeEditor reset", () => {
   });
 
   it("resets anyway when the store is holding nothing to lose", () => {
-    // The other side of that refusal, and the reason it is not simply "reset
-    // fails when the backup fails". In a private window every write is refused
-    // and the store holds nothing for anybody, so there is no stored program a
-    // reset could destroy -- and a Reset button that never works for a whole
-    // class of players would be protecting nothing.
+    // In a private window every write is refused, so there's no stored
+    // program a reset could destroy: refusing here would protect nothing.
     const { editor, view } = setUp(deniedStorage());
     view.type("// worth keeping");
-    // Long enough for the autosave to have tried and failed, which is what puts
-    // the program in this page's own memory of what it has written. Asking that
-    // memory whether the program is stored would answer yes and refuse the
-    // reset; the question is what the store is holding, and it is holding
-    // nothing.
+    // Long enough for the autosave to have tried and failed: the check must ask
+    // what the store holds, not this page's own memory of what it has written.
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
 
     expect(editor.reset()).toBe(true);
 
     expect(view.getValue()).toBe(defaultCode());
-    // Recoverable for as long as the tab lives, which is as long as anything
-    // can be promised when nothing can be stored.
+    // Recoverable only for as long as the tab lives, since nothing can be stored.
     editor.undoReset();
     expect(view.getValue()).toBe("// worth keeping");
   });
 
   it("does not empty the editor undoing a reset of an empty program", () => {
-    // An empty program is not backed up at all -- there is nothing in it to
-    // bring back -- and restoring an empty backup would clear the program the
-    // player has written since.
+    // An empty program isn't backed up at all, or restoring that backup would
+    // clear whatever the player has written since.
     const { editor, view } = setUp();
     view.type("");
     editor.reset();
@@ -981,11 +859,8 @@ describe("CodeEditor reset", () => {
   });
 
   it("answers whether there is anything to bring back, buffer by buffer", () => {
-    // What the run controls hide the "Undo reset" button on, so a wrong answer
-    // is either a button that does nothing or a way back that is not offered.
-    // Asked of the buffer on screen rather than of the editor as a whole, for
-    // the same reason the backup slot is per buffer: a level that was reset must
-    // not offer to undo it from the player's own program.
+    // Asked of the buffer on screen, not the editor as a whole: a level that
+    // was reset must not offer to undo it from the player's own program.
     const { editor, view } = setUp();
 
     expect(editor.canUndoReset()).toBe(false);
@@ -1002,9 +877,7 @@ describe("CodeEditor reset", () => {
   });
 
   it("withdraws the offer once the player has written over the skeleton", () => {
-    // The state the offer is for is "the reset happened and I have not started
-    // again yet". A player who has started again has something to lose, and
-    // "Undo reset" is the button that would lose it.
+    // A player who has started again has something to lose, and "Undo reset" is the button that would lose it.
     const { editor, view } = setUp();
     view.type("// my own program");
     editor.reset();
@@ -1016,11 +889,8 @@ describe("CodeEditor reset", () => {
   });
 
   it("still offers the way back to a player who reset and came back later", () => {
-    // The backup is in the store, not in the page, and this is what that is
-    // for: the reset is autosaved a second after it happens, so a player who
-    // closes the tab and returns finds the skeleton -- and nothing else to go
-    // on. An answer that lived only in this page's memory would have quietly
-    // dropped the program on the way.
+    // A player returning after closing the tab has only the store to go on;
+    // an answer kept in this page's memory would drop the program on the way.
     const storage = new MemoryStorage();
     const first = setUp(storage);
     first.view.type("// an afternoon of work");
@@ -1036,10 +906,8 @@ describe("CodeEditor reset", () => {
   });
 
   it("says there is nothing to bring back when the reset was refused", () => {
-    // A refused reset leaves the program where it was -- and the copy `#write`
-    // kept in this page behind it, since the write is attempted before the
-    // refusal is decided. Asking only whether the slot holds something would
-    // put "Undo reset" on screen offering to undo a reset that never happened.
+    // A refused reset must not offer "Undo reset" just because a backup
+    // attempt happened before the refusal was decided.
     const program = "// an afternoon of work";
     const { editor, view } = setUp(crowdedStorage({ [CODE_STORAGE_KEY]: program }));
     view.value = program;
@@ -1047,17 +915,14 @@ describe("CodeEditor reset", () => {
     expect(editor.reset()).toBe(false);
 
     expect(editor.canUndoReset()).toBe(false);
-    // And goes on saying so. Typing is not a reset: an answer that compared the
-    // slot with the screen would say `true` again from here, and the button
-    // would surface at the next pause offering to undo something that never
-    // happened -- taking this line with it.
+    // Typing afterward is not a reset either, and must not re-arm the offer.
     view.type("// and another paragraph of it");
     expect(editor.canUndoReset()).toBe(false);
   });
 
   it("says there is nothing to bring back once it has been brought back", () => {
-    // The backup outlives the undo that used it, so the button would sit there
-    // afterwards restoring the program already in front of the player.
+    // The backup outlives the undo that used it, so the offer must be
+    // withdrawn or it would restore the program already on screen.
     const { editor, view } = setUp();
     view.type("// worth keeping");
     editor.reset();
@@ -1066,9 +931,7 @@ describe("CodeEditor reset", () => {
     editor.undoReset();
 
     expect(editor.canUndoReset()).toBe(false);
-    // The dangerous half of the same question. The undo is done; carrying on
-    // from the restored program must not re-arm a button whose dialog still
-    // says "as before the last reset" and whose effect is now to discard
+    // Typing after the undo must not re-arm it: its effect would discard
     // everything written since.
     view.type("// written since");
     expect(editor.canUndoReset()).toBe(false);
@@ -1104,9 +967,8 @@ describe("CodeEditor compilation", () => {
   });
 
   it("puts an error mark on the surface, and takes it off again", () => {
-    // The position comes from a run that was already going, not from
-    // compilation, so the editor has no way to work it out and no business
-    // second-guessing it — it carries it through exactly as given.
+    // The position comes from a run already going, not from compilation, so
+    // the editor carries it through exactly as given rather than recomputing it.
     const { editor, view } = setUp();
 
     editor.markError({ line: 4, column: 9 });
@@ -1126,18 +988,7 @@ describe("CodeEditor marking what threw", () => {
     "}",
   ].join("\n");
 
-  /**
-   * Compiles what is in the editor and runs it until it throws.
-   *
-   * The error is the engine's own, carrying a real stack, because that is what
-   * the app forwards: a hand-made object would only prove the editor passes
-   * objects along.
-   *
-   * @param editor - The editor holding the program.
-   * @returns Whatever the program threw.
-   * @throws {Error} When it compiled and then did not throw, since the test
-   * after that would be asserting about nothing.
-   */
+  /** Compiles what is in the editor and runs it until it throws, so the error carries a real stack. */
   function runUntilItThrows(editor: CodeEditor): unknown {
     const codeObj = editor.getCodeObj();
     if (codeObj === null) {
@@ -1161,9 +1012,7 @@ describe("CodeEditor marking what threw", () => {
   });
 
   it("takes the last run's mark off before the next one starts", () => {
-    // Applying is the player saying they have changed something. Whatever the
-    // old mark was under, it is being reconsidered, and a mark left over from
-    // the previous attempt would sit there through the whole of the new run.
+    // A mark left over from the previous attempt must not sit through the whole of the new run.
     const { editor, view } = setUp();
     view.value = THROWS_ON_LINE_4;
     editor.trigger("usercode_error", runUntilItThrows(editor));
@@ -1174,9 +1023,8 @@ describe("CodeEditor marking what threw", () => {
   });
 
   it("refuses to mark when the player has edited since the program compiled", () => {
-    // The error belongs to the text that was compiled, and its line 4 is not
-    // this document's line 4 any more. Underlining anyway would point at a line
-    // chosen by how far the edit happened to shift things.
+    // The error's line 4 belongs to the compiled text, not this document's
+    // current line 4; underlining anyway would point at an arbitrary line.
     const { editor, view } = setUp();
     view.value = THROWS_ON_LINE_4;
     const thrown = runUntilItThrows(editor);
@@ -1189,8 +1037,7 @@ describe("CodeEditor marking what threw", () => {
   });
 
   it("says nothing about a program that did not compile", () => {
-    // A syntax error has no line to give -- the code never ran -- and the
-    // banner says what is wrong without one.
+    // A syntax error has no line to give: the code never ran.
     const { editor, view } = setUp();
     view.value = "{ init: function ( }";
 
@@ -1199,9 +1046,8 @@ describe("CodeEditor marking what threw", () => {
   });
 
   it("leaves the previous run's line alone once a later program fails to compile", () => {
-    // The failed compilation did not replace the running program, so a runtime
-    // error arriving now still belongs to the one that is running -- but the
-    // document on screen is the broken text, and nothing in it is that line.
+    // A failed compilation doesn't replace the running program, so a runtime
+    // error arriving now still belongs to it, not to the broken text on screen.
     const { editor, view } = setUp();
     view.value = THROWS_ON_LINE_4;
     const thrown = runUntilItThrows(editor);
@@ -1214,11 +1060,8 @@ describe("CodeEditor marking what threw", () => {
   });
 
   it("forgets the running program once a later compilation fails", () => {
-    // The document is put back to exactly the text that threw, so the "has the
-    // player edited?" guard would let this through. What stops it is that a
-    // failed compilation ends the run: the app starts the world with a no-op
-    // when `getCodeObj` returns null, so this program is not running any more
-    // and its old error is not about anything on screen.
+    // A failed compilation ends the run, so a program's old error must not
+    // resurface even if the document is put back to exactly the text that threw.
     const { editor, view } = setUp();
     view.value = THROWS_ON_LINE_4;
     const thrown = runUntilItThrows(editor);
@@ -1240,9 +1083,7 @@ describe("CodeEditor marking what threw", () => {
   });
 
   it("marks nothing when the failure has no line to point at", () => {
-    // "Code must contain an init function" is thrown after the program was
-    // evaluated, from the game's own module, so no frame on it is the
-    // player's. The mark is cleared rather than guessed at.
+    // No frame of this error is the player's, so the mark is cleared rather than guessed at.
     const { editor, view } = setUp();
     view.value = THROWS_ON_LINE_4;
     runUntilItThrows(editor);
@@ -1281,12 +1122,6 @@ describe("CodeEditor events", () => {
 });
 
 describe("CodeEditor over a real editing surface", () => {
-  /**
-   * Mounts a CodeMirror-backed editor over a storage holding `code`.
-   *
-   * @param code - The program already in storage, if any.
-   * @returns The editor, its storage and a spy on writes to that storage.
-   */
   function mount(code?: string): {
     editor: CodeEditor;
     storage: MemoryStorage;
@@ -1308,12 +1143,6 @@ describe("CodeEditor over a real editing surface", () => {
     };
   }
 
-  /**
-   * Finds the editing surface the editor mounted.
-   *
-   * @param parent - The element the editor was mounted in.
-   * @returns The live view.
-   */
   function viewIn(parent: HTMLElement): EditorView {
     const view = EditorView.findFromDOM(parent);
     if (view === null) {
@@ -1322,46 +1151,21 @@ describe("CodeEditor over a real editing surface", () => {
     return view;
   }
 
-  /**
-   * Adds a line to the end of the document, as typing there would.
-   *
-   * Through a dispatch on the live view rather than through `setCode`, because
-   * what these tests need is an ordinary edit of the kind the undo history
-   * records — the same thing a keystroke produces, and the thing a buffer
-   * switch must not be.
-   *
-   * @param parent - The element the editor was mounted in.
-   * @param line - The text to append.
-   */
+  /** Appends a line via a dispatch on the live view, so it lands in the undo history like a real keystroke. */
   function typeLine(parent: HTMLElement, line: string): void {
     const view = viewIn(parent);
     view.dispatch({ changes: { from: view.state.doc.length, insert: line } });
   }
 
-  /**
-   * Everything ever written to the player's own key, in order.
-   *
-   * @param setItem - The spy on the storage the editor was given.
-   * @returns The programs written, oldest first.
-   */
   function playerWrites(setItem: ReturnType<typeof vi.spyOn<Storage, "setItem">>): string[] {
     return setItem.mock.calls.filter(([key]) => key === CODE_STORAGE_KEY).map(([, value]) => value);
   }
 
-  /**
-   * Presses the editor's own undo shortcut, as a player would.
-   *
-   * Through a keystroke rather than by calling `undo()` from
-   * `@codemirror/commands` directly: what is worth pinning is that the key the
-   * player actually presses cannot reach across a buffer switch, whichever
-   * command the base extensions have bound to it.
-   *
-   * @param parent - The element the editor was mounted in.
-   */
+  /** Presses the editor's actual undo shortcut, so the key a player presses is what's pinned, not `undo()` directly. */
   function pressUndo(parent: HTMLElement): void {
     const view = viewIn(parent);
-    // Both spellings of Mod, since only one of them is bound on any given
-    // platform and jsdom is not the platform the player is on.
+    // Both spellings of Mod: only one is bound on any given platform, and
+    // jsdom isn't the platform the player is on.
     for (const modifier of [{ ctrlKey: true }, { metaKey: true }]) {
       view.contentDOM.dispatchEvent(
         new KeyboardEvent("keydown", { key: "z", keyCode: 90, bubbles: true, ...modifier }),
@@ -1370,12 +1174,8 @@ describe("CodeEditor over a real editing surface", () => {
   }
 
   it("does not save, or announce a save, just for having been built", () => {
-    // Regression: CodeMirror 6 dispatches a document change for the initial
-    // document, so populating the editor after wiring the change listener
-    // scheduled an autosave. One second after every single page load the
-    // player was told "Code saved ..." and their storage was rewritten,
-    // unasked. The legacy game populated the editor first and only then
-    // registered its autosaver (app.js:50-55, :77-81).
+    // CodeMirror 6 dispatches a document change for the initial document; that
+    // must not schedule an autosave, or every page load would autosave unasked.
     const { editor, setItem } = mount("// the program the player left behind");
     // A stand-in for whatever a page hangs off the `saved` event.
     const saveMessage = document.createElement("span");
@@ -1404,11 +1204,8 @@ describe("CodeEditor over a real editing surface", () => {
   });
 
   it("hands a real editing surface its own text back, in both directions", () => {
-    // The round trip over the surface that ships, not only over the fake. The
-    // fake cannot get a swap wrong in the way that matters: CodeMirror's swap
-    // builds a whole new state, which is the one operation in this file that
-    // raises no change event, and everything the editor does about writing text
-    // back hangs off change events.
+    // The round trip over the surface that ships, not just the fake: a real
+    // swap builds a whole new state and raises no change event, unlike the fake.
     const { editor, storage, parent } = mount("// the program the player left behind");
 
     editor.openNamedLevelBuffer("tutorial-1", "// level 1 skeleton");
@@ -1436,20 +1233,9 @@ describe("CodeEditor over a real editing surface", () => {
   });
 
   it("cannot be undone across a buffer switch", () => {
-    // Regression, and the worst one this file has seen: a buffer switch used to
-    // replace the document with an ordinary edit, which the undo history
-    // recorded like any other. One Ctrl+Z with the player's own buffer open
-    // then put a tutorial level's skeleton on screen, and the autosave a second
-    // later wrote it into `elevatorCrushCode_v5` — the player's program
-    // destroyed by a single keystroke, with no backup written, so "Undo reset"
-    // could not bring it back either. Measured before the fix: undo applied,
-    // document "// level 1 skeleton", storage the same a second later.
-    //
-    // The line typed into the level is what gives the test its teeth. Undo can
-    // only reach back through a history that has something in it, so a switch
-    // made with nothing typed since the last one is undoable-in-principle and
-    // harmless-in-practice, and a test that never types passes under
-    // implementations that do let the history cross.
+    // Regression: a buffer switch used to look like an ordinary edit to the
+    // undo history, so Ctrl+Z from the player's buffer could bring back a
+    // level's skeleton and autosave it over their program, unrecoverably.
     const { editor, storage, setItem, parent } = mount("// the program the player left behind");
 
     editor.openNamedLevelBuffer("tutorial-1", "// level 1 skeleton");
@@ -1464,12 +1250,8 @@ describe("CodeEditor over a real editing surface", () => {
     expect(editor.getCode()).toBe("// the program the player left behind");
 
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
-    // Nothing was ever written to the player's key: the player never typed in
-    // that buffer, and leaving a buffer nobody edited writes nowhere. Asserting
-    // the whole list of writes and not just the value left behind is
-    // deliberate — the damage this test exists to catch is a write of the wrong
-    // text, which a later correct write would paper over by the time the run
-    // ends.
+    // The full write history is asserted, not just the final value: a bad
+    // write here would otherwise be papered over by a later correct one.
     expect(playerWrites(setItem)).toEqual([]);
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe(
       "// level 1 skeleton\n// my attempt",
@@ -1477,12 +1259,8 @@ describe("CodeEditor over a real editing surface", () => {
   });
 
   it("saves a half-typed level into that level when the player leaves mid-countdown", () => {
-    // The autosave is debounced by a second, so a player who types and clicks
-    // straight through to the next level leaves with a countdown still running.
-    // It has to be canceled at the switch and the text written where it was
-    // typed: left running, it fires with the next buffer open and writes one
-    // level's work under the other's key — and if the next buffer is the
-    // player's own, over the program they came back for.
+    // A countdown still running at a switch must be canceled and its text
+    // written where it was typed, or it fires under the next buffer's key.
     const { editor, storage, setItem, parent } = mount("// the program the player left behind");
     const saved = vi.fn();
     editor.on("saved", saved);
@@ -1498,15 +1276,12 @@ describe("CodeEditor over a real editing surface", () => {
     );
     expect(playerWrites(setItem)).toEqual([]);
     expect(editor.getCode()).toBe("// the program the player left behind");
-    // Leaving a buffer is not something the player asked to have saved, so the
-    // "Code saved ..." line stays as it was.
+    // Leaving a buffer isn't something the player asked to have saved.
     expect(saved).not.toHaveBeenCalled();
   });
 
   it("still undoes the player's own typing within a buffer", () => {
-    // The other half of the regression above: the cure is dropping the editing
-    // history at the switch, and it has to stop there. Undo is how a player
-    // takes back the line they just wrote, in a tutorial level as anywhere else.
+    // Dropping the undo history at a switch must not stop undo from working within a buffer.
     const { editor, parent } = mount();
     editor.openNamedLevelBuffer("tutorial-1", "// level 1 skeleton");
 
@@ -1548,11 +1323,8 @@ describe("codeMirrorView", () => {
   });
 
   it("offers the player API from the editor's own completion sources", () => {
-    // The completions themselves are `completions.test.ts`'s business; what
-    // this pins is the wiring, which is easy to get wrong in a way nothing else
-    // notices: registered on the wrong language, or through
-    // `autocompletion({override})`, the popup either never appears or appears
-    // with the language's own keywords and locals thrown out.
+    // Pins the wiring, not the completions themselves: registered wrong, the
+    // popup either never appears or drops the language's own sources.
     vi.useRealTimers();
     const parent = document.createElement("div");
     document.body.append(parent);
@@ -1571,9 +1343,8 @@ describe("codeMirrorView", () => {
   });
 
   it("completes a member deep in a real document, at the right offset", () => {
-    // `completions.test.ts` works in line coordinates; this is the one thing it
-    // cannot check, that the source turns them back into document offsets. Get
-    // that wrong and the popup inserts over the wrong text.
+    // Pins turning line coordinates back into document offsets; get that wrong
+    // and the popup inserts over the wrong text.
     vi.useRealTimers();
     const parent = document.createElement("div");
     document.body.append(parent);
@@ -1594,12 +1365,6 @@ describe("codeMirrorView", () => {
   });
 
   describe("the error mark", () => {
-    /**
-     * Mounts a real editor on a program.
-     *
-     * @param doc - The program to put in it.
-     * @returns The surface, and the element it was mounted in.
-     */
     function mount(doc: string): { view: TextEditorView; parent: HTMLElement } {
       vi.useRealTimers();
       const parent = document.createElement("div");
@@ -1631,9 +1396,7 @@ describe("codeMirrorView", () => {
     });
 
     it("takes the mark away as soon as the program is edited", () => {
-      // The player's first move on seeing the mark is to fix the line it is
-      // under, and a red underline left beneath their correction says the
-      // correction is what is wrong.
+      // A red underline left under the player's correction would say the correction is what's wrong.
       const { view, parent } = mount(PROGRAM);
       view.markError({ line: 3, column: 5 });
 
@@ -1643,9 +1406,7 @@ describe("codeMirrorView", () => {
     });
 
     it("marks the last character when the column is past the end of the line", () => {
-      // Rather than nothing: a mark spanning no characters is one CodeMirror
-      // rejects outright, and a position at the very end of a line is what a
-      // failure in a call that closes it reports.
+      // Not nothing: CodeMirror rejects a mark spanning no characters outright.
       const { view, parent } = mount(PROGRAM);
 
       view.markError({ line: 3, column: 999 });
@@ -1661,13 +1422,8 @@ describe("codeMirrorView", () => {
       expect(parent.querySelector(".cm-errorMark")).toBeNull();
     });
 
-    // These two are regression guards rather than proofs: a line with nothing
-    // on it has no character to underline, and the mark is skipped for it so
-    // that the range never has to start before the line it belongs to. Removing
-    // that guard was tried, and neither test noticed -- CodeMirror accepts the
-    // resulting range, which reaches back over the preceding line break, and
-    // draws nothing for it. They are here for the version of this that stops
-    // being tolerant, and because "nothing is drawn" is the contract either way.
+    // A blank line has no character to underline, so the mark is skipped
+    // rather than reaching back over the preceding line break.
     it("marks nothing on a line with nothing on it", () => {
       const { view, parent } = mount("{\n\n}");
 
@@ -1686,8 +1442,7 @@ describe("codeMirrorView", () => {
     });
 
     it("leaves the caret where the player left it", () => {
-      // The mark arrives while they are typing somewhere else. Selecting the
-      // failing text would be the obvious way to show it and the wrong one.
+      // Selecting the failing text would be the obvious way to show it, and the wrong one.
       const { view, parent } = mount(PROGRAM);
       const editor = EditorView.findFromDOM(parent);
       editor?.dispatch({ selection: { anchor: 1 } });
@@ -1704,10 +1459,8 @@ describe("codeMirrorView", () => {
     });
 
     it("names the surface in the locale the editor was mounted in", () => {
-      // The one string the editor owns, and the only name the editing surface
-      // has: CodeMirror's content element is a `contenteditable` div with no
-      // label anywhere near it, so without this a screen reader announces the
-      // whole game as an unnamed edit box.
+      // CodeMirror's content element has no label of its own; without this a
+      // screen reader announces it as an unnamed edit box.
       vi.useRealTimers();
       const parent = document.createElement("div");
       document.body.append(parent);
@@ -1728,10 +1481,6 @@ describe("the starting program", () => {
   });
 
   it("is the one in the catalog for the language on screen", () => {
-    // `editor.defaultCode.code` sat in both catalogs, fully translated, with
-    // no caller: a Russian player was handed English comments in the first
-    // JavaScript they ever see of this API, next to a Help page walking through
-    // that same program in Russian.
     setLocale("ru");
     const { view } = setUp();
 
@@ -1740,10 +1489,8 @@ describe("the starting program", () => {
   });
 
   it("follows the language, rather than the language it was imported in", () => {
-    // The reason `PLAYER_BUFFER.starterCode` is a getter. A module-scope
-    // constant is evaluated once, when this module is first imported, which is
-    // before anything has resolved the player's locale -- so it would answer
-    // English for the rest of the session no matter what the page says.
+    // `PLAYER_BUFFER.starterCode` must be a getter: a module-scope constant
+    // would be evaluated at import time, before the locale is known.
     const { editor, view } = setUp();
     expect(view.getValue()).toContain("// Let's use the first elevator");
 
@@ -1752,11 +1499,6 @@ describe("the starting program", () => {
 
     expect(view.getValue()).toContain("// Возьмём первый лифт");
   });
-
-  // That the two versions are the same program with only the comments
-  // translated is deliberately not asserted here. `catalog.test.ts` already
-  // asserts it for every `.code` key in the catalog, of which this is one,
-  // and a second copy would be a second thing to keep in step.
 });
 
 describe("the program on screen when the language changes", () => {
@@ -1764,11 +1506,6 @@ describe("the program on screen when the language changes", () => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  /**
-   * The first level of the learning track, which every player meets.
-   *
-   * @returns The level.
-   */
   function firstLesson(): TutorialLevel {
     const [level] = tutorialLevels;
     if (level === undefined) {
@@ -1778,10 +1515,7 @@ describe("the program on screen when the language changes", () => {
   }
 
   it("is said again in the new language when the game is the one that wrote it", () => {
-    // The whole complaint this answers: the language picker changed every word
-    // on the page except the ones inside the editor, so a player who arrived in
-    // Russian and switched to English went on reading Russian comments in the
-    // first JavaScript the game ever shows them.
+    // The language switch must reach the editor too, not just the rest of the page.
     const { editor, view } = setUp();
     expect(view.getValue()).toContain("// Let's use the first elevator");
 
@@ -1804,10 +1538,8 @@ describe("the program on screen when the language changes", () => {
   });
 
   it("says it changed, without announcing a save nobody asked for", () => {
-    // The program in the editor is different text now, so anything measuring or
-    // compiling it is stale -- the same reason opening a buffer raises this.
-    // Nothing is written, though: storage is read back through the same
-    // translation, so the language it happens to hold is invisible.
+    // Nothing is written: storage is read back through the same translation,
+    // so the language it happens to hold is invisible.
     const { editor, storage } = setUp();
     const changed = vi.fn();
     const saved = vi.fn();
@@ -1834,10 +1566,7 @@ describe("the program on screen when the language changes", () => {
   });
 
   it("resets a level to its starting point in the language on screen", () => {
-    // `EditorBuffer.starterCode` is a getter over the text the level was opened
-    // with for this: the level hands its program over once, when it opens, and
-    // "Reset" pressed an hour and a language later owes the player the version
-    // they can read.
+    // "Reset" pressed an hour and a language later still owes the player the version they can read.
     const level = firstLesson();
     const { editor, view } = setUp();
     editor.openNamedLevelBuffer(level.id, level.startingCode);
@@ -1851,9 +1580,8 @@ describe("the program on screen when the language changes", () => {
   });
 
   it("shows a level's stored starting point in the language on screen", () => {
-    // A level writes its starting point into storage the first time it is
-    // opened, so the copy waiting there tomorrow is in the language of the day
-    // it was written. Nothing else on the page is, and this must not be either.
+    // An untouched buffer must show the level in the language it's reopened
+    // in, not the language its skeleton happened to be stored in.
     setLocale("ru");
     const level = firstLesson();
     const russianSkeleton = level.startingCode;
@@ -1870,10 +1598,8 @@ describe("the program on screen when the language changes", () => {
   });
 
   it("carries a starting point forward into the next level in the language on screen", () => {
-    // The path that spreads one language through a whole session: level 2 with
-    // nothing of its own starts from what level 1 holds, and what level 1 holds
-    // is the default program as it was written down on the day that level was
-    // first opened.
+    // A level with nothing of its own falls back to the previous level's
+    // default, shown in the language on screen now, not the one it was stored in.
     setLocale("ru");
     const { editor, view } = setUp();
     editor.openLevelBuffer(0, 1);
@@ -1887,9 +1613,8 @@ describe("the program on screen when the language changes", () => {
   });
 
   it("finds the program the player left, whatever language they left it in", () => {
-    // The other half of the same rule, and the half worth being sure of: an
-    // attempt is not a starting point, so it comes back byte for byte however
-    // many languages the player has been through since.
+    // Unlike a starting point, a real attempt comes back byte for byte,
+    // regardless of how many locale switches happened since.
     const mine = "// моя попытка\nelevators[0].goToFloor(2);";
     setLocale("ru");
     const { editor, view } = setUp();

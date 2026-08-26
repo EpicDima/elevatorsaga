@@ -35,14 +35,8 @@ describe("changedLines", () => {
   });
 
   it("does not mark lines that only moved together, keeping their own text", () => {
-    // The docs on `changedLines` are explicit about this: the longest common
-    // subsequence is not a fixed position, so lines kept verbatim but
-    // reordered are "kept" rather than "changed" -- as long as reordering
-    // them doesn't break the relative order of the longest run the two
-    // programs still share. Here "A", "B", "C" all shift down one line but
-    // keep their order relative to each other, so none of them is marked;
-    // only "D", which jumps from the end to the front and so breaks that
-    // order, is.
+    // "A", "B", "C" shift down but keep their order, so none is marked; only "D", which
+    // jumps from the end to the front, breaks that order and is marked.
     const before = ["A", "B", "C", "D"].join("\n");
     const after = ["D", "A", "B", "C"].join("\n");
     expect(changedLines(before, after)).toEqual(new Set([0]));
@@ -59,8 +53,6 @@ describe("changedLines", () => {
   });
 
   it("finds the one line level 1 actually adds", () => {
-    // The real shape this exists for: two drafts of the same program, differing
-    // by exactly the line the third hint tells a player to add.
     const before = [
       "{",
       "    init: function(elevators, floors) {",

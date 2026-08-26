@@ -1,56 +1,15 @@
 /**
- * The document-global keyboard shortcuts: start or pause with Space, start
- * the run over with Mod-Enter, switch the workspace layout with Mod-B, open
- * the docs with F1, and open the settings popover with "?" — the same five
- * rows `features/hotkeys-help`'s dialog prints.
- *
- * Nothing here exists in production today. `src/ui/shortcuts.ts` only
- * relabels the `Mod-` key already printed on the documentation page and in
- * the hotkeys dialog; it binds nothing itself. This module is the binding,
- * mounted once from `src/main.ts` once every element and callback it drives
- * exists.
- *
- * ## Guards
- *
- * A typing target — an `<input>`, a `<textarea>`, a `<select>`, or anywhere
- * inside CodeMirror's own `.cm-editor` — takes every key below except Space,
- * which is guarded stricter still: it only fires with `document.body` itself
- * focused. Two things make the CodeMirror check necessary beyond the ordinary
- * tag check: CodeMirror's own editable region is a plain `contenteditable`
- * `<div>`, not one of the three tags above, and
- * `src/ui/editor.ts` already binds `Mod-Enter` itself, at `Prec.highest` —
- * a document-level listener that did not defer to it would start the run
- * over twice for one keypress.
- *
- * `Mod-` is `event.ctrlKey || event.metaKey` rather than a literal `Ctrl`
- * check, for the same reason `src/ui/shortcuts.ts`'s own `modifierKeyLabel`
- * exists: CodeMirror resolves `Mod-` to Command on Apple platforms, and a
- * handler that only checked `ctrlKey` would silently do nothing for exactly
- * the players that label was rewritten for. Mod-B's `preventDefault()` is
- * unconditional, unlike the others below it: it is also Chrome's own
- * "toggle the bookmarks bar", and a shortcut that opens the browser's own UI
- * instead of this page's has not been intercepted at all.
- *
- * "?" opens the settings popover through a click on its own trigger rather
- * than a callback, because `#shared/ui/disclosure.ts`'s `Disclosure` has no
- * `open()` of its own to call — the panel only ever opens from the trigger's
- * own click listener. Space works the same way, for the same reason
- * `#features/run-simulation`'s own button exists: this module has no opinion
- * on what starting, pausing or restarting a run does, only on which key asks
- * for it.
+ * Document-global shortcuts: Space (start/pause), Mod-Enter (start over), Mod-B (cycle layout),
+ * F1 (docs), "?" (settings). Mounted once from `src/main.ts`.
  */
 
 /** Tags a keydown at any of these belongs to what the player is typing, not to a shortcut. */
 const TYPING_TAGS: ReadonlySet<string> = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
 /**
- * Whether a keydown's target is somewhere a shortcut would collide with
- * typing — one of the three form tags above, or anywhere inside CodeMirror's
- * own `.cm-editor`, which is a `contenteditable` region none of those tags
- * name.
- *
- * @param target - The keydown event's own `target`.
- * @returns Whether every shortcut but Space should stay out of the way.
+ * Whether a keydown's target is somewhere a shortcut would collide with typing: one of the three form
+ * tags, or CodeMirror's own `.cm-editor` (a `contenteditable` div none of those tags cover).
+ * Excluding `.cm-editor` also keeps Mod-Enter here from double-firing alongside editor.ts's own binding.
  */
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) {
@@ -67,7 +26,7 @@ export interface GlobalShortcutsOptions {
   readonly startStopButton: HTMLElement;
   /** Mod-Enter's target. */
   readonly startOverButton: HTMLElement;
-  /** "?"'s target — the settings popover's own trigger; see the module comment for why a click and not a call. */
+  /** "?"'s target: the settings popover's trigger, clicked because `Disclosure` has no `open()` to call. */
   readonly settingsOpenButton: HTMLElement;
   /** Called on F1. */
   readonly onOpenDocs: () => void;
@@ -75,16 +34,7 @@ export interface GlobalShortcutsOptions {
   readonly onCycleLayout: () => void;
 }
 
-/**
- * Wires every document-global shortcut this module's own comment lists.
- *
- * Called once; nothing here is ever torn down, the same as every other
- * document-level listener this page wires — `#shared/ui/disclosure.ts`'s
- * outside-click and Escape listeners among them.
- *
- * @param options - The buttons each key clicks, and the callbacks for the
- * two keys with no button of their own.
- */
+/** Wires this module's five document-global shortcuts; called once and never torn down. */
 export function presentGlobalShortcuts(options: GlobalShortcutsOptions): void {
   const { root, startStopButton, startOverButton, settingsOpenButton, onOpenDocs, onCycleLayout } =
     options;

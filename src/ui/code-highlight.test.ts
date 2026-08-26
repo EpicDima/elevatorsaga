@@ -17,9 +17,6 @@ describe("highlightJavaScript", () => {
   });
 
   it("escapes every character markup cares about, within the one token that holds them", () => {
-    // The same five characters `#shared/ui/markup.ts`'s own `escapeHtml` escapes,
-    // all inside a single string literal -- which is one token, so nothing here
-    // depends on where Lezer happens to split the run into spans.
     const html = highlightJavaScript(`elevator.goToFloor("<img>&'x");`);
 
     expect(html).not.toContain("<img>");
@@ -27,11 +24,6 @@ describe("highlightJavaScript", () => {
   });
 
   it("writes the space between tokens as bare text, not an empty-classed span", () => {
-    // classHighlighter answers "" for the whitespace between tokens, and
-    // highlightJavaScript is documented to write unstyled text as plain text
-    // rather than an empty-classed <span> -- so nothing here reads `class=""`,
-    // while every operator and punctuation mark is still its own token, with a
-    // class `shared/styles/code.css` dims to `--ds-code-punc`.
     const html = highlightJavaScript("a < b;");
 
     expect(html).not.toContain('class=""');
@@ -75,10 +67,6 @@ describe("highlightJavaScript", () => {
   });
 
   it("reads back the exact source through textContent, marked lines included", () => {
-    // The invariant `templates.ts` and the copy button both depend on: each
-    // line is its own element rather than separated by a <br>, joined by a
-    // literal "\n" text node, so the container's own textContent reproduces the
-    // program byte for byte -- whether or not a `<mark>` sits around a line.
     const code = 'elevator.on("idle", function() {\n    elevator.goToFloor(0);\n});';
     const html = highlightJavaScript(code, new Set([1]));
 
@@ -101,12 +89,7 @@ describe("highlightJavaScript", () => {
   });
 });
 
-/**
- * A program shaped like the one a player writes in `#editor`: a declared
- * function, a called method, a plain property, a string, a number and a
- * comment, so that every row of the theme is exercised by real source rather
- * than by a hand-made tag.
- */
+/** A program exercising every themed token: keyword, call, property, string, number, comment. */
 const SAMPLE = `{
     init: function (elevators, floors) {
         function score(elevator) {
@@ -121,21 +104,7 @@ const SAMPLE = `{
     },
 }`;
 
-/**
- * Which `--ds-code-*` token the theme paints each run of a program in.
- *
- * `HighlightStyle` hands out generated class names, not colors, and keeps the
- * declarations behind them in a `StyleModule` — so this reads the rules back
- * out of that module and resolves each class to the custom property it sets.
- * Going through the real parser and the real `highlightCode` is the point: it
- * is what makes these assertions statements about "what color is `loadFactor`
- * in this program", rather than about which `Tag` object was written down.
- *
- * @param code - A JavaScript program.
- * @returns One entry per highlighted run, in source order, naming the token
- * suffix (`key`, `fn`, …) or `undefined` where the theme leaves the run in the
- * editor's own body color.
- */
+/** Resolves each highlighted run in `code` to the `--ds-code-*` suffix the theme paints it, via the real parser and `highlightCode`. */
 function paintedRuns(code: string): { text: string; token: string | undefined }[] {
   const declarations = new Map(
     [...(editorSyntaxTheme.module?.getRules() ?? "").matchAll(/\.(\S+?)\s*\{([^}]*)\}/g)].map(
@@ -152,29 +121,15 @@ function paintedRuns(code: string): { text: string; token: string | undefined }[
       runs.push({ text, token: /var\(--ds-code-(\w+)\)/.exec(body ?? "")?.[1] });
     },
     () => {
-      // Line breaks carry no color, and nothing here asks about them.
+      // Nothing.
     },
   );
   return runs;
 }
 
 /**
- * The token every run of a given text is painted in.
- *
- * A set rather than the first hit: `.` and `(` occur a dozen times each in
- * {@link SAMPLE}, and a check that looked only at the first would pass while
- * the rest were painted otherwise.
- *
- * Runs are trimmed before they are compared, because `highlightCode` hands an
- * unpainted name back glued to the spaces around it — `" queue "` for the
- * `queue` a `const` introduces — while a painted one arrives on its own. Not
- * trimming would make every "this name keeps the body color" assertion pass
- * vacuously, by finding no run at all.
- *
- * @param code - A JavaScript program.
- * @param text - The source text of the runs to look at, ignoring surrounding
- * whitespace.
- * @returns Every token those runs were painted in, deduplicated.
+ * All tokens trimmed runs of `text` are painted in, deduplicated across every match in `code`.
+ * Trimming matters: unpainted runs arrive glued to surrounding whitespace, so without it a run could be missed entirely and the assertion would pass vacuously.
  */
 function tokensFor(code: string, text: string): string[] {
   return [
@@ -197,17 +152,12 @@ describe("editorSyntaxTheme", () => {
   });
 
   it("groups the literals with the numbers rather than with the keywords", () => {
-    // `null` and `true` are `atom`s in Lezer's tag tree, and `atom` sits under
-    // `keyword` -- so this is what catches the two explicit rows going away and
-    // the literals silently taking the keyword color with them.
+    // null/true are atoms under keyword in Lezer's tag tree; this catches the two explicit rows disappearing.
     expect(tokensFor(SAMPLE, "null")).toEqual(["num"]);
     expect(tokensFor("const ok = true;", "true")).toEqual(["num"]);
   });
 
   it("colors a name where it is a function, and leaves every other name alone", () => {
-    // The distinction: the function token for `loadFactor()` and `score(...)`,
-    // plain body text for `destinationQueue` and for the `queue` a `const`
-    // introduces.
     expect(tokensFor(SAMPLE, "loadFactor")).toEqual(["fn"]);
     expect(tokensFor(SAMPLE, "forEach")).toEqual(["fn"]);
     expect(tokensFor(SAMPLE, "on")).toEqual(["fn"]);
@@ -219,10 +169,7 @@ describe("editorSyntaxTheme", () => {
   });
 
   it("colors a function-valued property where it is declared, not only where it is called", () => {
-    // The one place a real grammar knows more than a regular expression,
-    // pinned so that it stays a decision: `init: function (…)` names a
-    // function, and Lezer says so (`function(definition(propertyName))`),
-    // where a rule that can only look for a `(` after the name cannot.
+    // `init: function (…)` is tagged `function(definition(propertyName))` by Lezer's grammar.
     expect(tokensFor(SAMPLE, "init")).toEqual(["fn"]);
   });
 
@@ -238,10 +185,7 @@ describe("editorSyntaxTheme", () => {
   });
 
   it("names only tokens the stylesheet declares", () => {
-    // Every color this theme writes is a custom property, and a typo in one
-    // would not fail anything else here: an unknown `var()` resolves to nothing
-    // and the text falls back to the editor's own color, which looks exactly
-    // like a deliberately unpainted run.
+    // A typo in a `var()` name would resolve to nothing and look like a deliberately unpainted run elsewhere.
     const rules = editorSyntaxTheme.module?.getRules() ?? "";
     const named = [...new Set([...rules.matchAll(/var\((--[\w-]+)\)/g)].map(([, name]) => name))];
 

@@ -17,57 +17,28 @@ import {
   type ApiCompletion,
 } from "./completions.ts";
 
-// Every test below is entitled to a page in the default language, and several
-// of them change it. `test-setup.ts` has both catalogs in memory already, so
-// a switch takes effect on the next line rather than on the next tick.
+// Resets the locale so a language switch in one test doesn't leak into the next.
 afterEach(() => {
   setLocale(DEFAULT_LOCALE);
 });
 
-/**
- * The names offered for a cursor sitting at the end of `lineBeforeCursor`.
- *
- * @param lineBeforeCursor - The line up to the cursor.
- * @param explicit - Whether the player pressed Ctrl-Space.
- * @returns The labels in the order they are offered, or `null` for nothing.
- */
+/** The completion labels offered for a cursor at the end of `lineBeforeCursor`. */
 function labelsFor(lineBeforeCursor: string, explicit = false): string[] | null {
   const found = completionsFor(lineBeforeCursor, explicit);
   return found === null ? null : found.options.map((option) => option.label);
 }
 
-/**
- * Where the popup would start replacing, for a cursor at the end of the line.
- *
- * @param lineBeforeCursor - The line up to the cursor.
- * @param explicit - Whether the player pressed Ctrl-Space.
- * @returns The offset, or `null` when nothing is offered.
- */
+/** Where the popup would start replacing, for a cursor at the end of the line. */
 function fromFor(lineBeforeCursor: string, explicit = false): number | null {
   return completionsFor(lineBeforeCursor, explicit)?.from ?? null;
 }
 
-/**
- * Every table, so the shape of an entry can be checked across all of them.
- *
- * Built on demand rather than held in a constant, because the tables are: what
- * they say depends on the language active when they are asked for, and a
- * constant here would be a copy of one language frozen at import — the very
- * thing the tests below are about.
- *
- * @returns The five tables the popup can draw from, in the active language.
- */
+/** Every table, so entry shape can be checked across all of them; built fresh each call since text depends on the active language. */
 function everyTable(): readonly (readonly ApiCompletion[])[] {
   return [elevatorMembers(), floorMembers(), elevatorEvents(), floorEvents(), globalCompletions()];
 }
 
-/**
- * Every entry of every table, in one language.
- *
- * @param locale - The language to read them in; it stays active afterwards.
- * @returns The entries, in a fixed order, so two languages can be compared
- * entry by entry.
- */
+/** Every entry of every table, in one language and a fixed order, for cross-language comparison. */
 function everyEntryIn(locale: Locale): readonly ApiCompletion[] {
   setLocale(locale);
   return everyTable().flat();
@@ -104,8 +75,7 @@ describe("member completions", () => {
   it("does not fire on a dot that has nothing to do with the game", () => {
     for (const line of ["Math.", "console.", "foo.", "obj.prop.", "0.5 + x."]) {
       expect(labelsFor(line)).toBeNull();
-      // Not even when asked for explicitly: a dot means members, and the
-      // members of someone else's object are not ours to guess at.
+      // Not even when asked explicitly: a dot means members, not ours to guess at.
       expect(labelsFor(line, true)).toBeNull();
     }
   });
@@ -152,8 +122,7 @@ describe("event completions", () => {
   });
 
   it("offers both sets when the receiver's name gives nothing away", () => {
-    // The call is already known to be a subscription, so someone who named
-    // their variable `e` still gets the names they came for.
+    // Already known to be a subscription, so an ambiguous name still gets both sets.
     expect(labelsFor('e.on("')).toEqual([
       ...elevatorEvents().map((event) => event.label),
       ...floorEvents().map((event) => event.label),
@@ -196,10 +165,7 @@ describe("the program skeleton", () => {
   });
 
   it("inserts a program the game can actually run", () => {
-    // The skeleton is what a player starting from nothing gets handed, so it
-    // has to satisfy the same compiler their own code does -- in every
-    // language, since what the catalog translates in it are comments, and a
-    // translation that lost a `//` would be a program that does not parse.
+    // A translation that garbled a `//` comment would produce a program that doesn't parse.
     for (const locale of LOCALES) {
       setLocale(locale);
       const skeleton = globalCompletions().find((option) => option.label === "skeleton")?.apply;
@@ -228,9 +194,7 @@ describe("the program skeleton", () => {
 
 describe("what every entry carries", () => {
   it("has a signature and a line of prose, which is the point of the popup", () => {
-    // In every language: a key that reached the wrong catalog, or a
-    // translation left empty, would leave an entry with nothing to say only in
-    // the language nobody testing this speaks.
+    // A key routed to the wrong catalog, or an empty translation, would only show up in a language nobody here reads.
     for (const locale of LOCALES) {
       setLocale(locale);
       for (const table of everyTable()) {
@@ -262,19 +226,14 @@ describe("what every entry carries", () => {
 
 describe("the language the popup speaks", () => {
   it("answers in the language chosen after this module was imported", () => {
-    // The import at the top of this file ran with English active, which is also
-    // how a page starts: `applyPreferredLocale` resolves the player's language
-    // later, and everything drawn after that is supposed to be in it. A table
-    // built at import time and kept -- a module-scope `const` -- would still be
-    // English here, which is the fault this codebase has had to repair twice.
+    // A module-scope `const` built at import time would stay English forever.
     const english = everyEntryIn("en");
     const russian = everyEntryIn("ru");
     expect(russian).toHaveLength(english.length);
     for (const [index, entry] of russian.entries()) {
       expect(entry.info, `${entry.label} is still English`).not.toBe(english[index]?.info);
     }
-    // And it is not merely different text: it is what the Russian catalog
-    // says, word for word, for the key that entry is written against.
+    // Checked word-for-word against the Russian catalog, not just "is different".
     expect(elevatorMembers().find((entry) => entry.label === "goToFloor")?.info).toBe(
       translateIn("ru", "completion.elevator.goToFloor"),
     );
@@ -287,10 +246,7 @@ describe("the language the popup speaks", () => {
   });
 
   it("says it again in English when the player switches back", () => {
-    // Forward is not enough. Anything that remembers what it rendered -- and
-    // English is the tempting thing not to remember, being the fallback -- is a
-    // language change nobody can undo, so the way back is checked against the
-    // catalog rather than against whatever the popup said the first time.
+    // Checked against the catalog, not whatever English text got cached along the way.
     const before = everyEntryIn("en");
     everyEntryIn("ru");
     expect(everyEntryIn("en")).toEqual(before);
@@ -303,9 +259,7 @@ describe("the language the popup speaks", () => {
   });
 
   it("leaves the names and the signatures alone in every language", () => {
-    // The popup completes real API names into a real program. Translating a
-    // label would insert code that does not exist, and translating a signature
-    // would describe parameters the game does not take.
+    // Translating a label would insert code that doesn't exist.
     const english = everyEntryIn("en");
     for (const [index, entry] of everyEntryIn("ru").entries()) {
       const same = english[index];
@@ -316,9 +270,7 @@ describe("the language the popup speaks", () => {
   });
 
   it("speaks it through the offer the editor actually makes", () => {
-    // The tables above are reached from `completionsFor` in three different
-    // ways, and it is that function the editor's completion source calls. A
-    // language that stopped at the table would be a popup still in English.
+    // Goes through `completionsFor`, what the editor's completion source calls.
     setLocale("ru");
     const optionsFor = (line: string, explicit = false): readonly ApiCompletion[] =>
       completionsFor(line, explicit)?.options ?? [];
@@ -337,18 +289,7 @@ describe("the language the popup speaks", () => {
   });
 });
 
-/**
- * Every name player code can reach on a facade.
- *
- * The same walk `elevator-interface.test.ts` and `floor-interface.test.ts` use
- * to pin their surface: own properties first, then up the prototype chain, so
- * instance fields like `destinationQueue` are counted alongside the methods.
- * `getOwnPropertyNames` reads the descriptors, so a getter such as the floor's
- * `buttonStates` is found without being invoked.
- *
- * @param facade - An instance of the facade.
- * @returns Its property names.
- */
+/** Every name player code can reach on a facade, via `getOwnPropertyNames` so a getter like `buttonStates` isn't invoked. */
 function exposedNames(facade: object): Set<string> {
   const exposed = new Set<string>();
   for (
@@ -364,14 +305,7 @@ function exposedNames(facade: object): Set<string> {
   return exposed;
 }
 
-/**
- * Elevator members the popup leaves out on purpose, and why.
- *
- * Anything not listed here and not offered fails the test below, so a method
- * added to the facade cannot quietly stay undiscoverable: whoever adds it has
- * to either describe it in `completions.ts` or say here why it is not for
- * players.
- */
+/** Elevator members left out on purpose, and why; anything unlisted and unoffered fails the test below. */
 const OMITTED_ELEVATOR_MEMBERS: Readonly<Record<string, string>> = {
   getFirstPressedFloor: "Deprecated and undocumented; scheduled for removal.",
   trigger:
@@ -386,11 +320,7 @@ const OMITTED_FLOOR_MEMBERS: Readonly<Record<string, string>> = {
 };
 
 describe("agreement with the facades player code is handed", () => {
-  /**
-   * A live elevator facade, built the way `elevator-interface.test.ts` does.
-   *
-   * @returns The facade.
-   */
+  /** A live elevator facade, built the way `elevator-interface.test.ts` does. */
   function elevatorFacade(): ElevatorInterface {
     return new ElevatorInterface(
       new Elevator(1.5, 4, 40),
@@ -399,11 +329,7 @@ describe("agreement with the facades player code is handed", () => {
     );
   }
 
-  /**
-   * A live floor facade, built the way `floor-interface.test.ts` does.
-   *
-   * @returns The facade.
-   */
+  /** A live floor facade, built the way `floor-interface.test.ts` does. */
   function floorFacade(): FloorInterface {
     return new FloorInterface(new Floor(2, 100, () => undefined), () => undefined);
   }
@@ -413,10 +339,7 @@ describe("agreement with the facades player code is handed", () => {
     const undiscoverable = [...exposedNames(elevatorFacade())].filter(
       (name) => !offered.has(name) && !Object.hasOwn(OMITTED_ELEVATOR_MEMBERS, name),
     );
-    // Failing here means ElevatorInterface grew a method the completion popup
-    // does not know about. Describe it in ELEVATOR_MEMBERS, taking the wording
-    // from its JSDoc into the catalog, or list it in OMITTED_ELEVATOR_MEMBERS
-    // with the reason.
+    // Means the facade grew a method to describe in ELEVATOR_MEMBERS or list in OMITTED_ELEVATOR_MEMBERS.
     expect(undiscoverable).toEqual([]);
   });
 
@@ -429,8 +352,7 @@ describe("agreement with the facades player code is handed", () => {
   });
 
   it("offers nothing the facades do not have", () => {
-    // The other direction: a typo in a label, or a method that was renamed or
-    // removed, would otherwise sit in the popup inserting code that throws.
+    // The other direction: a stale or typo'd label would sit in the popup inserting code that throws.
     const elevator = exposedNames(elevatorFacade());
     expect(elevatorMembers().filter((option) => !elevator.has(option.label))).toEqual([]);
     const floor = exposedNames(floorFacade());

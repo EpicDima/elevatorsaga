@@ -16,15 +16,11 @@ describe("the four names a drawn building can be renamed from", () => {
   });
 
   it("counts cars from zero, the way the floors and the player's own array do", () => {
-    // No conversion at all, and that is the point: the first car is called 0
-    // because it is `elevators[0]` in the program the player is writing.
     expect(elevatorLabel(0)).toBe("Elevator 0");
     expect(elevatorLabel(3)).toBe("Elevator 3");
   });
 
   it("answers in the language active when it is asked, not when it was imported", () => {
-    // The whole point of a helper rather than a constant: the building outlives
-    // the language it was drawn in, and these are asked again to change it.
     expect(floorCallUpLabel(2)).toBe("Call an elevator going up from floor 2");
 
     setLocale("ru");

@@ -7,24 +7,14 @@ import { EN_MESSAGES, setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 
 import { localizePage, ATTRIBUTE_KEY_ATTRIBUTE, TEXT_KEY_ATTRIBUTE } from "./localize-page.ts";
 
-/**
- * User agent strings for the two answers `modifierKeyLabel` can give.
- *
- * A message written with `innerHTML` can carry a `<kbd data-mod-key>`, and
- * writing it throws away whatever `src/ui/shortcuts.ts` had labeled that key
- * with, so the platform's own key has to be put back afterwards; a Mac string
- * is the only way to see whether it was.
- */
+/** User agent strings for the two answers `modifierKeyLabel` can give. */
 const USER_AGENTS = {
   mac: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   windows:
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
 };
 
-/**
- * The English catalog with its keys forgotten, so a key read out of the page
- * can be looked up.
- */
+/** The English catalog, keys forgotten, so a key read from the page can be looked up. */
 const ENGLISH_VALUES: Readonly<Record<string, unknown>> = EN_MESSAGES;
 
 /** The page shell, parsed afresh for each test that writes into it. */
@@ -32,59 +22,35 @@ let page: Document;
 
 beforeEach(() => {
   page = new DOMParser().parseFromString(pageSource, "text/html");
-  // Cleared as well as silenced: the spy outlives the spec that installed it,
-  // and the specs that count warnings would otherwise see the whole file's.
+  // Cleared too: the spy outlives its spec, so later call-count assertions would otherwise see the whole file's warnings.
   vi.spyOn(console, "warn")
     .mockImplementation(() => undefined)
     .mockClear();
 });
 
-/**
- * What the page says in one place, in the single form both sides can be
- * compared in.
- *
- * Parsed and serialized again, and its runs of whitespace collapsed: HTML
- * collapses whitespace when it draws, so a sentence wrapped across three source
- * lines by the formatter and the same sentence written out on one line are the
- * same sentence. What is left is the tags, their attributes and the words.
- *
- * @param html - Markup, from the page or from the catalog.
- * @returns The same markup, comparable.
- */
+/** Markup normalized (whitespace collapsed) so page HTML and catalog HTML compare equal regardless of formatting. */
 function markupOf(html: string): string {
   const holder = document.createElement("div");
   holder.innerHTML = html;
   return holder.innerHTML.replace(/\s+/g, " ").trim();
 }
 
-/**
- * The words of an element, whitespace collapsed as a reader sees it.
- *
- * @param element - The element, or null when the page has nowhere for it.
- * @returns What it reads as.
- */
+/** The words of an element, whitespace collapsed as a reader sees it. */
 function textOf(element: Element | null): string {
   return (element?.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
 /** A message the page shell names, and where it names it. */
 interface NamedMessage {
-  /** The element carrying the attribute. */
   readonly element: Element;
   /** The attribute it was named in, for a failure that says where to look. */
   readonly attribute: string;
   /** The attribute the message fills, or null when it fills the content. */
   readonly name: string | null;
-  /** The message. */
   readonly key: string;
 }
 
-/**
- * Every message the page shell names, content and attributes alike.
- *
- * @param shell - The parsed page.
- * @returns One entry per message named, in document order.
- */
+/** Every message the shell names, content and attributes alike, in document order. */
 function namedMessages(shell: Document): NamedMessage[] {
   const named: NamedMessage[] = [];
   for (const element of shell.querySelectorAll(`[${TEXT_KEY_ATTRIBUTE}]`)) {
@@ -112,24 +78,18 @@ function namedMessages(shell: Document): NamedMessage[] {
 describe("what index.html names", () => {
   it("names a message that exists and takes no parameters, everywhere", () => {
     const named = namedMessages(page);
-    // A guard on the guard: a selector that matched nothing would let every
-    // assertion below pass on an empty list.
+    // A guard on the guard: a selector matching nothing would let every assertion below pass on an empty list.
     expect(named.length).toBeGreaterThan(5);
     for (const { attribute, key } of named) {
       const english = ENGLISH_VALUES[key];
       expect(english, `${attribute}="${key}"`).toBeTypeOf("string");
-      // The shell is markup, not a call site: there is nothing here to fill a
-      // placeholder from, so a message that takes one belongs somewhere else.
+      // The shell is markup, not a call site, so a message that takes a parameter belongs somewhere else.
       expect(String(english), key).not.toMatch(/\{/);
     }
   });
 
   it("ships, word for word, the English of every message it names", () => {
-    // This is what keeps the promise that wiring the interface through the
-    // catalog did not change the English game. The shell has two copies of
-    // every one of these sentences -- the one a reader without JavaScript sees
-    // and the one the catalog holds -- and nothing but this stops them
-    // drifting.
+    // The shell has two independent copies of every sentence — this is what keeps them from drifting apart.
     for (const { element, name, key } of namedMessages(page)) {
       const english = String(ENGLISH_VALUES[key]);
       if (name === null) {
@@ -159,9 +119,7 @@ describe("localizePage", () => {
   it("does not touch the slots the presenters fill", () => {
     localizePage(page, USER_AGENTS.windows);
 
-    // The building and the statistics are drawn by widgets that mount into
-    // these two containers at runtime. Localizing a label must not clear the
-    // slot beside it.
+    // The building and stats panels are drawn by widgets that mount into these containers at runtime.
     expect(page.querySelector(".innerworld")?.innerHTML).toBe("");
     expect(page.querySelector(".statscontainer")?.innerHTML).toBe("");
   });
@@ -172,14 +130,7 @@ describe("localizePage", () => {
     localizePage(page, USER_AGENTS.mac);
     setLocale(DEFAULT_LOCALE);
 
-    // The one thing on the page that stays as it shipped, and the reason it
-    // carries no data-i18n: a browser that is running this code parses the
-    // children of <noscript> as text rather than as elements, so in the only
-    // situation where the message could be replaced there is nothing there to
-    // replace, and in the only situation where it is read there is nothing
-    // running to replace it. DOMParser, which built this document, has
-    // scripting disabled and so does see the paragraph -- which makes this a
-    // real check that nothing here reaches for elements it was not told about.
+    // DOMParser has scripting disabled, so unlike a real running browser it does see the <noscript> paragraph — making this a real check.
     expect(textOf(page.querySelector("noscript"))).toBe(
       "Your browser does not appear to support JavaScript. This page contains a browser-based " +
         "programming game implemented in JavaScript.",
@@ -188,8 +139,7 @@ describe("localizePage", () => {
 
   describe("the language the page shell comes out in", () => {
     afterEach(() => {
-      // On the hook rather than at the end of a test body, so that a failing
-      // assertion cannot leave the rest of the file running in Russian.
+      // On the hook, not in the test body, so a failing assertion can't leave the rest of the file running in Russian.
       setLocale(DEFAULT_LOCALE);
     });
 
@@ -201,18 +151,9 @@ describe("localizePage", () => {
       expect(page.title).toBe("Elevator Saga — игра про программирование лифтов");
       expect(page.documentElement.lang).toBe("ru");
       expect(textOf(page.querySelector(".skip-link"))).toBe("Перейти к редактору кода");
-      // The one heading, and the one word in it that is not translated: the
-      // game's name is the game's name in either language, so `page.brand`
-      // holds the same string in both catalogs.
+      // The game's name is not translated; page.brand holds the same string in both catalogs.
       expect(textOf(page.querySelector("h1"))).toBe("Elevator Saga");
-      // The statistics panel is not checked here: it is the app's, drawn at
-      // runtime by `widgets/stats-panel` into a region this file leaves
-      // empty, and what it says in Russian is that widget's own
-      // `stats-panel.test.ts`'s subject.
-      //
-      // The run buttons are not checked here: they are the app's, written by
-      // `presentControls` into a region this file leaves empty, and what they
-      // say in Russian is `app.test.ts`'s subject.
+      // The statistics panel and run buttons are the app's own widgets, drawn at runtime into regions this file leaves empty; their Russian text is covered by their own tests.
     });
 
     it("names the things a screen reader announces in Russian too", () => {
@@ -224,10 +165,8 @@ describe("localizePage", () => {
       expect(page.querySelector(".statscontainer")?.getAttribute("aria-label")).toBe(
         "Статистика симуляции",
       );
-      // The panel's own explanatory tooltips are not checked here, the same
-      // way its captions are not checked above: `widgets/stats-panel` writes
-      // every one of its `title` attributes itself, at runtime, into a region
-      // this file leaves empty.
+      // The panel's own tooltips aren't checked here either: they're written into this
+      // region at runtime, by code this file doesn't own.
     });
 
     it("tells a crawler what the page is, in the language it is being read in", () => {
@@ -249,12 +188,7 @@ describe("localizePage", () => {
 });
 
 describe("a page shell asking for something the catalog cannot answer", () => {
-  /**
-   * Parses a fragment of shell, the way index.html itself is read.
-   *
-   * @param body - The markup inside `<body>`.
-   * @returns The document it parses to.
-   */
+  /** Parses a fragment of shell, the way index.html itself is read. */
   function shell(body: string): Document {
     return new DOMParser().parseFromString(
       `<!doctype html><html lang="en"><body>${body}</body></html>`,
@@ -297,9 +231,8 @@ describe("a page shell asking for something the catalog cannot answer", () => {
   });
 
   it("fills every attribute an element names", () => {
-    // Nothing in index.html needs two today. The form is worth having, and
-    // worth covering, because the first element that does need two will be a
-    // one-word change rather than a mechanism.
+    // Nothing in index.html needs two attributes on one element yet; this exists so the
+    // first thing that does needs only a one-word change, not a new mechanism.
     const scrap = shell(
       `<div id="both" ${ATTRIBUTE_KEY_ATTRIBUTE}="aria-label:page.world.label, title:page.stats.movesTitle"></div>`,
     );
@@ -315,13 +248,9 @@ describe("a page shell asking for something the catalog cannot answer", () => {
   });
 
   it("labels the modifier keys for the platform, alongside the messages", () => {
-    // The kbds are written into the scrap because no message the game loads
-    // brings one. The reference page's shortcut paragraph does, and it lives in
-    // `src/i18n/docs-en.ts`, which nothing but `src/page.test.ts` imports. The
-    // guarantee is the shell's either way, and is why the relabeling is the
-    // last thing `localizePage` does: a message written with `innerHTML` can
-    // carry a `<kbd data-mod-key>`, and writing it throws away the label, which
-    // would leave a Mac player told to press a key their keyboard does not have.
+    // Relabeling is the last thing localizePage does: writing a message with innerHTML
+    // would throw away a `<kbd data-mod-key>` inside it, leaving a Mac player told to press
+    // a key their keyboard doesn't have.
     const scrap = shell(`
       <p ${TEXT_KEY_ATTRIBUTE}="page.world.label">Building</p>
       <p><kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd>, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd></p>

@@ -1,19 +1,4 @@
-/**
- * The code editor: CodeMirror 6, plus the persistence around it.
- *
- * Ported from `createEditor()` in the legacy `app.js`, which drove CodeMirror 5
- * through jQuery and lodash. The split here is deliberate: {@link CodeEditor}
- * owns the storage, the events and the compilation of the player's program and
- * knows nothing about CodeMirror, while {@link codeMirrorView} owns the widget.
- * That keeps the editor testable without a real editing surface, and keeps the
- * choice of editor swappable.
- *
- * One legacy feature is deliberately not carried over: CodeMirror 5's
- * reindent-on-paste hook. It reindented every pasted line with the "smart"
- * indenter, which mangled pasted code often enough to be reported as a bug
- * (magwo/elevatorsaga#119). CodeMirror 6 indents as you type and leaves pasted
- * text alone, which is what players expect.
- */
+/** The code editor: CodeMirror 6, plus persistence of the player's program. */
 
 import {
   autocompletion,
@@ -62,86 +47,35 @@ import { localizeStarterCode } from "./starter-code.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 
-/**
- * Where the player's program is kept between visits.
- *
- * Unchanged from the legacy game on purpose: saved code must survive the
- * upgrade.
- */
+/** Storage key for the player's own program; renaming it loses every saved program. */
 export const CODE_STORAGE_KEY = "elevatorCrushCode_v5";
 
 /** Where the program is copied before "Reset" overwrites it. */
 export const BACKUP_STORAGE_KEY = "develevateBackupCode";
 
 /**
- * Prefix of the storage keys holding the learning track's programs.
- *
- * `develevate…` rather than `elevatorCrush…` because the `elevatorCrush*` names
- * are an on-disk contract inherited from the game this is a fork of: they mean
- * there exactly what they mean here, and a player who has both games in one
- * browser profile must not have one of them read the other's data. Everything
- * this fork invents therefore lives under the fork's own prefix, as
- * {@link BACKUP_STORAGE_KEY} already does.
- *
- * The level's identifier is part of the key — one key per level, not one key
- * holding all eight — so that a player who left level 3 half-written finds their
- * own attempt when they come back, "start over" is an operation on exactly one
- * level, and an entry that somehow becomes unreadable cannot take the other
- * seven down with it. Not exported: which keys exist, and how they are spelled,
- * is the editor's business alone.
- *
- * The identifier is the level's own `id` and goes in whole, which spells
- * `develevateTutorialCode_tutorial-3` and repeats the word. The repetition is
- * the cheaper half of the trade: the id is opaque here, and trimming a prefix
- * off it would be this file assuming a shape that `TutorialLevel.id` explicitly
- * does not promise to keep.
+ * Prefix for a learning-track level's storage key, one key per level id. Lives
+ * under its own `develevate…` prefix so a player with both this fork and the
+ * original game installed never has one read the other's data.
  */
 const TUTORIAL_CODE_KEY_PREFIX = "develevateTutorialCode_";
 
-/**
- * Prefix of the per-level "Undo reset" backups.
- *
- * Per level rather than one shared slot, for the reason the whole buffer split
- * exists: with one slot, resetting level 3 and undoing in level 4 would paste
- * level 3's program over level 4's.
- */
+/** Prefix for a level's "Undo reset" backup key; per level so a reset in one level cannot leak into another's undo. */
 const TUTORIAL_BACKUP_KEY_PREFIX = "develevateTutorialBackupCode_";
 
 /**
- * Prefix of the storage keys holding a level's three code slots.
- *
- * One key per `(levelIndex, slot)` pair, for the same reason the learning
- * track has one key per level: a player who left level 7 with a program in
- * it must find that program again on level 7, and only there, however
- * many levels they visit in between.
- *
- * The prefix keeps the spelling a level had when the key was first written.
- * Renaming it would say nothing to a player -- nobody reads a storage key --
- * and would lose the program every browser that already holds one saved.
+ * Prefix for a level+slot's storage key, one key per `(levelIndex, slot)`
+ * pair. Keep the spelling — renaming loses every already-saved program.
  */
 const LEVEL_CODE_KEY_PREFIX = "develevateChallengeCode_";
 
 /** Prefix of the per-`(levelIndex, slot)` "Undo reset" backups. */
 const LEVEL_BACKUP_KEY_PREFIX = "develevateChallengeBackupCode_";
 
-/**
- * The storage key of one level's one code slot.
- *
- * @param levelIndex - Zero-based index of the level.
- * @param slot - Which of the level's three slots.
- * @returns The key that slot's program is stored under.
- */
 function levelCodeKey(levelIndex: number, slot: CodeSlot): string {
   return `${LEVEL_CODE_KEY_PREFIX}${String(levelIndex)}_${String(slot)}`;
 }
 
-/**
- * The storage key of one level's one code slot's "Undo reset" backup.
- *
- * @param levelIndex - Zero-based index of the level.
- * @param slot - Which of the level's three slots.
- * @returns The key that slot's backup is stored under.
- */
 function levelBackupKey(levelIndex: number, slot: CodeSlot): string {
   return `${LEVEL_BACKUP_KEY_PREFIX}${String(levelIndex)}_${String(slot)}`;
 }
@@ -149,7 +83,7 @@ function levelBackupKey(levelIndex: number, slot: CodeSlot): string {
 /** How long typing must pause before the program is saved, in milliseconds. */
 export const AUTOSAVE_DELAY_MS = 1000;
 
-/** Indentation the editor inserts, matching the legacy `indentUnit: 4`. */
+/** The indentation string; also used as CodeMirror's indent unit and tab size below. */
 const INDENT = "    ";
 
 /** Events emitted by {@link CodeEditor}. */
@@ -166,14 +100,9 @@ export type CodeEditorEvents = {
   /** The program was written to storage. */
   saved: [savedAt: Date];
   /**
-   * The store refused a write. The text is in this page and nowhere else.
-   *
-   * Raised for every refused write, including the ones the player did not ask
-   * for, because the fact is the same one every time: nothing typed since is
-   * going to survive the tab being closed. An interface that shows when a
-   * program was last saved owes the player this too — a line that says "Code
-   * saved 14:32" and nothing else while every write fails is worse than no line
-   * at all, and the editor is the only thing here that knows.
+   * The store refused a write, including autosaves the player never asked
+   * for — every consumer showing "last saved" needs this to know when that
+   * claim is false.
    */
   storage_refused: [];
 };
@@ -189,19 +118,9 @@ export interface TextEditorHandlers {
 }
 
 /**
- * What a {@link TextEditorView.setValue} call means for the editing history.
- *
- * `"edit"` — the new text is another state of the program on screen, reached
- * by "Reset" or "Undo reset". The player may undo their way back through it,
- * as they could in the legacy game.
- *
- * `"swap"` — a different program takes the place of this one, because the
- * editor moved to another buffer. The history of the old program has to go with
- * it: undoing across a swap puts one buffer's program on screen while another
- * buffer is open, and the autosave a second later writes it to that buffer's
- * key. The player's own program can be destroyed that way in a single
- * keystroke, which is what makes this a separate kind rather than a flag on
- * the same one.
+ * What a `setValue` call means for undo history: `"edit"` is a change the
+ * player can undo; `"swap"` replaces the whole buffer and drops the old
+ * buffer's undo history, so undo cannot leak a different program in.
  */
 export type TextReplacement = "edit" | "swap";
 
@@ -210,42 +129,22 @@ export interface TextEditorView {
   /** Returns the whole document. */
   getValue: () => string;
   /**
-   * Replaces the whole document.
-   *
-   * An `"edit"` is a document change like any other, so the surface raises
-   * {@link TextEditorHandlers.onChange} for it — replacing the program from
-   * "Reset" or "Undo reset" autosaves, as it did in the legacy game. The document the surface is *built* with does not, which is why it is
-   * passed to the factory instead of being assigned afterwards; a `"swap"` is
-   * the same thing mid-life, and raises nothing either.
-   *
-   * @param value - The new document.
-   * @param replacement - What the new text has to do with the old; `"edit"`
-   * unless said otherwise.
+   * Replaces the whole document. An `"edit"` raises
+   * {@link TextEditorHandlers.onChange}; a `"swap"` does not, matching the
+   * document the surface was built with.
    */
   setValue: (value: string, replacement?: TextReplacement) => void;
   /** Puts the caret back in the editor. */
   focus: () => void;
   /**
-   * Marks the place a program failed, or takes an existing mark away.
-   *
-   * Drawn rather than selected, and it never moves the caret: the mark arrives
-   * while the player is reading or typing somewhere else, and an editor that
-   * jumps the cursor out from under them to say so has taken more than it gave.
-   *
-   * @param location - Where the failure was, or `undefined` to clear the mark.
-   * A location the document cannot contain — because it has since been edited,
-   * or replaced by another buffer — clears it too, rather than being clamped to
-   * a line that had nothing to do with the failure.
+   * Marks where a program failed, or clears the mark for `undefined`. Never
+   * moves the caret. A location the document can no longer contain also
+   * clears the mark rather than being clamped to an unrelated line.
    */
   markError: (location: CodeErrorLocation | undefined) => void;
 }
 
-/**
- * Builds an editing surface bound to the given handlers.
- *
- * @param handlers - Callbacks the surface raises.
- * @param initialValue - The document the surface starts with.
- */
+/** Builds an editing surface bound to the given handlers and starting document. */
 export type TextEditorViewFactory = (
   handlers: TextEditorHandlers,
   initialValue: string,
@@ -258,45 +157,21 @@ export interface CodeEditorOptions {
 }
 
 /**
- * What a store said when it was asked for a program.
- *
- * Three answers rather than two, and a shape the compiler makes callers open
- * before they can read the text. "There is nothing here" and "I will not tell
- * you" used to arrive as the same `null`, and the difference decides whether it
- * is safe to write: a store with nothing in it wants the level's starting point
- * written into it, and a store that would not answer may be holding an
- * afternoon's work that the same write would destroy.
- *
- * `"empty"` covers a missing key and a key holding `""` alike. An entry emptied
- * by hand, or by a write that ran out of room mid-string, is no more use than a
- * missing one, and every caller here treated the two the same way — one rule in
- * one place is one rule that cannot be applied inconsistently.
+ * What a store said when asked for a program. Three states rather than a
+ * `null`, because "nothing here" (safe to write the starter code) and "would
+ * not answer" (may be hiding unsaved work) must not be treated the same way.
  */
 type StoredText =
   | { readonly state: "text"; readonly text: string }
   | { readonly state: "empty" }
   | { readonly state: "unreadable" };
 
-/**
- * Classifies what a store handed back.
- *
- * @param value - What `getItem` returned.
- * @returns The text, or the fact that there is none.
- */
+/** Classifies a raw `getItem` result into a {@link StoredText}. */
 function storedText(value: string | null): StoredText {
   return value === null || value === "" ? { state: "empty" } : { state: "text", text: value };
 }
 
-/**
- * Reads a key from storage, saying so when the store would not answer.
- *
- * Safari in private mode throws from `localStorage.getItem`, and a player whose
- * browser refuses storage should still be able to play.
- *
- * @param storage - The store to read.
- * @param key - The key to read.
- * @returns What the store had, or the fact that it would not say.
- */
+/** Reads a key from storage; safe against private-mode Safari, which throws from `getItem`. */
 function readStorage(storage: Storage, key: string): StoredText {
   try {
     return storedText(storage.getItem(key));
@@ -305,14 +180,7 @@ function readStorage(storage: Storage, key: string): StoredText {
   }
 }
 
-/**
- * Writes a key to storage, ignoring a store that refuses to be written to.
- *
- * @param storage - The store to write.
- * @param key - The key to write.
- * @param value - The value to store.
- * @returns Whether the value was stored.
- */
+/** Writes a key to storage; returns `false` instead of throwing if the store refuses. */
 function writeStorage(storage: Storage, key: string, value: string): boolean {
   try {
     storage.setItem(key, value);
@@ -323,13 +191,8 @@ function writeStorage(storage: Storage, key: string, value: string): boolean {
 }
 
 /**
- * One editable program: where its text lives, what it starts from, and where
- * "Reset" parks the text it replaces.
- *
- * The editor shows exactly one of these at a time. Everything that reads or
- * writes storage goes through the buffer on screen, which is what keeps the
- * learning track's eight programs and the player's own program from writing
- * over each other: there is no code path that names a key directly.
+ * One editable program: its storage key, backup key, and starter text. The
+ * editor shows exactly one at a time, so all storage access goes through it.
  */
 interface EditorBuffer {
   /** Where this buffer's text is stored between visits. */
@@ -338,42 +201,19 @@ interface EditorBuffer {
   readonly backupKey: string;
   /**
    * The program {@link CodeEditor.reset} restores, and an empty buffer opens
-   * with.
-   *
-   * Read per use rather than held, by every buffer here, because a starter
-   * program is a translated string and the language can change under an open
-   * buffer. The player's own buffer renders its message on each read; the two
-   * that are handed a program at open time put it through
-   * {@link localizeStarterCode}, which answers for the language on screen now
-   * rather than the one the level was opened in.
+   * with. Read fresh on each use, not held, so a language change is picked up
+   * by an already-open buffer.
    */
   readonly starterCode: string;
   /**
    * Whether opening this buffer empty may write {@link EditorBuffer.starterCode}
-   * into {@link EditorBuffer.codeKey}.
-   *
-   * False for the player's own key and true for the track's, deliberately: the
-   * player's program is written by the player and by the explicit Save and
-   * Reset buttons, and by nothing else. A brand-new player who opens a tutorial
-   * level and never types must not come back to find the game has claimed their
-   * key on their behalf — an empty key already means "the default program", so
-   * writing it there would say nothing new and would only make an untouched
-   * install look like a played one.
+   * into {@link EditorBuffer.codeKey}. False for the player's own buffer, whose
+   * key must only ever be written by an explicit Save or Reset.
    */
   readonly writesStarterOnOpen: boolean;
 }
 
-/**
- * The buffer holding the player's own program, which the editor opens with.
- *
- * `starterCode` is a getter, not a value: the program is a translated string,
- * and this object is built when the module is imported, which is before the
- * player's locale has been resolved. Reading it per use is also what makes
- * "is this still the starter program?" mean the right thing after a language
- * change — the English program a player was handed is no longer what Reset
- * would give them, so it counts as theirs and gets backed up rather than
- * silently discarded.
- */
+/** The buffer holding the player's own program, and the editor's initial buffer. */
 const PLAYER_BUFFER: EditorBuffer = {
   codeKey: CODE_STORAGE_KEY,
   backupKey: BACKUP_STORAGE_KEY,
@@ -384,31 +224,8 @@ const PLAYER_BUFFER: EditorBuffer = {
 };
 
 /**
- * Describes the buffer of one learning-track level.
- *
- * Keyed by the level's stable identifier rather than by its position in the
- * track, because the position is the one thing about a level that is expected to
- * change. `TutorialLevel.id` in `src/game/tutorial.ts` says so itself, and the
- * program a player left half-written is precisely "a level surviving being
- * written down": key it by position and the day a ninth level is inserted at
- * number two, everybody's attempt at level 2 is handed to whoever opens the new
- * one, and the attempts at 3 through 8 all shift by one. Nothing warns anyone —
- * the text is still there, it is simply filed under somebody else's level.
- *
- * The identifier is taken as an opaque string. This file cannot check it
- * against the level table without importing the track it is meant to know
- * nothing about; what it can do is refuse the one value that is nobody's level
- * and would still spell a real key, and let the caller's own lookup — which
- * must already have found the starter program below — answer the rest.
- *
- * @param levelId - The level's stable identifier, such as `tutorial-3` or
- * `sky-1`.
- * @param starterCode - The program the level hands the player to complete.
- * @returns The buffer for that level.
- * @throws RangeError When `levelId` has no visible characters. Identifiers reach
- * the game from a URL the player can type by hand, and an empty one spells the
- * bare prefix — one shared key that every malformed route would pour its text
- * into.
+ * Describes a learning-track level's buffer, keyed by the level's stable id
+ * rather than its position in the track. Throws if `levelId` is blank.
  */
 function namedLevelBuffer(levelId: string, starterCode: string): EditorBuffer {
   if (levelId.trim() === "") {
@@ -424,16 +241,7 @@ function namedLevelBuffer(levelId: string, starterCode: string): EditorBuffer {
   };
 }
 
-/**
- * Describes the buffer of one level's one code slot.
- *
- * @param levelIndex - Zero-based index of the level.
- * @param slot - Which of the level's three slots.
- * @param starterCode - The program to show when the slot has nothing of its
- * own — the resolved carry-forward or legacy program, never the bare default:
- * see {@link CodeEditor.#resolveLevelStarterCode}.
- * @returns The buffer for that level and slot.
- */
+/** Describes one level's one code slot's buffer. */
 function levelBuffer(levelIndex: number, slot: CodeSlot, starterCode: string): EditorBuffer {
   return {
     codeKey: levelCodeKey(levelIndex, slot),
@@ -445,71 +253,38 @@ function levelBuffer(levelIndex: number, slot: CodeSlot, starterCode: string): E
   };
 }
 
-/**
- * The player's program: its text, its storage and its compilation.
- */
+/** The player's program: its text, its storage and its compilation. */
 export class CodeEditor extends Observable<CodeEditorEvents> {
   readonly #view: TextEditorView;
   readonly #storage: Storage;
   /** The buffer on screen; every read and write of program text goes to it. */
   #buffer: EditorBuffer = PLAYER_BUFFER;
   /**
-   * Every key this editor has written, kept for as long as the page lives.
-   *
-   * A store that refuses to be written to — a full quota, a private window —
-   * used to cost the player nothing, because the editor never replaced the
-   * document behind their back: what they could see was still there. With
-   * buffers it would cost them the program. Leaving a buffer would write
-   * nowhere, coming back would read nothing, and the starting program would
-   * take the screen, all without an error to show for it. Remembering the text
-   * in the page keeps a switch lossless for as long as the tab is open, which
-   * is as long as anything can be promised when nothing can be stored.
-   *
-   * The alternative — refusing to leave a buffer whose text could not be
-   * written — was rejected: it would jam the learning track completely in
-   * exactly the private windows it is supposed to survive.
+   * Every key this editor has written, kept in memory for the life of the
+   * page. Backs a switch between buffers when the store refuses writes (full
+   * quota, private mode), so leaving a buffer never silently drops its program.
    */
   readonly #session = new Map<string, string>();
   /**
    * Whether the document has changed since this buffer was last written.
-   *
-   * The editor writes on the way out of a buffer, and it must write *only* on
-   * the way out of a buffer somebody edited. A second tab left open on the same
-   * game holds an older program on screen and does not know it: the moment its
-   * player clicks into a level, an unconditional write would put that stale
-   * program into storage over the afternoon's work the first tab saved there.
-   * Before there were buffers there was nothing to leave, so an idle tab wrote
-   * nothing until somebody typed in it, and that is the property being kept.
+   * Guards the flush-on-leave: without it, an idle second tab holding a stale
+   * document would overwrite a fresher save the moment its player switches levels.
    */
   #unsavedEdits = false;
   #autosaveTimer: ReturnType<typeof setTimeout> | undefined = undefined;
   /**
    * The program {@link getCodeObj} last compiled, or `undefined` if none did.
-   *
-   * A runtime error arrives from the running world, which may be several
-   * seconds and any number of keystrokes after the program that raised it was
-   * compiled. Its line numbers count lines of *that* text. Holding on to it is
-   * what lets the mark be refused when the document has moved on, rather than
-   * underlining whatever has since drifted onto line 4.
+   * Runtime errors report a line number in *this* text, which may already
+   * differ from what is on screen — needed to refuse a stale error mark.
    */
   #runningCode: string | undefined = undefined;
 
-  /**
-   * @param createView - Builds the editing surface; receives the handlers the
-   * surface should raise.
-   * @param options - Storage override, mainly for tests.
-   */
   constructor(createView: TextEditorViewFactory, options: CodeEditorOptions = {}) {
     super();
     this.#storage = options.storage ?? localStorage;
-    // The stored program is handed to the surface as the document it is built
-    // with, never assigned to it afterwards. Assigning it is a document change,
-    // which schedules an autosave: the legacy game avoided that by calling
-    // `cm.setValue()` before registering the change handler (app.js:50-55, then
-    // :77-81), and without the same care every page load wrote to storage and
-    // announced "Code saved …" a second later, unasked. Building the document
-    // in also keeps it out of the undo history, so the first Ctrl+Z cannot wipe
-    // the program the player arrived with.
+    // Passed to the constructor rather than set afterwards: assigning would
+    // raise onChange (queuing an autosave) and land in the undo history, so
+    // the first Ctrl+Z would wipe the program the player arrived with.
     const existingCode = this.#read(this.#buffer.codeKey);
     const initialCode =
       existingCode.state === "text"
@@ -530,30 +305,17 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       },
       initialCode,
     );
-    // The editor listens to its own event. `usercode_error` is raised here for a
-    // program that will not compile, and raised on this same object by the app
-    // for one that compiled and then threw while the world was running; both
-    // reach the mark this way, and neither needs the app to know the mark
-    // exists.
+    // Also raised on this object by the app when a compiled program throws
+    // while running, so both failure paths reach the mark through one path.
     this.on("usercode_error", (error) => {
       this.#markThrownAt(error);
     });
   }
 
   /**
-   * Underlines the line of the program an exception came from.
-   *
-   * Refused unless the document still is the program that was compiled. The
-   * player can edit while the world runs — watching it go wrong is what
-   * prompts the edit — and a line number counted in the text they have since
-   * changed points at whatever has moved into that position. An underline in
-   * the wrong place is worse than none: it is a claim, and the player has no
-   * way to tell it is stale.
-   *
-   * Editing after the mark is drawn is the other half of the same problem, and
-   * is handled where the mark lives: any document change clears it.
-   *
-   * @param error - Whatever the player's code threw.
+   * Underlines where a thrown error came from. Refused unless the document is
+   * still the program that was compiled — a stale line number would underline
+   * whatever the player has since typed there.
    */
   #markThrownAt(error: unknown): void {
     const running = this.#runningCode;
@@ -563,11 +325,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.#view.markError(locateCodeError(error, running));
   }
 
-  /**
-   * Queues an autosave, restarting the countdown on every keystroke.
-   *
-   * Replaces the legacy `_.debounce(saveCode, 1000)`.
-   */
+  /** Queues an autosave, restarting the countdown if one is already pending. */
   #scheduleSave(): void {
     this.#cancelSave();
     this.#autosaveTimer = setTimeout(() => {
@@ -576,17 +334,9 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Drops a queued autosave.
-   *
-   * Anything that has just put the buffer's text into storage itself must do
-   * this, or the countdown started by the keystroke before it fires afterwards.
-   * Across a buffer switch that is worse than redundant: by the time it goes
-   * off the buffer on screen is the next one, so it writes that buffer's own
-   * text back over itself and announces "Code saved ..." for a save nobody
-   * asked for — and it is only the writing-back-over-itself that keeps it from
-   * being one level's work under another level's key, which is a property of the
-   * switch having stored the new text a moment earlier, not of the countdown
-   * being harmless.
+   * Drops a pending autosave. Callers that have just written this buffer's
+   * text themselves must call this, or the timer fires after a buffer switch
+   * and overwrites the *new* buffer's text with the old one's.
    */
   #cancelSave(): void {
     clearTimeout(this.#autosaveTimer);
@@ -594,16 +344,8 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Reads a key, from this session if this editor has written it.
-   *
-   * The session wins over the store rather than the other way round: the two
-   * agree whenever the store accepts writes, and when it does not, the session
-   * holds the newer text. Reading the store first would then hand back the last
-   * text that happened to fit, which is a stale program, not a missing one —
-   * the harder kind of loss to notice.
-   *
-   * @param key - The key to read.
-   * @returns The text, or `null` when neither remembers any.
+   * Reads a key, preferring this session's copy over the store: the store may
+   * be holding stale text if it previously refused a write.
    */
   #read(key: string): StoredText {
     const remembered = this.#session.get(key);
@@ -611,23 +353,9 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Writes a key, to this session as well as to the store, and says so when the
-   * store refuses.
-   *
-   * Every write in this class comes through here, and the announcement is made
-   * here rather than left to the caller on purpose. A refused write used to be
-   * a `boolean` that four callers could each forget to look at, and three of
-   * them did; TypeScript has no way to insist that a returned value is read, so
-   * "remember to check" is all such a design can offer, and it is the kind of
-   * promise that holds until the fifth caller is written. What cannot be
-   * forgotten is what happens by itself: the failure is announced from the one
-   * place every write already goes through, whether or not the caller looks at
-   * the answer. The answer is still returned, for the two callers that must
-   * *act* on it rather than merely report it.
-   *
-   * @param key - The key to write.
-   * @param value - The text to keep.
-   * @returns Whether the text reached the store, and so the next visit.
+   * Writes a key to the session and the store, announcing `storage_refused`
+   * on failure so no caller can forget to handle it. Still returns whether it
+   * succeeded, for the callers that must act on a refusal.
    */
   #write(key: string, value: string): boolean {
     this.#session.set(key, value);
@@ -643,25 +371,16 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     return this.#view.getValue();
   }
 
-  /**
-   * Replaces the program text.
-   *
-   * @param code - The program to show.
-   */
+  /** Replaces the program text. */
   setCode(code: string): void {
     this.#view.setValue(code);
   }
 
-  /**
-   * Compiles the program.
-   *
-   * @returns The compiled program, or `null` when it did not compile.
-   */
+  /** Compiles the program, returning `null` if it did not compile. */
   getCodeObj(): UserCodeObject | null {
     const code = this.getCode();
-    // Cleared before anything else: whatever the last run underlined, it was a
-    // claim about a run that is over. A program that compiles and then throws
-    // on the same line marks it again a moment later.
+    // Cleared first: any existing mark is a claim about a run that just
+    // ended, and a fresh throw on the same line will mark it again.
     this.#view.markError(undefined);
     try {
       const codeObj = getCodeObjFromCode(code);
@@ -669,13 +388,9 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       this.trigger("code_success");
       return codeObj;
     } catch (e) {
-      // Forgotten rather than left as it was. It would be tempting to keep the
-      // last program that did compile, on the grounds that it is still the one
-      // running -- but it is not: the app starts the world with a no-op
-      // whenever this returns `null` (`app.ts`, `#startRun`), so a failed
-      // compilation ends the previous run as surely as a successful one. What
-      // is running afterwards is incapable of throwing, and this field must not
-      // claim otherwise.
+      // Cleared rather than left at the last program that did compile: a
+      // failed compilation still ends the previous run, so nothing here is
+      // running that could throw.
       this.#runningCode = undefined;
       this.trigger("usercode_error", e);
       return null;
@@ -685,117 +400,45 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   /** Writes the program to storage and announces the change. */
   save(): void {
     this.#cancelSave();
-    // Cleared whether or not the store takes it: `#write` remembers every key
-    // it has written for as long as the page lives, so the text is not lost
-    // either way, and a store that refused this write will refuse the next one.
+    // Cleared regardless of success: `#write` remembers the text in-session
+    // either way, so nothing is lost even if the store refuses.
     this.#unsavedEdits = false;
-    // Announced only when it reached the store: after a refused write the
-    // program is safe for as long as the tab is open and no longer, and
-    // "Code saved ..." would be promising the player their next visit.
+    // "saved" fires only on success: after a refusal the program survives
+    // only for this tab, and the message would promise otherwise.
     if (this.#write(this.#buffer.codeKey, this.getCode())) {
       this.trigger("saved", new Date());
     }
     this.trigger("change");
   }
 
-  /**
-   * Shows the sandbox's own program again, keeping whatever was on screen.
-   *
-   * Takes no program to fall back on, and that is the point: the only text this
-   * can ever put on screen is the legacy single-buffer program, so no caller
-   * can hand its key somebody else's starter code by mistake. The sandbox is
-   * the last caller left: every numbered level has its own buffer now (see
-   * {@link CodeEditor.openLevelBuffer}), and this key lives on beneath it
-   * only as the one-time migration source {@link CodeEditor.#resolveLevelStarterCode}
-   * reads for level 1's first slot.
-   */
+  /** Shows the player's own program, keeping whatever was on screen. */
   openPlayerBuffer(): void {
     this.#openBuffer(PLAYER_BUFFER);
   }
 
   /**
-   * Shows the program of a level identified by name, keeping whatever was on
-   * screen.
-   *
-   * The level's own attempt if there is one, otherwise `starterCode`. Callers
-   * name a level, never a storage key: a method taking a key can be handed the
-   * player's key together with a level's starter program, and the player's
-   * program is gone. There is no such call to make here.
-   *
-   * Two blocks of the game reach here — the learning track and the Skyscraper
-   * block — and they share one keyspace rather than getting a prefix each. What
-   * makes that safe is the only thing this method knows about an id: that it is
-   * opaque and unique across the game. `tutorial-4` and `sky-1` cannot collide,
-   * and a second prefix would differ from the first in nothing but its spelling
-   * while doubling the number of places a stored program can be looked for.
-   *
-   * The method used to be called `openTutorialBuffer` and the storage prefix is
-   * still spelled `develevateTutorialCode_`. That is deliberate and must stay:
-   * renaming the *value* would say nothing to a player — nobody reads a storage
-   * key — and would lose the half-finished program of every browser that already
-   * holds one, exactly as {@link LEVEL_CODE_KEY_PREFIX}'s own comment says of
-   * `develevateChallengeCode_`. The method name is free to describe what it does
-   * because nothing outside this program depends on it.
-   *
-   * @param levelId - The level's stable identifier, as `TutorialLevel.id` and
-   * `SkyscraperLevel.id` spell it; the same string the route names, so nothing
-   * has to be derived.
-   * @param starterCode - The program the level starts from, used only when the
-   * level has nothing stored yet. Also what {@link CodeEditor.reset} restores
-   * while the level is open, so passing the text in the player's current
-   * language keeps "start over" in that language. Both blocks render
-   * `startingCode` at the moment it is read, so a caller that reads it into this
-   * call is handing over the language chosen by then; the string is kept as it
-   * arrived, and a level opened again hands over a fresh one.
+   * Shows a level's own attempt, or `starterCode` if it has none, keeping
+   * whatever was on screen. The storage prefix is `develevateTutorialCode_`
+   * for legacy reasons and must not be renamed, or every saved attempt is lost.
    */
   openNamedLevelBuffer(levelId: string, starterCode: string): void {
     this.#openBuffer(namedLevelBuffer(levelId, starterCode));
   }
 
-  /**
-   * Shows one level's one code slot, keeping whatever was on screen.
-   *
-   * The slot's own attempt if there is one, otherwise the starter program
-   * {@link CodeEditor.#resolveLevelStarterCode} resolves for it. Callers
-   * name a level and a slot, never a storage key, for the same reason
-   * {@link CodeEditor.openNamedLevelBuffer} does.
-   *
-   * @param levelIndex - Zero-based index of the level to open.
-   * @param slot - Which of the level's three slots to show.
-   */
+  /** Shows one level's one code slot, keeping whatever was on screen. */
   openLevelBuffer(levelIndex: number, slot: CodeSlot = DEFAULT_CODE_SLOT): void {
-    // Ahead of resolving the starter code, and not left to the flush inside
-    // `#openBuffer` below: the legacy key `#resolveLevelStarterCode` falls
-    // back to is exactly the key the buffer on screen is still writing to, the
-    // very first time a player ever opens a numbered level. Resolving
-    // first would carry forward whatever that key held before this keystroke
-    // rather than what is on screen right now.
+    // Flushed before resolving the starter code: the legacy fallback key can
+    // be the very key still on screen, and resolving first would read it
+    // before this keystroke's text reaches it.
     this.#flush();
     const starterCode = this.#resolveLevelStarterCode(levelIndex, slot);
     this.#openBuffer(levelBuffer(levelIndex, slot, starterCode));
   }
 
   /**
-   * The starter program to open a level's slot with, when the slot itself
-   * is empty.
-   *
-   * Walks every lower-numbered level's same slot, newest first, and takes
-   * the first one holding a program — the carry-forward a player who has never
-   * touched slot 2 of level 9 still expects, because slot 2 of level 8
-   * had one. Every lower index, not just the one immediately before this
-   * level: a player can land on any level directly, by a bookmark or a
-   * typed URL, without ever having opened the ones in between.
-   *
-   * Only the default slot falls back further, to the legacy single-buffer key.
-   * That fallback is what makes slot 1 of whichever level a returning
-   * player first opens show the program they saved before slots existed; slots
-   * 2 and 3 have no such history to inherit, so they fall straight to the bare
-   * default.
-   *
-   * @param levelIndex - Zero-based index of the level being opened.
-   * @param slot - Which of the level's three slots.
-   * @returns The carried-forward program, the legacy program, or the bare
-   * default — never empty.
+   * The starter code for a level's slot when the slot itself is empty: the
+   * newest lower-numbered level's same slot that has one, or — for the
+   * default slot only — the legacy single-buffer program, or else the bare default.
    */
   #resolveLevelStarterCode(levelIndex: number, slot: CodeSlot): string {
     for (let i = levelIndex - 1; i >= 0; i -= 1) {
@@ -813,93 +456,55 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     return defaultCode();
   }
 
-  /**
-   * Puts `next` on screen, having put the text on screen back where it came
-   * from.
-   *
-   * @param next - The buffer to show.
-   */
+  /** Puts `next` on screen, flushing the buffer currently on screen first. */
   #openBuffer(next: EditorBuffer): void {
     if (next.codeKey === this.#buffer.codeKey) {
-      // Already on screen. Reloading it would be worse than useless: the
-      // document would be replaced, moving the caret and emptying the undo
-      // history, for text that is already there. Routers and interfaces repeat
-      // themselves — a re-render, a restart of the level already open, a second
-      // click on the link for it — and none of that may disturb typing. The
-      // description is still taken, because a starter program is a translated
-      // string: `editor.defaultCode.code` for the player's own buffer and
-      // `tutorial.levelN.startingCode.code` for a level's. A repeat after a
-      // language change therefore arrives carrying the newer text, and "Reset"
-      // owes the player the version they can read.
+      // Same key already on screen: skip the reload (it would move the caret
+      // and clear undo for nothing) but still take the new starter text,
+      // since a language change may have translated it since last time.
       this.#buffer = next;
       return;
     }
-    // Everything unsaved in the buffer being left goes back to that buffer's
-    // own key before anything else happens; the switch is the last chance,
-    // since the pending autosave is about to be canceled.
+    // Flushed before the switch: this is the last chance, since the pending
+    // autosave is about to be canceled.
     this.#flush();
     this.#buffer = next;
     const stored = this.#read(next.codeKey);
     if (stored.state === "text") {
-      // Through `localizeStarterCode` because this text may be a starting point
-      // this editor wrote here in another language, on another day: every buffer
-      // but the player's own stores its starter on the way in, and a level whose
-      // stored copy is Russian must not be the one region of an English page
-      // that says so. A program the player wrote comes back exactly as they left
-      // it, which is the whole distinction that function draws.
+      // Localized because this may be a starter program this editor wrote in
+      // another language; the player's own text passes through unchanged.
       this.#swapDocument(localizeStarterCode(stored.text));
     } else {
-      // Nothing to show but the starting point. Whether it may also be *written*
-      // depends on which kind of nothing this is: an empty entry is a level
-      // nobody has started, while a store that would not answer may be holding
-      // an attempt this write would destroy — and destroy invisibly, since the
-      // player is looking at a skeleton and has no way to know their work was
-      // ever there. Showing the skeleton is unavoidable; storing it is not.
+      // Nothing stored. An empty entry may be written with the starter code;
+      // a refusal to answer may be hiding unsaved work, so only "empty" is
+      // treated as safe to write.
       if (stored.state === "empty" && next.writesStarterOnOpen) {
-        // Stored right away rather than left to the first autosave, so that the
-        // level the player is looking at is the level they come back to even if
-        // they close the tab without typing a character.
+        // Written immediately rather than waiting for an autosave, so the
+        // level shown is the level a player returns to even untouched.
         this.#write(next.codeKey, next.starterCode);
       }
       this.#swapDocument(next.starterCode);
     }
-    // The document on screen is not the player's typing any more, and nothing
-    // in it is waiting to be written: it came out of storage, or it was just
-    // put there. A surface that treats the swap as an edit has queued an
-    // autosave of it, which would tell the player "Code saved ..." for a save
-    // they did not ask for — the same unasked announcement the constructor
-    // goes out of its way to avoid.
+    // Nothing here is unsaved: this text just came from storage or was just
+    // written to it, not typed.
     this.#unsavedEdits = false;
     this.#cancelSave();
-    // The program in the editor is a different program now, even though nobody
-    // typed: listeners that describe the editor's contents, such as the fitness
-    // measurement, are stale and say so themselves off this event.
+    // Raised even though nobody typed: listeners describing the editor's
+    // contents (e.g. the fitness measurement) are stale until they see this.
     this.trigger("change");
   }
 
   /**
-   * Puts another buffer's program on screen in place of this one's.
-   *
-   * Never {@link CodeEditor.setCode}, which is an edit of the program on
-   * screen: an edit can be undone, and undoing across a buffer switch is how
-   * one buffer's program ends up on screen — and then, through the autosave, in
-   * another buffer's key.
-   *
-   * @param code - The program to show.
+   * Puts another buffer's program on screen, never via {@link CodeEditor.setCode}:
+   * an edit can be undone, which would leak one buffer's program into another's key.
    */
   #swapDocument(code: string): void {
     this.#view.setValue(code, "swap");
   }
 
   /**
-   * Writes the text on screen back to the buffer it belongs to, if it is
-   * text the player has changed.
-   *
-   * Deliberately silent, unlike {@link CodeEditor.save}: this is bookkeeping on
-   * the way out of a buffer, not a save the player asked for. And deliberately
-   * nothing at all when nobody has typed, which is the difference between a
-   * second tab sitting idle and a second tab quietly overwriting the first
-   * tab's work the moment its player clicks a link.
+   * Writes the text on screen back to its buffer, silently, if the player has
+   * changed it. Does nothing when nothing has been typed.
    */
   #flush(): void {
     if (!this.#unsavedEdits) {
@@ -908,81 +513,44 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     const code = this.getCode();
     const stored = this.#read(this.#buffer.codeKey);
     if (stored.state !== "text" && code === this.#buffer.starterCode) {
-      // Storage already says exactly this: an entry with nothing in it is read
-      // back as the buffer's starter program. What the guard is for, now that
-      // an untouched buffer is not written at all, is the player who typed a
-      // character and deleted it again before clicking away — the flag says
-      // they edited, and they did, but the program is the one they started
-      // with. Writing it would create the player's own key on their behalf and
-      // make an untouched install start looking like a played one.
+      // Guards the player who typed and then deleted back to the starter
+      // text: `#unsavedEdits` is true, but writing now would create their key
+      // on their behalf, making an untouched install look like a played one.
       return;
     }
     this.#write(this.#buffer.codeKey, code);
   }
 
   /**
-   * Backs the program up and replaces it with the buffer's starter program.
-   *
-   * @returns Whether the program was replaced. `false` means the store is
-   * holding a program it would not take a copy of, and the reset was refused
-   * rather than carried out — see below.
+   * Backs the program up and replaces it with the starter program. Returns
+   * `false` if the store refused the backup, in which case nothing is changed.
    */
   reset(): boolean {
     const code = this.getCode();
     if (code === "" || code === this.#buffer.starterCode) {
-      // There is nothing here to lose, and the backup slot is worth more than a
-      // copy of it. Two Resets in a row used to leave the backup holding the
-      // starter program, and "Undo reset" bringing back the skeleton is the
-      // same as bringing back nothing; worse with an emptied editor in between,
-      // where the backup became "" and the guard in `undoReset` then made the
-      // one button that could have recovered the program do nothing at all.
+      // Skips the backup: there is nothing here worth saving, and backing up
+      // the starter program itself would overwrite a real backup from an
+      // earlier reset, making "Undo reset" bring back nothing.
       this.setCode(this.#buffer.starterCode);
       return true;
     }
     if (
       !this.#write(this.#buffer.backupKey, code) &&
-      // Deliberately not `#read`: the question is what the *store* is holding,
-      // and `#read` would answer out of this page's own memory. A store that
-      // keeps nothing for anybody — a private window — has nothing to lose
-      // here, and refusing to reset there would break the button for a whole
-      // class of players to protect a program the store never had.
-      //
-      // A store that will not answer reads is counted with them, though it may
-      // well be holding something. That was measured rather than assumed: when
-      // reads throw and writes are taken, the constructor has already shown the
-      // starting program, and the first keystroke's autosave overwrites the
-      // stored one — with no Reset anywhere in it. Refusing here would save
-      // nothing that typing does not destroy a second later, and there is no
-      // way from in here to tell that store apart from a private window, which
-      // throws from reads exactly the same way. What is left of the program in
-      // both cases is the copy `#write` kept in this page, which "Undo reset"
-      // reads back for as long as the tab is open.
+      // Reads the store directly (not `#read`) because the question is what
+      // the store itself holds: a store that refuses writes, or refuses
+      // reads too, has nothing to lose by "failing" this check.
       readStorage(this.#storage, this.#buffer.codeKey).state === "text"
     ) {
-      // The store took the program and will not take a copy of it, which is
-      // what a quota looks like from in here: a new key does not fit, while
-      // overwriting an old one with something shorter still succeeds. Carrying
-      // on would replace the program with the starter and the autosave a second
-      // later would write *that* over the stored program — successfully, being
-      // smaller — and announce "Code saved ...". An afternoon's work, gone with
-      // nothing anywhere to bring it back from. Refusing keeps every copy.
+      // A quota looks like exactly this: the store took the program but
+      // refuses a second key. Resetting anyway would let the next autosave
+      // overwrite the stored program with the (smaller) starter text.
       return false;
     }
     this.setCode(this.#buffer.starterCode);
     return true;
   }
 
-  /**
-   * Restores the program as it was before the last {@link CodeEditor.reset} of
-   * this buffer.
-   *
-   * Does nothing when this buffer has no backup, which is a change from the
-   * legacy game: there, "Undo reset" with nothing to undo emptied the editor
-   * and the autosave a second later made that permanent. The button is offered
-   * unconditionally and now every buffer has a backup slot of its own, so
-   * "nothing to bring back" became the ordinary case — pressing it in a level
-   * never reset must not be the fastest way to lose an afternoon's work.
-   */
+  /** Restores the program to before the last {@link CodeEditor.reset} of this buffer, or does nothing if there is no backup. */
   undoReset(): void {
     const backup = this.#read(this.#buffer.backupKey);
     if (backup.state !== "text") {
@@ -992,37 +560,9 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Whether there is a reset of this buffer for {@link CodeEditor.undoReset} to
-   * take back.
-   *
-   * Published so that the run controls can keep the button out of the way until
-   * it can do something — see
-   * {@link "../pages/game/index.ts"!ControlsPresenterOptions.canUndoReset}. Asked
-   * afresh every time rather than announced as an event, because it changes
-   * with the buffer as well as with a reset: switching to another level swaps
-   * the backup slot underneath it.
-   *
-   * The question is not whether the backup differs from the program on screen,
-   * which is the obvious reading and the wrong one. Comparing them offers the
-   * button whenever the two have drifted apart *for any reason*, and typing is
-   * a reason: after a refused reset, or after an undo, one keystroke made this
-   * true again and the button reappeared — at the next pause or speed change,
-   * with no visible connection to anything the player had done — behind a
-   * dialog that says "as before the last reset" for a reset that either never
-   * happened or has already been taken back. Accepting it then throws away
-   * every keystroke since. A button that quietly rearms itself into a
-   * destructive one is worse than a button that does nothing.
-   *
-   * What is asked instead is whether the editor still holds what a reset leaves
-   * behind: the starter program, with a backup underneath it to bring back.
-   * That is true only in the state where the undo restores work and destroys
-   * none, it survives a reload — the backup is in the store, so a player who
-   * reset yesterday and comes back to the untouched skeleton is still offered
-   * the way back — and it stops being true the moment the player writes
-   * something worth keeping, which is the moment the offer becomes a trap.
-   *
-   * @returns Whether the buffer on screen is back at its starter program with a
-   * backup behind it.
+   * Whether {@link CodeEditor.undoReset} would restore something: the
+   * document is exactly the starter program, with a backup behind it — not
+   * "backup differs from current text", which one keystroke could re-arm.
    */
   canUndoReset(): boolean {
     if (this.getCode() !== this.#buffer.starterCode) {
@@ -1032,24 +572,9 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Says the program on screen again in the language now active, when it is one
-   * the game handed the player.
-   *
-   * The counterpart, for the one region of the page holding text nobody
-   * translated on the way in, of every other redraw a language change sets off.
-   * The editor cannot simply be redrawn like the rest of them: what is in it is
-   * usually the player's, and the whole game is built on never replacing that.
-   * So the question asked is narrower — is this text a program the game itself
-   * wrote? — and only text that answers yes is replaced. See
-   * {@link localizeStarterCode} for why that is asked of the text rather than
-   * tracked as a flag.
-   *
-   * Storage is deliberately left alone, though it may well be holding the same
-   * program in the old language. Nothing reads it without going through
-   * {@link localizeStarterCode} first, so the stored copy's language is
-   * invisible, and writing here would mean a language change spending the
-   * player's storage quota — and announcing a refusal — for a change nobody
-   * could see.
+   * Re-renders the on-screen program in the active language, but only if it is
+   * a starter program the game wrote (never the player's own text). Storage is
+   * left alone; {@link localizeStarterCode} makes stale copies harmless to read.
    */
   relocalize(): void {
     const code = this.getCode();
@@ -1057,13 +582,11 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     if (localized === code) {
       return;
     }
-    // A swap rather than an edit: this is not something the player did, so
-    // there is nothing here for them to undo, and an undo that brought the
-    // other language's comments back would be a puzzle rather than a mercy.
+    // A swap, not an edit: the player didn't do this, and an undo that
+    // brought back the other language would be a puzzle, not a mercy.
     this.#swapDocument(localized);
-    // Same reason `#openBuffer` says it: the text in the editor is different
-    // text now, without anybody having typed, and what is measured or compiled
-    // from it is stale.
+    // The program changed without a keystroke, so anything measuring or
+    // compiling the old text is now stale.
     this.trigger("change");
   }
 
@@ -1073,14 +596,9 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Marks where the running program failed, or takes the mark away.
-   *
-   * Not derived from {@link CodeEditor.getCodeObj}, which is where compilation
-   * failures surface, because most of these arrive much later: a program
-   * compiles, runs for forty seconds and then reads a property of nothing on
-   * one particular frame. Only the caller watching the run knows that happened.
-   *
-   * @param location - Where the failure was, or `undefined` to clear the mark.
+   * Marks where the running program failed, or clears the mark. Not derived
+   * from {@link CodeEditor.getCodeObj}: most failures surface long after
+   * compilation, once the world is running and something throws mid-frame.
    */
   markError(location: CodeErrorLocation | undefined): void {
     this.#view.markError(location);
@@ -1088,52 +606,23 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
 }
 
 /**
- * Carries a new error mark, or `undefined` to take the current one away.
- *
- * A state effect rather than a method on the view because CodeMirror keeps no
- * mutable state of its own worth writing to: everything drawn is derived from
- * the document plus fields, and a field can only be changed by a transaction.
+ * Carries a new error mark, or `undefined` to clear it. A state effect
+ * because CodeMirror state can only change through a transaction.
  */
 const showErrorMark = StateEffect.define<CodeErrorLocation | undefined>();
 
 /**
- * How the failing text is drawn.
- *
- * A wavy underline in `--ds-bad` rather than a wash across the line: tinting
- * what is behind the text costs the program the player is reading its
- * legibility, and the code palette has no headroom to give -- `--ds-code-com`
- * is tuned to 4.51:1 on `--ds-code-bg`, a hundredth over the 4.5:1 that text
- * has to keep, so any wash at all puts a comment under the bar. An underline
- * puts nothing behind the text at all, and the mark itself reads 5.74:1 on the
- * dark editor and 4.94:1 on the light one, well clear of the 3:1 a graphical
- * indicator needs. Ratios measured against the values in `tokens.css`, not
- * estimated, and both keep being measured: the mark's own pair in
- * `src/widgets/editor-pane/ui/editor-pane.css.test.ts`, the comment's in
- * `src/shared/styles/code.css.test.ts`.
+ * How a failing line is underlined: a wavy line in `--ds-bad`, not a
+ * background wash — the code palette has no contrast headroom left to tint
+ * text without pushing a comment below its required contrast ratio.
  */
 const errorMark = Decoration.mark({ class: "cm-errorMark" });
 
 /**
- * Works out what to underline for a reported failure.
- *
- * From the failing character to the end of its line, because the stack says
- * where the failing call *starts* and nothing about where it ends: underlining
- * to the end of the line claims exactly what is known, where guessing at a
- * token's width would sometimes underline half an identifier.
- *
- * @param doc - The document as it now stands, which may no longer be the one
- * the failure came from.
- * @param location - The reported position.
- * @returns The range to mark, or `undefined` when the document has no such
- * place to mark: a line it does not have, or one with nothing on it. Both are
- * refusals rather than best-effort marks, because the clamp below has nowhere
- * to land on an empty line -- backing off the end of one puts the start before
- * the line begins, and the mark would then belong to the line above, or to no
- * line at all in an empty document. Neither draws anything today, so no test
- * can tell the guard from its absence; it is here to keep the range inside the
- * line it names. What CodeMirror does reject outright is a mark spanning
- * nothing at all, with `RangeError: Mark decorations may not be empty` --
- * checked, not assumed -- which is why the range always runs to the line's end.
+ * The range to underline for a reported failure: from the failing column to
+ * the end of its line (the stack gives no end position). Returns `undefined`
+ * for a line the document no longer has, or an empty one, since there is
+ * nothing there to clamp a mark to.
  */
 function errorRange(
   doc: Text,
@@ -1146,19 +635,15 @@ function errorRange(
   if (line.from === line.to) {
     return undefined;
   }
-  // Clamped at both ends: a column past the end of the line would mark nothing,
-  // and one before its start would reach into the line above.
+  // Clamped at both ends: past the line's end would mark nothing; before its
+  // start would reach into the line above.
   const from = Math.min(line.from + Math.max(0, location.column - 1), line.to - 1);
   return { from, to: line.to };
 }
 
 /**
- * Holds the error mark, and knows when it has stopped being true.
- *
- * Any edit clears it. The mark points at text that failed, so the moment that
- * text changes the mark is a claim about something that is no longer there --
- * and the player's first move on seeing it is usually to edit the very line it
- * is under, which would leave a red underline sitting beneath their correction.
+ * Holds the error mark; any document edit clears it, since the mark's claim
+ * about failing text is void the moment that text changes.
  */
 const errorMarkField = StateField.define<DecorationSet>({
   create: () => Decoration.none,
@@ -1178,27 +663,9 @@ const errorMarkField = StateField.define<DecorationSet>({
 });
 
 /**
- * The editing surface every editor starts from: line numbers, undo history,
- * folding, bracket matching and closing, completion, search, and the key
- * bindings that drive them.
- *
- * This is the `basicSetup` bundle from the `codemirror` package, spelled out.
- * That package's own documentation says to do this once an editor wants more
- * than the bundle offers -- it "does not allow customization", and its source
- * is a list of imports and an array literal meant to be copied. Two things are
- * left out of the copy:
- *
- * - `lintKeymap`, which binds a diagnostics panel and a jump-to-next-problem
- *   command. Nothing here configures a linter, so both bindings do nothing,
- *   and dropping them takes `@codemirror/lint` out of the download.
- * - `syntaxHighlighting(defaultHighlightStyle, { fallback: true })`, which is
- *   dead for the same reason: {@link editorSyntaxTheme} is registered as an
- *   ordinary highlighter below, and `@codemirror/language` reads the fallback
- *   facet only while no ordinary one is configured.
- *
- * The order is the bundle's own. CodeMirror resolves extensions by precedence
- * and then by position, so keeping the list in its original order keeps the
- * editor behaving as it did.
+ * The `basicSetup` bundle from `codemirror`, spelled out and trimmed: no
+ * `lintKeymap` (nothing here configures a linter) and no fallback highlight
+ * style ({@link editorSyntaxTheme} is registered as the real one below).
  */
 const BASE_EXTENSIONS: Extension = [
   lineNumbers(),
@@ -1227,41 +694,25 @@ const BASE_EXTENSIONS: Extension = [
   ]),
 ];
 
-/**
- * Builds a CodeMirror 6 editing surface inside a container.
- *
- * @param parent - Element the editor is appended to.
- * @returns A factory that mounts the editor and returns the surface.
- */
+/** Builds a factory that mounts a CodeMirror 6 editing surface into `parent`. */
 export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
   return (handlers: TextEditorHandlers, initialValue: string): TextEditorView => {
-    // Held in a variable rather than written into the constructor call because
-    // a swap builds a second state out of the same extensions; see `setValue`.
+    // Kept in a variable, not inlined: a "swap" below rebuilds a second
+    // state from these same extensions.
     const extensions = [
       BASE_EXTENSIONS,
       javascript(),
-      // The player API in the completion popup, so the method names are in
-      // the editor rather than only in the other tab. Registered as one more
-      // of the JavaScript language's completion sources rather than through
-      // `autocompletion({override})`, which would replace the language's own
-      // sources: keywords, snippets and the identifiers already in the
-      // player's program stay. {@link BASE_EXTENSIONS} has already turned
-      // completion on, with CodeMirror's defaults — Ctrl-Space, and while
-      // typing — and the source itself is what keeps that from being noisy, by
-      // offering nothing outside the three contexts described in
-      // `completions.ts`.
+      // Added as a completion source, not via `autocompletion({override})`,
+      // which would replace the language's own keyword/snippet/identifier
+      // completions instead of adding to them.
       javascriptLanguage.data.of({ autocomplete: playerApiCompletionSource }),
-      // The design's own code colors: the editor's only highlighter, drawn
-      // for the near-black surface the redesign gave the player rather than
-      // for a white page. See `editorSyntaxTheme` for the mapping.
+      // The editor's only highlighter, tuned for its near-black surface.
       syntaxHighlighting(editorSyntaxTheme),
       indentUnit.of(INDENT),
       EditorState.tabSize.of(INDENT.length),
-      // Read here rather than at module scope, and read afresh on every mount:
-      // this factory runs once per editor, so an editor built after the player
-      // has changed language is named in that language. CodeMirror holds the
-      // attribute in its own state, so an editor already on screen keeps the
-      // name it was given until something rebuilds it.
+      // Read fresh on each mount (not at module scope), so an editor built
+      // after a language change gets the new label. An editor already on
+      // screen keeps its old label until it is rebuilt.
       EditorView.contentAttributes.of({ "aria-label": t("editor.label") }),
       // Ahead of the default keymap, which binds Mod-Enter itself.
       Prec.highest(
@@ -1283,8 +734,7 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
             },
           },
           {
-            // The legacy Tab binding, which inserted spaces rather than
-            // moving focus. Escape is the way back out, see below.
+            // Inserts spaces rather than moving focus; Escape (below) is the way out.
             key: "Tab",
             preventDefault: true,
             run: (target) => {
@@ -1293,9 +743,8 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
             },
           },
           {
-            // Tab is taken, so the editor would otherwise be a keyboard trap.
-            // Escape moves focus to the editor's own wrapper, from where Tab
-            // continues to the next control on the page.
+            // Tab is bound above, so without this the editor is a keyboard
+            // trap; Escape moves focus to the wrapper so Tab can continue out.
             key: "Escape",
             preventDefault: true,
             run: (target) => {
@@ -1313,16 +762,11 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       errorMarkField,
       EditorView.theme({
         ".cm-errorMark": {
-          // `wavy` rather than a straight rule so the mark cannot be read as
-          // part of the program -- an underscore, or a link. `--ds-bad` is the
-          // one red the redesign has, and the same one the error banner under
-          // the code bar is drawn in, so a squiggle and the message explaining
-          // it are visibly the same report.
+          // Wavy, not a straight rule, so it cannot be misread as an
+          // underscore or a link.
           textDecoration: "underline wavy var(--ds-bad)",
-          // Clear of the descenders, which the wave would otherwise run
-          // through at this amplitude. A length rather than an em: an em would
-          // scale the offset with the player's font size while the wave's own
-          // amplitude, which is what has to be cleared, does not.
+          // A fixed length, not an em: the wave's amplitude doesn't scale
+          // with font size, so neither should the offset that clears it.
           textUnderlineOffset: "3px",
         },
       }),
@@ -1334,29 +778,9 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       getValue: () => view.state.doc.toString(),
       setValue: (value: string, replacement: TextReplacement = "edit") => {
         if (replacement === "swap") {
-          // A whole new state, which is the only way to be rid of the undo
-          // history: {@link BASE_EXTENSIONS} brings `history()` in, and
-          // CodeMirror offers no command that empties it.
-          //
-          // The alternative of dispatching the swap with
-          // `Transaction.addToHistory.of(false)` was measured, not assumed, and
-          // it does hold today: the old buffer's recorded changes are mapped
-          // through the replacement, and because the replacement covers the
-          // whole document they all map to nothing, so undo after a swap does
-          // nothing rather than pasting the old buffer's text in. It was
-          // rejected because that safety is an accident of the swap being a
-          // full-document replacement — the day it becomes a narrower change,
-          // to keep the scroll position or to animate, the mapped-away history
-          // comes back to life pointing at another buffer's program — and
-          // because it leaves the player an undo that is offered and silently
-          // does nothing. Dropping the history says what is true: the program
-          // they were editing is not on screen any more.
-          //
-          // Reconfiguring a compartment around `history()` would also work,
-          // and costs a compartment plus a dispatch to say what one line says
-          // here. Building the state has one more property worth having: the
-          // swapped-in document is the document the state was *built* with, so
-          // it raises no `onChange`, exactly as at construction.
+          // A whole new state, not a filtered one: CodeMirror offers no
+          // command that empties `history()`, and a fresh state guarantees no
+          // stale history from the previous buffer can resurface.
           view.setState(EditorState.create({ doc: value, extensions }));
           return;
         }
@@ -1374,10 +798,8 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
           effects:
             range === undefined
               ? [showErrorMark.of(location)]
-              : // Scrolled to as well as drawn: the editor is 320px tall at a
-                // 19.6px line, so it shows sixteen lines, and a program with a
-                // bug worth hunting is usually longer than that. Drawing a
-                // mark where nobody can see it answers nothing.
+              : // Scrolled into view as well as drawn: the mark is useless if
+                // the editor is short enough that nobody can see it.
                 [showErrorMark.of(location), EditorView.scrollIntoView(range.from)],
         });
       },

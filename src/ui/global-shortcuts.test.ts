@@ -4,15 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { presentGlobalShortcuts } from "./global-shortcuts.ts";
 
-/**
- * Builds the three buttons and two callbacks {@link presentGlobalShortcuts}
- * drives, wires it against `document`, and hands back a click spy for each
- * button alongside two elements for the guards: a plain, unfocused element
- * that is neither the body nor a typing target, and a form field that is one.
- *
- * @returns The wired buttons' click spies, the two callback spies, and the
- * two guard-test elements.
- */
+/** Builds the shortcut-driven buttons and callbacks, wired against `document`. */
 function setUp(): {
   onStartStop: ReturnType<typeof vi.fn>;
   onStartOver: ReturnType<typeof vi.fn>;
@@ -65,12 +57,7 @@ function setUp(): {
   };
 }
 
-/**
- * Dispatches a bubbling keydown as if `target` were the focused element.
- *
- * @param target - Element to dispatch on; becomes the event's own `target`.
- * @param init - The key, and any modifiers, to dispatch.
- */
+/** Dispatches a bubbling keydown as if `target` were the focused element. */
 function keydown(target: Element, init: KeyboardEventInit): void {
   target.dispatchEvent(new KeyboardEvent("keydown", { ...init, bubbles: true }));
 }
@@ -141,9 +128,8 @@ describe("presentGlobalShortcuts", () => {
   });
 
   it("switches the layout on Ctrl-Shift-B too, and with caps lock on", () => {
-    // The browser reports the character the keyboard produced, so a player
-    // holding shift -- or one who left caps lock on -- sends "B". The same
-    // shortcut, as far as anyone pressing it is concerned.
+    // The browser reports the character the keyboard produced, so shift or caps lock sends
+    // "B" — the same shortcut either way.
     const { onCycleLayout } = setUp();
 
     keydown(document.body, { key: "B", ctrlKey: true, shiftKey: true });

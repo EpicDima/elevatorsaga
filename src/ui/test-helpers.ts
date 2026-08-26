@@ -1,8 +1,4 @@
-/**
- * Helpers shared by the presentation and application unit tests.
- *
- * Not part of the game bundle; excluded from coverage in `vite.config.ts`.
- */
+/** Helpers shared by the presentation and application unit tests; excluded from coverage. */
 
 import type { TextEditorHandlers, TextEditorView } from "./editor.ts";
 import type { CodeErrorLocation } from "./error-location.ts";
@@ -17,18 +13,7 @@ export interface CreateElementOptions {
   children?: readonly (Node | string)[];
 }
 
-/**
- * Builds a detached element.
- *
- * A test-only convenience: the game itself never creates elements this way. It
- * renders from the escaping templates in `templates.ts`, so this exists purely
- * to stand up the fragments of page shell that the presenter and application
- * tests draw into, without a string of HTML per test.
- *
- * @param tag - Tag name to create.
- * @param options - Class, text and children.
- * @returns The new, detached element.
- */
+/** Builds a detached element; test-only, since the game renders through the escaping templates in `templates.ts`. */
 export function createElement<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   options: CreateElementOptions = {},
@@ -46,12 +31,7 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
   return element;
 }
 
-/**
- * A `Storage` backed by a map.
- *
- * The test environment does not provide a usable `localStorage`, and an
- * explicit store also makes assertions about *which* keys are written clearer.
- */
+/** A `Storage` backed by a `Map`, since the test environment has no usable `localStorage`. */
 export class MemoryStorage implements Storage {
   readonly #entries = new Map<string, string>();
 
@@ -80,19 +60,7 @@ export class MemoryStorage implements Storage {
   }
 }
 
-/**
- * A `Storage` that reads back but refuses every write, as a full quota does.
- *
- * The other half of the storage-failure story from a store that throws from
- * `getItem` too: that one can hold nothing and never could, while this one has
- * been working all along and stops, which is when there is something to lose.
- * Shared rather than written out in each suite because both the editor's own
- * tests and the application's ask what happens to a program the store will not
- * take, and the answer has to be the same store in both.
- *
- * @param entries - What the store is already holding.
- * @returns The full store.
- */
+/** A `Storage` that reads back normally but throws on every write, as a full quota does. */
 export function fullStorage(entries: Readonly<Record<string, string>> = {}): Storage {
   const storage = new MemoryStorage();
   for (const [key, value] of Object.entries(entries)) {
@@ -126,21 +94,13 @@ export class FakeTextEditorView implements TextEditorView {
   errorMark: CodeErrorLocation | undefined = undefined;
   /**
    * Every mark ever asked for, clearings included.
-   *
-   * Kept as well as {@link FakeTextEditorView.errorMark} because "the mark was
-   * cleared and then set" and "the mark was only ever set" end in the same
-   * place, and a caller that draws a mark before clearing the last one leaves
-   * the player's eye on the wrong line for a frame.
+   * Kept alongside {@link FakeTextEditorView.errorMark} since clear-then-set and set-only end in the same final state.
    */
   readonly errorMarks: (CodeErrorLocation | undefined)[] = [];
   /** The handlers the editor gave this surface. */
   readonly handlers: TextEditorHandlers;
 
-  /**
-   * @param handlers - Handlers raised by {@link FakeTextEditorView.type}.
-   * @param initialValue - The document the surface is built with, which — as in
-   * CodeMirror — is not a document *change* and so raises nothing.
-   */
+  /** `initialValue` is not a document change (matching CodeMirror), so it raises nothing. */
   constructor(handlers: TextEditorHandlers, initialValue = "") {
     this.handlers = handlers;
     this.value = initialValue;
@@ -150,11 +110,7 @@ export class FakeTextEditorView implements TextEditorView {
     return this.value;
   }
 
-  /**
-   * Replaces the document, raising `onChange` as a real editing surface does.
-   *
-   * @param value - The new document.
-   */
+  /** Replaces the document, raising `onChange` as a real editing surface does. */
   setValue(value: string): void {
     this.value = value;
     this.handlers.onChange();
@@ -164,21 +120,13 @@ export class FakeTextEditorView implements TextEditorView {
     this.focusCount += 1;
   }
 
-  /**
-   * Records the mark instead of drawing it.
-   *
-   * @param location - Where the failure was, or `undefined` to clear the mark.
-   */
+  /** Records the mark instead of drawing it. */
   markError(location: CodeErrorLocation | undefined): void {
     this.errorMark = location;
     this.errorMarks.push(location);
   }
 
-  /**
-   * Simulates the player editing the document.
-   *
-   * @param value - The new document.
-   */
+  /** Simulates the player editing the document. */
   type(value: string): void {
     this.value = value;
     this.handlers.onChange();

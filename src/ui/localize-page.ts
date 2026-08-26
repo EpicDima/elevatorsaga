@@ -1,43 +1,4 @@
-/**
- * The words that are written out in `index.html`, taken from the catalog.
- *
- * Everything the game draws while it runs goes through `t()` at the moment it
- * is drawn. The page shell cannot: it is a static file, it has to say something
- * before a single module has been fetched, and what it says is the English the
- * game was written in. That English is the right thing to ship — a reader with
- * no JavaScript, and every crawler, gets a real page rather than an empty one —
- * but it has to be replaceable once the catalog is in memory, and nothing in
- * the shell tells a program which of its words are words rather than markup.
- *
- * Two attributes say so. `data-i18n="page.brand"` means the element's
- * content is that message, and `data-i18n-attr="aria-label:page.world.label"`
- * means an attribute of it is; several attributes can be named at once,
- * separated by commas. A key ending in `.html` is written with `innerHTML`,
- * following the convention the rest of the i18n code uses: those values are
- * trusted markup from the catalog, never anything a player typed.
- *
- * Marking up a document for a program to read is a cost, and it was weighed
- * against the alternative — a table in here mapping CSS selectors to keys. The
- * attribute wins because it cannot go stale silently: an element that moves,
- * gets a new class or is wrapped in something takes its key with it, whereas a
- * selector in another file would quietly match nothing and leave a word in
- * English. It also keeps the answer to "where does this text come from?" in
- * the place a reader of the page is already looking.
- *
- * This is deliberately not a general templating engine. It fills no parameters
- * — a message with a `{placeholder}` is refused, because the shell has nothing
- * to fill it from — and it re-reads the whole shell every time rather than
- * remembering what it wrote, so calling it again after
- * {@link "../i18n/index.ts"!setLocale} is all that switching language costs.
- *
- * There used to be a third attribute, `data-i18n-doc`, naming the anchor a
- * header link into the reference page should be retargeted at once the
- * language was known — the reference is published once per language, so an
- * `href` written in the markup could only ever be right for one of them. The
- * shell no longer links to it: the docs the game shows are the dialog
- * `features/docs-reference` opens, and `documentation.html` and its Russian
- * twin are standalone pages now. Nothing here maps URLs any more.
- */
+/** Writes the catalog's messages into `index.html` via `data-i18n`/`data-i18n-attr` attributes, since the static shell can't call `t()` itself. */
 
 import {
   EN_MESSAGES,
@@ -68,86 +29,34 @@ const NAME_SEPARATOR = ":";
 /** Separates one attribute's mapping from the next. */
 const MAPPING_SEPARATOR = ",";
 
-/**
- * A message the page shell can hold: one that takes no parameters.
- *
- * The shell is markup, not a call site, so there is nowhere for a parameter to
- * come from. Restricting the type here is what lets {@link localizePage} call
- * `t(key)` with a key it read out of an attribute: with the whole of
- * {@link MessageKey} the parameter object would be mandatory, since some member
- * of that union demands one.
- */
+/** A message key the static shell can render: one that takes no parameters, so `t(key)` needs no args object. */
 type ShellMessageKey = { [K in MessageKey]: MessageArgs<K> extends [] ? K : never }[MessageKey];
 
-/**
- * The English catalog as plain data.
- *
- * A key arriving from an attribute is a string, and the typed catalog cannot
- * be indexed with one. Widening it here — rather than casting at the point of
- * use — keeps the one unavoidable loss of type information in a single place,
- * and it loses only the key, not the value, which stays `unknown`.
- */
+/** The English catalog widened to string-keyed data, since a key read from an attribute is an untyped string. */
 const ENGLISH_VALUES: Readonly<Record<string, unknown>> = EN_MESSAGES;
 
-/**
- * Whether a string names a message this can render.
- *
- * Both halves matter. A key that is not in the catalog is a typo or a message
- * that has been renamed out from under the shell; a key whose English holds a
- * `{placeholder}` is a message that belongs at a call site with something to
- * fill it, and rendering it here would print the placeholder's name at the
- * player. Plural entries fail the first test — their value is an object — which
- * is right, since a count is a parameter too.
- *
- * @param key - The string an attribute named.
- * @returns Whether it is a message with no parameters.
- */
+/** Whether `key` names a catalog message with no parameters — missing, plural (object-valued), and `{placeholder}` keys are all refused. */
 function isShellMessageKey(key: string): key is ShellMessageKey {
   const english = ENGLISH_VALUES[key];
   return typeof english === "string" && !english.includes("{");
 }
 
 /**
- * The locale the shell can actually be written in at this moment.
- *
- * {@link getLocale} is what the player asked for, which is not the same thing
- * until the catalog lands. `<html lang>` has to agree with the words actually
- * on the page rather than with the intention behind them: a screen reader picks
- * its voice and its pronunciation rules from that attribute, and English
- * sentences announced as Russian are worse than English sentences.
- *
- * @returns The locale the messages will come out in.
+ * The locale actually rendered right now — {@link getLocale} names the player's intent, which may not be loaded yet.
+ * `<html lang>` must match the words really on the page, since a screen reader picks pronunciation from it.
  */
 function renderedLocale(): Locale {
   const locale = getLocale();
   return isLocaleLoaded(locale) ? locale : DEFAULT_LOCALE;
 }
 
-/**
- * Reports a key the shell names and the catalog cannot answer.
- *
- * A warning rather than a thrown error, following `src/pages/game/model/route.ts`: the
- * element keeps the English it shipped with, which is a worse answer than the
- * player's language but a far better one than a blank page or a game that
- * refuses to start over a mistyped attribute. What stops that from being a
- * silent decay is `localize-page.test.ts`, which reads every key in the shell
- * and fails on any the catalog does not have.
- *
- * @param attribute - The attribute the key was read from.
- * @param key - The key itself.
- */
+/** Warns instead of throwing so a mistyped key leaves stale English rather than blocking the page; `localize-page.test.ts` checks every key exists. */
 function warnUnusable(attribute: string, key: string): void {
   console.warn(
     `Ignoring ${attribute}="${key}": the page shell can only name a message that exists and takes no parameters`,
   );
 }
 
-/**
- * Writes one message into an element.
- *
- * @param element - The element to fill.
- * @param key - The message it names.
- */
 function localizeContent(element: Element, key: ShellMessageKey): void {
   if (key.endsWith(HTML_KEY_SUFFIX)) {
     element.innerHTML = t(key);
@@ -156,19 +65,10 @@ function localizeContent(element: Element, key: ShellMessageKey): void {
   }
 }
 
-/**
- * Writes the messages one element's attributes name.
- *
- * @param element - The element to fill.
- * @param mappings - The value of {@link ATTRIBUTE_KEY_ATTRIBUTE}.
- */
 function localizeAttributes(element: Element, mappings: string): void {
   for (const mapping of mappings.split(MAPPING_SEPARATOR)) {
     const separator = mapping.indexOf(NAME_SEPARATOR);
-    // Split at the first colon rather than on it, so that only the attribute
-    // name is taken and the rest of the mapping stays whole. Message keys are
-    // dotted, not colonned, but a key that ever holds one should reach the
-    // catalog as it was written and be refused there.
+    // Splits at the first colon only, so a key (dotted, not colonned) that somehow holds one reaches the catalog unmangled and gets refused there.
     const name = separator === -1 ? "" : mapping.slice(0, separator).trim();
     const key = mapping.slice(separator + 1).trim();
     if (name === "" || !isShellMessageKey(key)) {
@@ -180,22 +80,8 @@ function localizeAttributes(element: Element, mappings: string): void {
 }
 
 /**
- * Puts the page shell into the language the game is being played in.
- *
- * Called once at start-up and again after every {@link setLocale}, which is why
- * it reads the document rather than a list of what it did last time: the shell
- * carries its own instructions, so there is no state here to fall out of step.
- *
- * The modifier keys are relabeled at the end, and that is not an aside. A
- * message written here with `innerHTML` can carry a `<kbd data-mod-key>`, and
- * writing it throws away the `⌘` that `src/ui/shortcuts.ts` had put in place of
- * the shipped `Ctrl` — so a Mac player would be told to press a key combination
- * that does nothing, and told it again in Russian. Anything that rewrites the
- * shell has to put the platform's own key back, and doing it here makes that a
- * property of this function instead of a rule every caller has to remember.
- *
- * @param root - The document holding the shell.
- * @param userAgent - The browser's user agent string, for the modifier keys.
+ * Puts the page shell into the game's current language; call again after {@link setLocale} to re-localize.
+ * Relabels modifier keys last — an `innerHTML` write above can reintroduce the shipped `Ctrl` in place of the platform's own key.
  */
 export function localizePage(root: Document, userAgent: string): void {
   root.documentElement.lang = htmlLang(renderedLocale());
