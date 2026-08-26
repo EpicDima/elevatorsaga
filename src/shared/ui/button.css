@@ -1,31 +1,5 @@
-/*
- * Every button on both pages, and the `<kbd>` key caps beside them.
- *
- * A button is reset to nothing, because most of them replace elements that used
- * to be non-interactive `<i>` glyphs and must not pick up any chrome; the two
- * shapes that are meant to look like controls opt back in. `.btn` is the
- * bordered one -- the run controls, and each dialog's close button -- and
- * `.ghost` the low-emphasis one beside something louder, worn by the editor's
- * two tools, the bar's docs and settings triggers, and the learning track's
- * "Leave" button.
- *
- * The four groups came from four places in the single stylesheet and are one
- * file here because they are one component. Their order among themselves is
- * unchanged, and nothing between them ever competed: no element wears both
- * `.btn` and `.ghost`, and the two element selectors lose to every class rule
- * on specificity wherever they are declared.
- */
+/* Buttons across both pages, plus the `<kbd>` key caps beside them. */
 
-/*
- * A bordered control the same resting shape as `.task-open`
- * (`widgets/level-switcher`) -- same height, radius and background. The run
- * controls' two buttons and each dialog's close button wear it. The hover
- * state differs, though: `.task-open` brightens to the themed accent because
- * it opens the level switcher and wants the eye, while a `.btn` is pressed by
- * somebody who already knows what it does, so it reaches for the neutral
- * `--ds-n-5`. `.btn[hidden]` restates `display: none` because `.btn` sets its
- * own `display`, which a bare `[hidden]` attribute does not override.
- */
 .btn {
   display: flex;
   gap: 7px;
@@ -43,20 +17,12 @@
   border-color: var(--ds-n-5);
 }
 
+/* `.btn` sets its own `display`, so a bare `[hidden]` attribute alone would not hide it. */
 .btn[hidden] {
   display: none;
 }
 
-/*
- * The one button on the page the eye is meant to land on first: the one that
- * starts the run. Painted rather than outlined, so it is told apart from the
- * `.btn` beside it before either is read.
- *
- * The `min-width` here is overridden wherever this is actually drawn --
- * `.runbox .btn` sets its own, and specificity decides it -- because the only
- * `.btn-primary` on the page sits in that box. It is stated all the same, so
- * that the next one drawn outside it starts from a sane width.
- */
+/* `min-width` is overridden by `.runbox .btn`'s higher specificity wherever this actually renders; stated here for any future `.btn-primary` outside that box. */
 .btn-primary {
   min-width: 106px;
   border-color: transparent;
@@ -69,11 +35,7 @@
   background: var(--ds-accent-hi);
 }
 
-/*
- * Buttons are reset to nothing: most of them replace elements that used to be
- * non-interactive `<i>` glyphs, and must not pick up any button chrome. The
- * three groups that are meant to look like buttons opt in below.
- */
+/* Reset to nothing: most replace former non-interactive `<i>` glyphs and must not inherit button chrome. */
 button {
   margin: 0;
   padding: 0;
@@ -90,22 +52,8 @@ button[disabled] {
 }
 
 /*
- * Both pages name keys with <kbd>: the documentation page used to get the
- * browser default, which is a monospace family unrelated to the editor's.
- *
- * The browser default beyond that family is nothing: a bare <kbd> reads as
- * plain text run in with the sentence around it, which is exactly what made a
- * lone ⌘ easy to lose. The border, background and radius are the shared control
- * chrome this page already draws -- .btn, .task-open and .skip-link all wear the
- * same --ds-line-strong hairline over --ds-raised -- so a key reads as the
- * conventional bordered key cap most sites reach for rather than a new
- * invention. The pairing is --ds-text on --ds-raised, which
- * `shared/styles/tokens.css.test.ts` holds to 4.5:1 in both themes (12.96:1
- * dark, 15.07:1 light). Bold for the reason
- * .tutorialcopycode is bold too: heavier strokes are what keep a single
- * character -- ⌘ chief among
- * them -- legible at the size a key is actually set at, without singling that
- * one glyph out from the letters beside it.
+ * Bordered like `.btn`/`.task-open` so a key reads as a conventional key cap
+ * rather than plain inline text. Bold keeps a single glyph like ⌘ legible at this size.
  */
 kbd {
   padding: 1px 6px;
@@ -118,12 +66,6 @@ kbd {
   font-weight: bold;
 }
 
-/*
- * The shape of a low-emphasis control beside something louder -- "Reset
- * code" and "Undo reset" here, both in `widgets/editor-pane`, and the docs
- * and settings triggers in `widgets/app-bar`. Every one of them is a 16px
- * glyph, then the `gap`, then a `.lbl` span holding the word.
- */
 .ghost {
   display: flex;
   gap: 7px;
@@ -152,11 +94,7 @@ kbd {
   color: var(--ds-accent);
 }
 
-/*
- * Same `[hidden]` gotcha as `.errorline[hidden]` below: without this, "Undo
- * reset" stays a focusable, visible `display: flex` row while it has no undo
- * to offer.
- */
+/* `.ghost` sets its own `display`, so a bare `[hidden]` attribute alone would not hide it. */
 .ghost[hidden] {
   display: none;
 }

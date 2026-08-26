@@ -6,11 +6,7 @@ import { createDisclosure } from "./disclosure.ts";
 
 /**
  * Builds a trigger and panel wired into a disclosure, attached to the
- * document so an outside click can be dispatched on something other than
- * either of them.
- *
- * @returns The trigger, the panel, the disclosure, and an element that
- * counts as "outside" both.
+ * document so a click can be dispatched outside both.
  */
 function setUp(): {
   trigger: HTMLButtonElement;
@@ -26,11 +22,7 @@ function setUp(): {
   return { trigger, panel, outside, disclosure };
 }
 
-/**
- * Dispatches a bubbling click on an element, the way a pointer click does.
- *
- * @param element - Element to click.
- */
+/** Dispatches a bubbling click on an element, the way a pointer click does. */
 function click(element: Element): void {
   element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
@@ -116,15 +108,8 @@ describe("createDisclosure", () => {
     expect(disclosure.isOpen()).toBe(false);
   });
 
-  // The module doc names three disclosures sharing one page (the level
-  // switcher's menu, the goal bar's tier breakdown, the settings popover).
-  // Opening a second one is, from the first's own point of view, exactly the
-  // "click outside" it already closes on — so the first closes and the
-  // second opens, the same as clicking any other element outside both would
-  // do. This was the actual bug an earlier `stopPropagation()`-based
-  // implementation had: that version's second trigger click never reached
-  // the first disclosure's document listener at all, leaving the first one
-  // stuck open behind the second.
+  // Opening a second disclosure counts, from the first's point of view, as a
+  // click outside it, so the first closes as the second opens.
   it("closes a still-open disclosure when a second one is opened", () => {
     const first = setUp();
     const second = setUp();

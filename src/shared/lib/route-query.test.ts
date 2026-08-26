@@ -30,19 +30,17 @@ describe("parseQuery", () => {
   });
 
   it("reads a key however it is capitalized, and leaves the value as written", () => {
-    // Which shift key was held while typing `level` is not a decision
-    // anybody makes on purpose. The value is data, and stays as written: two
-    // seeds spelled differently are two different passenger streams.
+    // Keys are case-folded, since capitalization is accidental; values stay
+    // as written, since two differently spelled seeds are different streams.
     expect(parseQuery("#SEED=Abc").get("seed")).toBe("Abc");
     expect(parseQuery("#Level=3").get("level")).toBe("3");
     expect(parseQuery("#FULLSCREEN").get("fullscreen")).toBe("");
   });
 
   it("ignores whitespace around a key and around a value", () => {
-    // The format's whitespace rule, in one place, so no resolver needs a trim of
-    // its own. A browser cannot produce any of this -- it percent-encodes a
-    // space in a fragment -- so the leniency is for hashes assembled in code,
-    // decoded before they arrive, or written by hand.
+    // A browser never produces whitespace here -- it percent-encodes a space
+    // in a fragment -- so this leniency is only for hashes assembled by code
+    // or written by hand.
     expect([...parseQuery("#level=4, seed = abc ")]).toEqual([
       ["level", "4"],
       ["seed", "abc"],
@@ -50,8 +48,7 @@ describe("parseQuery", () => {
   });
 
   it("holds one entry per key, whatever mixture of capitals wrote them", () => {
-    // #SEED=abc was neither read as a seed nor dropped, so it rode along into
-    // every URL built afterwards -- next to the seed that was read.
+    // Two spellings of the same key collapse to one entry, not two.
     expect([...parseQuery("#SEED=abc,seed=xyz")]).toEqual([["seed", "xyz"]]);
   });
 });
@@ -75,8 +72,7 @@ describe("createParamsUrl", () => {
   });
 
   it("drops a parameter overridden with null, and keeps the rest", () => {
-    // How the navigation row says "everything the player is carrying except the
-    // seed", which belongs to the building being left rather than the next one.
+    // The seed belongs to the building being left, not the next one.
     const query = parseQuery("#level=2,timescale=8,seed=issue-61");
     expect(createParamsUrl(query, { level: 3, seed: null })).toBe("#level=3,timescale=8");
   });
@@ -86,15 +82,13 @@ describe("createParamsUrl", () => {
   });
 
   it("round-trips a level address unchanged", () => {
-    // The track is written into the same key as everything else, so the link in
-    // the bar and the link in a chat message are the hash the player arrived on.
+    // So the link in the bar and a link pasted into chat match exactly.
     const hash = "#level=tutorial-3,timescale=8,fullscreen=true";
     expect(createParamsUrl(parseQuery(hash))).toBe(hash);
   });
 
   it("cannot build a url that names one parameter twice", () => {
-    // The property the whole of the case folding exists for: whatever the
-    // player wrote, an override replaces the parameter rather than joining it.
+    // The reason case folding exists: an override replaces, never joins.
     expect(createParamsUrl(parseQuery("#SEED=abc"), { seed: "xyz" })).toBe("#seed=xyz");
     expect(createParamsUrl(parseQuery("#seed=abc"), { SEED: "xyz" })).toBe("#seed=xyz");
     expect(createParamsUrl(parseQuery("#SEED=abc"), { seed: null })).toBe("#");

@@ -4,8 +4,7 @@ import { describeError } from "./describe-error.ts";
 import { DEFAULT_LOCALE, setLocale } from "#i18n/index.ts";
 
 describe("describeError", () => {
-  // Player code can throw literally anything, and whatever it throws is all
-  // the player has to go on. None of these may come out as "[object Object]".
+  // Player code can throw anything, and none of it may come out as "[object Object]".
   it.each([
     ["a string", "plain string failure", "plain string failure"],
     ["a number", 42, "42"],
@@ -18,11 +17,8 @@ describe("describeError", () => {
   });
 
   it("takes the headline off a stack and leaves the frames behind", () => {
-    // A real V8 stack from a built bundle, abridged only in the number of
-    // frames. Every one of them is a position inside the game's own compiled
-    // JavaScript, which is what the banner must not show: the single frame that
-    // belongs to the player is found by `locateCodeError` and drawn as the line
-    // number beside this text.
+    // A real V8 stack from a built bundle; every frame is a position in the
+    // game's own compiled JavaScript, which the banner must not show.
     const error = new TypeError("elevator.goToFlor is not a function");
     error.stack = [
       "TypeError: elevator.goToFlor is not a function",
@@ -44,17 +40,14 @@ describe("describeError", () => {
   });
 
   it("keeps a headline that is a class with no message", () => {
-    // `new Error()` with nothing to say: V8 writes the bare class name, with no
-    // colon after it, and that is still the whole of what is known.
+    // `new Error()` with nothing to say: V8 writes the bare class name with no colon after it.
     const error = new Error();
     error.stack = "Error\n    at Object.init (<anonymous>:2:14)";
     expect(describeError(error)).toBe("Error");
   });
 
   it("keeps a stack that is a headline and nothing else", () => {
-    // What V8 writes when `Error.stackTraceLimit` is 0, and what a stack
-    // assigned by hand often is. There is no newline to cut at, and the whole
-    // string is the answer.
+    // What V8 writes when `Error.stackTraceLimit` is 0, or a stack assigned by hand: no newline to cut at.
     const error = new Error("doors will not close");
     error.stack = "Error: doors will not close";
     expect(describeError(error)).toBe("Error: doors will not close");
@@ -73,10 +66,8 @@ describe("describeError", () => {
   });
 
   it("reads name and message when the stack begins with a frame", () => {
-    // SpiderMonkey and JavaScriptCore write no headline at all -- their stacks
-    // are frames from the first character -- so the first line is a piece of
-    // the game's own machinery and must not be mistaken for the failure. The
-    // error's own string conversion says the same thing V8's headline would.
+    // SpiderMonkey/JavaScriptCore stacks are frames from the first line, so
+    // this falls through to the error's own string conversion instead.
     const firefox = new TypeError("elevator.goToFlor is not a function");
     firefox.stack = [
       "init@http://localhost:4173/assets/index-C7pQ.js line 41 > eval:2:14",
@@ -92,16 +83,14 @@ describe("describeError", () => {
     expect(describeError(safari)).toBe("TypeError: elevator.goToFlor is not a function");
 
     const v8Frame = new TypeError("elevator.goToFlor is not a function");
-    // And the same again for a V8 stack whose headline has somehow been lost,
-    // leaving an indented frame first.
+    // A V8 stack whose headline has been lost, leaving an indented frame first.
     v8Frame.stack = "    at Object.init (<anonymous>:2:14)\n    at start (index.js:41:1)";
     expect(describeError(v8Frame)).toBe("TypeError: elevator.goToFlor is not a function");
   });
 
   it("ignores a stack that is not a stack, and says what else the object knows", () => {
-    // Player code is free to hang a `stack` of its own on anything it throws.
-    // A line that is not shaped like a headline is not shown as one; what the
-    // object does have to say for itself is shown instead.
+    // Player code can hang its own `stack` on anything it throws; a line not
+    // shaped like a headline isn't treated as one.
     expect(describeError({ stack: "somewhere in the lift shaft", message: "doors jammed" })).toBe(
       "doors jammed",
     );
@@ -111,8 +100,7 @@ describe("describeError", () => {
   });
 
   it("uses a thrown object's own toString", () => {
-    // What the legacy banner did: the object reached riot.render, which
-    // concatenated it and so called its toString.
+    // Mirrors what naive string concatenation of a thrown object would do.
     expect(describeError({ toString: (): string => "ElevatorError: doors stuck" })).toBe(
       "ElevatorError: doors stuck",
     );
@@ -170,8 +158,7 @@ describe("the language the interface comes out in", () => {
   });
 
   it("translates the sentence around a thrown value without translating the value", () => {
-    // `Object`, the property names and anything the player's own code produced
-    // are their JavaScript, and stay exactly as they wrote it.
+    // `Object`, property names, and the player's own values stay in their original JavaScript.
     setLocale("ru");
     const circular: Record<string, unknown> = { floor: 3 };
     circular["self"] = circular;

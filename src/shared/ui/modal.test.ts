@@ -9,12 +9,7 @@ beforeAll(() => {
   polyfillDialogElement();
 });
 
-/**
- * Builds a dialog, a close button inside it, and the modal wiring them
- * together.
- *
- * @returns The dialog, the close button, and the modal.
- */
+/** Builds a dialog, a close button inside it, and the modal wiring them together. */
 function setUp(): {
   dialog: HTMLDialogElement;
   closeButton: HTMLButtonElement;
@@ -28,11 +23,7 @@ function setUp(): {
   return { dialog, closeButton, modal };
 }
 
-/**
- * Dispatches a bubbling click on an element, the way a pointer click does.
- *
- * @param element - Element to click.
- */
+/** Dispatches a bubbling click on an element, the way a pointer click does. */
 function click(element: Element): void {
   element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
@@ -97,8 +88,7 @@ describe("createModal", () => {
     click(content);
 
     expect(dialog.open).toBe(true);
-    // Sanity check that the close button itself still works after a click
-    // that should not have closed anything.
+    // Confirms the close button still works after the no-op click above.
     click(closeButton);
     expect(dialog.open).toBe(false);
   });

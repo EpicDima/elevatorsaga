@@ -1,10 +1,7 @@
 /**
- * A trigger button and the panel it shows or hides: the level switcher's menu,
- * the goal bar's tier breakdown, the settings popover.
- *
- * The panel is toggled through `hidden` and the trigger's `aria-expanded`
- * rather than a class, so a caller that writes no stylesheet rule for either
- * still gets working show/hide.
+ * A trigger button and the panel it shows or hides, toggled through `hidden`
+ * and the trigger's `aria-expanded` rather than a class, so a caller with no
+ * stylesheet rule still gets working show/hide.
  */
 
 /** A trigger and the panel it opens, already open or already closed. */
@@ -16,18 +13,11 @@ export interface Disclosure {
 }
 
 /**
- * Wires a trigger and a panel into one disclosure, closed to start.
+ * Wires a trigger and a panel into one disclosure, closed to start. Listens
+ * on `trigger`'s own `ownerDocument`, not the global `document`, so a pair
+ * built inside another `Document` isn't wired to a page it was never part of.
  *
- * Closing on an outside click and on Escape both listen on `trigger`'s own
- * `ownerDocument` rather than the global `document`, so a pair built inside
- * some other `Document` — a test's own, the way `buildAppBarSkeleton` takes
- * one — is not wired to a page it was never part of.
- *
- * @param trigger - The button that shows and hides the panel. Must carry
- * `aria-haspopup`; this only ever writes its `aria-expanded`.
- * @param panel - The element toggled by the trigger, shown or hidden through
- * `hidden`.
- * @returns The disclosure, already wired and closed.
+ * @param trigger - Must carry `aria-haspopup`; this only ever writes its `aria-expanded`.
  */
 export function createDisclosure(trigger: HTMLElement, panel: HTMLElement): Disclosure {
   const ownerDocument = trigger.ownerDocument;
@@ -42,27 +32,14 @@ export function createDisclosure(trigger: HTMLElement, panel: HTMLElement): Disc
   }
 
   trigger.addEventListener("click", () => {
-    // `!!`, not a direct pass-through: newer DOM typings widen `hidden` to
-    // `boolean | "hidden" | "until-found"` for the HTML attribute of that
-    // name, even though `setOpen` below only ever writes a plain boolean to
-    // it.
+    // `!!`, not a direct pass-through: `hidden`'s DOM type widens to
+    // `boolean | "hidden" | "until-found"`, though `setOpen` only ever writes a plain boolean.
     setOpen(!!panel.hidden);
   });
   ownerDocument.addEventListener("click", (event) => {
-    // A click on `trigger` or inside `panel` is not "outside" this
-    // disclosure — the trigger's own listener above already decided what a
-    // click on it means, and a click on the panel's caption or empty padding
-    // (as opposed to one of its links or buttons, which are welcome to call
-    // `close()` themselves) is not meant to dismiss it either.
-    //
-    // This used to be `stopPropagation()` on the trigger's and panel's own
-    // listeners instead — it worked for one disclosure alone, but stopping
-    // propagation at the target swallows the click before it ever reaches
-    // *any* other disclosure's document listener too, so opening a second
-    // popover silently failed to close the first. Checking `contains()` here
-    // scopes the exemption to this disclosure only, which is what lets
-    // several disclosures share one page — the level switcher's menu, the
-    // goal bar's tier breakdown and the settings popover all at once.
+    // A click on `trigger` or inside `panel` isn't "outside" this disclosure.
+    // Checking `contains()` here, rather than `stopPropagation()`, scopes the
+    // exemption to this disclosure, so several can share one page.
     const target = event.target;
     if (target instanceof Node && (trigger.contains(target) || panel.contains(target))) {
       return;

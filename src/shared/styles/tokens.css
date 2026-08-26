@@ -1,69 +1,17 @@
-/*
- * The design tokens every other stylesheet here reads: the palette, the type
- * scale, the radii and the building's geometry, as `--ds-*` custom properties.
- *
- * Dark is the default, declared on `:root`; `html[data-theme="light"]` restates
- * only the values that differ. Nothing else in this directory declares a
- * color literal, so a theme is a change to this file alone -- and the pairs
- * that carry text are measured against WCAG 1.4.3 rather than eyeballed: the
- * sitewide ones in `tokens.css.test.ts` beside this file, and the rest in the
- * `*.css.test.ts` beside whichever slice paints them.
- *
- * First in `index.css` because a custom property has to be declared before the
- * rule that reads it is applied, and because `--shell-width` is read by
- * `src/pages/game/model/route.ts` as well.
- */
+/* Design tokens (--ds-*): palette, type scale, radii, and building geometry, dark by default. */
 
-/*
- * Palette note (WCAG 1.4.3).
- *
- * The editor's error squiggle (`.cm-errorMark`, in `src/ui/editor.ts`) and the
- * banner above it are painted in the one red the design has, `--ds-bad`, so a
- * squiggle and the sentence explaining it read as one report rather than two.
- * A graphical indicator answers to 1.4.11's 3:1 rather than 1.4.3's 4.5, and
- * `src/widgets/editor-pane/ui/editor-pane.css.test.ts` measures it.
- *
- * The building is dim on purpose: the unlit call
- * buttons, the direction arrows and the car's button panel are painted at
- * 20-30% white (or --ds-text-faint on a floor band) because it is the lit
- * state that carries the information, and reading an unpressed button as
- * unpressed does not depend on reading it clearly. The floor numbers and the
- * car's own floor indicator do not get that exemption -- a floor number never
- * lights up, it is the only marking the floor carries, and the digit inside a
- * car is the one thing a player reads off a moving elevator -- so both are held
- * to a real bar instead; see --ds-text-muted and --ds-car-ink below.
- */
 :root {
-  /* Geometry. The floor size mirrors src/game/world.ts. */
+  /* Geometry; floor size mirrors src/game/world.ts. */
   --shell-width: 1220px;
   --shell-gutter: 0px;
-  /*
-   * Not read by any rule. `src/pages/game/model/route.ts` names this token as
-   * the source of the width a sandbox building has to fit its elevators into,
-   * so it is a number with a reader even though the building is drawn at
-   * whatever width the pane gives it now; deleting it would leave that comment
-   * pointing at nothing.
-   */
+  /* Unread by any rule here, but named by src/pages/game/model/route.ts as the sandbox's build width. */
   --building-width: 938px;
   --floor-height: 50px;
   --font-body: Arial, Helvetica, sans-serif;
   --font-mono: Consolas, Monaco, monospace;
 }
 
-/*
- * ------------------------------------------------------------- Design tokens
- *
- * The palette, geometry and type scale every widget reads.
- *
- * Prefixed `--ds-` (design system) because bare names like `--font-mono`
- * already exist above holding different values: an unprefixed redeclaration
- * here would silently win the cascade for every selector reading them.
- *
- * `color-scheme` is not set by either block below but in each page's own
- * `<head>`, keyed off the same `data-theme`: what it governs -- the scrollbars
- * and the native controls the engine draws itself -- is on screen from the
- * first paint, which is before this file has arrived.
- */
+/* Prefixed --ds- (design system) so these don't collide with the bare custom properties above. */
 :root {
   /* Neutral scale, background to text. */
   --ds-n-0: #131519;
@@ -90,25 +38,13 @@
   --ds-accent-soft: rgb(232 163 63 / 14%);
   --ds-accent-line: rgb(232 163 63 / 38%);
 
-  /*
-   * The sitewide focus ring, as one indirection point rather than a bare
-   * `var(--ds-accent)` at every `:focus-visible`: `.world`
-   * (`widgets/building-stage`) redeclares this one custom property to get a
-   * paler ring against the shaft's own dark surface, and every focusable
-   * descendant picks that up automatically without its own rule needing to know
-   * it is inside `.world`. Declared once
-   * here, not per theme: `--ds-accent` is already themed, so the indirection
-   * follows it through the cascade.
-   */
+  /* Focus ring, indirected so `.world` can redeclare it against the shaft's dark surface. */
   --ds-focus: var(--ds-accent);
 
   /* Steel: the goal bar's at-most meters and the statistics sparkline. */
   --ds-steel: #74a9d8;
 
-  /*
-   * Level stars, three metal tones -- the one place on the page where color
-   * alone carries meaning, with no label beside it.
-   */
+  /* Tier star colors; the one place color alone carries meaning, unlabeled. */
   --ds-tier-bronze: #cf8c4e;
   --ds-tier-silver: #b9c3d1;
   --ds-tier-gold: #ecc04a;
@@ -118,17 +54,7 @@
   --ds-ok-soft: rgb(98 193 134 / 14%);
   --ds-bad: #ec6a5b;
   --ds-bad-soft: rgb(236 106 91 / 14%);
-  /*
-   * `--ds-bad` itself is tuned against a flat page surface (--ds-bg/--ds-panel,
-   * 4.5-5.9:1 across both themes -- see .error-color's own comment below) --
-   * not against --ds-bad-soft, which is *also* built from --ds-bad and pulls a
-   * composited background just close enough to the text's own hue to fall
-   * short in the light theme (4.18-4.30:1 on the two surfaces .errorline and
-   * .tierstate paint it over). --ds-bad-ink is what actual text reads instead
-   * wherever it sits on --ds-bad-soft; the icon and the badge's own border
-   * stay on --ds-bad, since 1.4.11's 3:1 is all a graphical indicator is
-   * asked for and both already clear it.
-   */
+  /* Tuned for text on --ds-bad-soft (4.5:1); --ds-bad itself is only tuned for flat surfaces. */
   --ds-bad-ink: var(--ds-bad);
 
   /* The building. */
@@ -138,16 +64,8 @@
   --ds-car-edge: #48545f;
   --ds-person: #b9c2cf;
   /*
-   * The car is a mid-dark surface in both themes -- #333c47 here, #46505c in
-   * the light one -- close enough in luminance that a single fixed value reads
-   * on either, unlike --ds-shaft, which flips from near-black to near-white
-   * between them. --ds-person is tuned against --ds-shaft and drops to 1.83:1
-   * on --ds-car in the light theme, so anything painted on the car itself --
-   * the floor indicator, a lit direction arrow, a rider once boarded -- needs
-   * one of these three instead, declared once with no light-theme override.
-   * The car's own two are checked against both --ds-car values by
-   * `entities/elevator/ui/elevator-view.css.test.ts`, the rider's and the
-   * marked passenger's by `entities/passenger/ui/passenger-view.css.test.ts`.
+   * --ds-person falls to 1.83:1 on --ds-car in the light theme, so anything
+   * painted on the car itself needs one of these three instead.
    */
   --ds-car-ink: #f0f2f5;
   --ds-car-person: #cdd5e0;
@@ -164,31 +82,7 @@
   --ds-code-punc: #97a0ad;
   --ds-code-line: #7e8a9d;
   --ds-code-active: rgb(255 255 255 / 3.5%);
-  /*
-   * The wash behind selected code. The palette's own blue (`--ds-code-fn`) at
-   * a low alpha rather than a gray, so a selection is recognisably this
-   * design's rather than the browser's -- CodeMirror's `drawSelection`, which
-   * `basicSetup` brings in, hides the browser's own selection and paints this
-   * layer *behind* the text, so the one thing no value here can do is recolor
-   * what is selected the way a native `::selection` does with `HighlightText`.
-   *
-   * That is what makes this the one deliberate shortfall in the code palette.
-   * Every code color clears 1.4.3's 4.5:1 on `--ds-code-bg` and on the active
-   * line; over this wash the two dimmest, `--ds-code-com` and `--ds-code-punc`,
-   * fall to 3.59:1 and 4.80:1 (dark) and 3.89:1 and 3.95:1 (light) -- 3.27:1
-   * at the very worst, where the selection lies over the active line too and
-   * the two washes stack. The wash cannot be made weaker without ceasing to
-   * read as a selection at all --
-   * 1.40:1 and 1.26:1 against the editor's background is already subtle -- and
-   * it cannot be made up for in the text, for the reason above. What is shipped
-   * instead is bounded and stated: every token stays past 3:1 for as long as a
-   * selection is *held*, which is while the player is acting on the text rather
-   * than reading it, and one keystroke ends it. `code.css.test.ts`, beside this
-   * file, holds that 3:1.
-   * The alternative on offer was CodeMirror's own default, `#d7d4f0` -- a
-   * near-white slab under near-white text, 1.02:1, which is not a shortfall but
-   * an erasure.
-   */
+  /* Selection wash: --ds-code-fn at low alpha. Kept above 3:1 while held; code.css.test.ts checks it. */
   --ds-code-sel: rgb(127 178 224 / 18%);
 
   --ds-shadow: 0 10px 30px rgb(0 0 0 / 45%);
@@ -202,18 +96,11 @@
   --ds-r-lg: 11px;
 
   --ds-bar-h: 52px;
-  /*
-   * The height of every control: buttons, steppers, fields, segments. One
-   * height, declared once, so a new control in the bar lands in line on its
-   * own.
-   */
+  /* Height for every control: buttons, steppers, fields, segments. */
   --ds-ctl-h: 32px;
   /* The header row of both side panels: the goal bar and the editor pane. */
   --ds-panelbar-h: 38px;
-  /*
-   * Fallback figures only -- the real ones are computed by the building's own
-   * layout algorithm, which has to fit anywhere from six floors to twenty-one.
-   */
+  /* Fallback only; the building's layout algorithm computes the real values. */
   --ds-floor-h: 66px;
   --ds-car-h: 58px;
 }
@@ -236,17 +123,7 @@ html[data-theme="light"] {
   --ds-text-muted: #5d6570;
   --ds-text-faint: #8b929c;
 
-  /*
-   * White on the obvious `#a8690c` is 4.4767:1, and WCAG 1.4.3 asks 4.5:1 for
-   * text this size. `#a6680c` is the same hue and saturation with every
-   * channel scaled by 0.99, which puts it at 4.5584:1 -- not a difference the
-   * eye can see, and it carries two live pairings: `.tasklink.is-current` in
-   * the level switcher and the run controls' primary button, whose label
-   * changes on every press.
-   *
-   * `-soft` and `-line` are the same three channels at 10% and 34%, so the
-   * palette holds one accent rather than two a percent apart.
-   */
+  /* Tuned to clear WCAG 1.4.3's 4.5:1; the obvious #a8690c falls just short at 4.4767:1. */
   --ds-accent: #a6680c;
   --ds-accent-hi: #8c5608;
   --ds-accent-ink: #ffffff;

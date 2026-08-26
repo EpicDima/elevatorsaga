@@ -1,40 +1,11 @@
-/*
- * The handful of single-purpose classes any layer may put on any element:
- * emphasis and error ink, `.unselectable`, the two ways of hiding something
- * (`.invisible` for both layout and the accessibility tree, `.visually-hidden`
- * for the tree alone), `.faded`, `.blink` and `.num`.
- *
- * Each is one property or one idea. Anything that needs a second rule to say
- * what it is belongs to the slice that draws it, not here.
- */
+/* Single-purpose utility classes any layer may apply to any element. */
 
-/*
- * Emphasis on the page. `--ds-accent-hi` rather than `--ds-accent`: the base
- * accent only clears 4.5:1 on `--ds-bg` in dark theme (8.48:1) and falls to
- * 3.97:1 in light theme, where the page is the near-white end of the design
- * tokens' own scale -- the "hi" step is the one already tuned for that end
- * (5.39:1 light, 10.82:1 dark). No shadow: that was the legacy rule's own fix
- * for a single, page-only accent value too pale to read here on its own
- * (1.68:1 lightened, 6.58:1 darkened); a token already readable in both
- * themes does not need the compensation, and nothing on either page draws a
- * text-shadow.
- */
+/* `--ds-accent-hi`, not `--ds-accent`: the base accent falls short of 4.5:1 against `--ds-bg` in light theme. */
 .emphasis-color {
   color: var(--ds-accent-hi);
 }
 
-/*
- * Beside `.emphasis-color`, and page-bound for the same reason. Its one user is
- * the warning glyph in front of the code-status banner, which is `aria-hidden`
- * and stands next to the sentence it decorates, so 1.4.11 exempts it and it
- * could have kept the pale value; it does not, because the exemption says the
- * icon need not be measured, not that a reader should have to hunt for it.
- * `--ds-bad` reads at 5.90:1 on dark `--ds-bg` and 4.52:1 on light -- one error
- * color per theme, unlike the legacy palette's page/editor split, and it now
- * paints the squiggle inside the editor as well (`.cm-errorMark`, in
- * `src/ui/editor.ts`), so the banner and the underline it explains are the one
- * red rather than two.
- */
+/* Not exempted despite being aria-hidden: kept readable rather than pale, and shared with the editor's own error underline. */
 .error-color {
   color: var(--ds-bad);
 }
@@ -48,19 +19,8 @@
 }
 
 /*
- * Announced but never drawn.
- *
- * `.invisible` above and `display: none` both take an element out of the
- * accessibility tree along with the layout, which is the opposite of what this
- * is for: its one user, `#storage_status` in `index.html`, exists only to be
- * read aloud. The recipe is the standard one -- a 1px box, clipped to nothing,
- * still laid out and still in the tree. `clip-path` rather than the deprecated
- * `clip`, and `white-space: nowrap` so a clipped sentence is not first wrapped
- * into a column one character wide.
- *
- * Unlike `.skip-link` (`app/styles/skip-link.css`), which hides the same way
- * but must come back on focus, nothing here is focusable and nothing brings it
- * back.
+ * Stays in the layout and accessibility tree while visually clipped, unlike
+ * `.invisible` or `display: none`. `clip-path` is used since `clip` is deprecated.
  */
 .visually-hidden {
   position: absolute;
@@ -93,11 +53,7 @@
   }
 }
 
-/*
- * Tabular figures for anything that ticks live -- a goal-bar meter's
- * current/threshold pair, a stats-panel tile. Proportional digits jitter a
- * line's width as they change; tabular ones hold it still.
- */
+/* Tabular figures for anything that ticks live, so digits don't jitter the line's width. */
 .num {
   font-family: var(--ds-font-mono);
   font-variant-numeric: tabular-nums;

@@ -1,19 +1,7 @@
 /**
  * Markup helpers: an escaping template tag and the two ways to turn its
- * output into DOM.
- *
- * `riot.render`, which every template in this codebase replaces, interpolated
- * `{placeholders}` without escaping anything, which is fine for the numbers
- * the game feeds it and decidedly not fine for text that can carry a
- * player's own input. The {@link markup} tag escapes every interpolated value
- * unless it is explicitly wrapped in {@link raw}, and anything that can carry
- * player-authored text — error messages in particular — is written with
- * `textContent` by its presenter rather than templated at all.
- *
- * The tag is deliberately *not* called `html`: Prettier reformats `html`-tagged
- * template literals as embedded HTML, and several of this codebase's templates
- * are whitespace sensitive (the in-car floor buttons sit flush against each
- * other, and the floor call buttons are separated by exactly one space).
+ * output into DOM. Every interpolated value is escaped unless wrapped in
+ * {@link raw}; the tag isn't named `html` since Prettier reformats those.
  */
 
 /** Markup that is inserted as-is, without escaping. */
@@ -29,12 +17,7 @@ export class RawHtml {
   }
 }
 
-/**
- * Marks a string as trusted markup for {@link markup}.
- *
- * @param value - Trusted markup, never derived from player input.
- * @returns A wrapper {@link markup} inserts verbatim.
- */
+/** Marks a string as trusted markup for {@link markup}; never wrap player input. */
 export function raw(value: string): RawHtml {
   return new RawHtml(value);
 }
@@ -48,25 +31,14 @@ const ESCAPES: Readonly<Record<string, string>> = {
   "'": "&#39;",
 };
 
-/**
- * Escapes a string for use in element content or a quoted attribute value.
- *
- * @param value - Text to escape.
- * @returns The escaped text.
- */
+/** Escapes a string for use in element content or a quoted attribute value. */
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => ESCAPES[char] ?? char);
 }
 
 /**
- * Tagged template that escapes every interpolated value.
- *
- * Values wrapped in {@link raw} are inserted verbatim; everything else is
- * stringified and escaped.
- *
- * @param strings - The literal parts of the template.
- * @param values - The interpolated values.
- * @returns The assembled markup.
+ * Tagged template that escapes every interpolated value, except those
+ * wrapped in {@link raw}, which are inserted verbatim.
  */
 export function markup(strings: TemplateStringsArray, ...values: readonly unknown[]): string {
   let result = strings[0] ?? "";
@@ -78,13 +50,8 @@ export function markup(strings: TemplateStringsArray, ...values: readonly unknow
 }
 
 /**
- * Parses markup into a detached fragment.
- *
- * Uses a `<template>` element, so the markup is parsed but nothing in it runs
- * or loads.
- *
- * @param source - Markup to parse.
- * @returns The parsed nodes.
+ * Parses markup into a detached fragment, using a `<template>` element so
+ * nothing in it runs or loads.
  */
 export function renderFragment(source: string): DocumentFragment {
   const template = document.createElement("template");
@@ -95,8 +62,6 @@ export function renderFragment(source: string): DocumentFragment {
 /**
  * Parses markup that describes exactly one element.
  *
- * @param source - Markup to parse.
- * @returns The single parsed element.
  * @throws {Error} When the markup does not describe exactly one element.
  */
 export function renderElement(source: string): HTMLElement {

@@ -1,22 +1,13 @@
 /*
- * Code as it is printed rather than typed: the `<pre>` blocks and the `.tok-*`
- * spans `src/ui/code-highlight.ts` wraps around them.
- *
- * Read by both entry points -- the API reference dialog inside the game and the
- * two help pages -- which is why it is `shared` and not either page's. The
- * colors are tuned against `--ds-code-bg`, the same surface the live editor
- * draws, so a sample on a page and a program in the editor read alike.
+ * Code as it is printed rather than typed: `<pre>` blocks and `.tok-*`
+ * highlight spans, shared by the game and the help pages.
  */
 
 pre {
   margin-block: 0.5em;
 }
 
-/*
- * The same surface the live editor draws: one code background across the page
- * rather than the editor's own and a second one here. The `.tok-*` colors
- * below are tuned against this exact background.
- */
+/* Same background the live editor draws, so a sample here reads like a program there. */
 pre code {
   display: block;
   padding: 8px;
@@ -28,28 +19,9 @@ pre code {
 }
 
 /*
- * The token classes `@lezer/highlight`'s `classHighlighter` assigns, styled
- * for exactly the ones the eight tutorial answers actually produce --
- * `src/ui/code-highlight.ts` names the check that keeps this list honest.
- * `tok-definition` is not its own rule -- it names a declaration site
- * (a `function` parameter, say) and always rides alongside `tok-variableName`
- * or `tok-propertyName` on the same element, which is already styled.
- *
- * These are the same colors `editorSyntaxTheme` gives the live editor, so one
- * call does not look like two different languages depending on whether the
- * player is reading it in the help or typing it in the editor. The one place
- * the two surfaces cannot agree is which names are blue -- `classHighlighter`
- * maps unmodified tags only, so it cannot tell `loadFactor()` from
- * `destinationQueue` the way the editor's theme can, and every name in an
- * answer is blue here. `code-highlight.ts` says more about that.
- *
- * `--ds-code-key`/`-fn`/`-str`/`-num` clear 4.5:1 on `--ds-code-bg` with room
- * to spare. The comment color had to be moved to get there, and moved once
- * more because the live editor paints `--ds-code-active` across the line the
- * caret is on, where a comment has to clear 4.5:1 as well:
- *
- *   comment  #6b7482 -> #808996   3.77:1 -> 5.03:1  (dark, 4.62:1 lit)
- *   comment  #8b929c -> #686f79   3.04:1 -> 4.91:1  (light, 4.58:1 lit)
+ * Token colors mirror the live editor's theme, tuned to clear 4.5:1 against
+ * both `--ds-code-bg` and the editor's active-line highlight. `tok-definition`
+ * has no rule of its own: it always rides alongside an already-styled class.
  */
 .tok-keyword {
   color: var(--ds-code-key);
@@ -76,11 +48,8 @@ pre code {
 }
 
 /*
- * Dimmer than the code around it, not brighter: brackets, separators and
- * operators are scaffolding, and pushing them back is what makes the words a
- * player is actually looking for stand out. Still real text at 13px, so still
- * held to 4.5:1 -- on the page and on the editor's active line alike, both
- * measured in `code.css.test.ts`.
+ * Dimmer than the code around it, not brighter: brackets and operators are
+ * scaffolding, pushed back so the words a player wants stand out. Still held to 4.5:1.
  */
 .tok-punctuation,
 .tok-operator {

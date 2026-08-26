@@ -1,7 +1,4 @@
-/**
- * The shared control chrome: what a `<kbd>` is drawn as, and where `.btn`'s
- * hover parts company with the accent button it shares its resting shape with.
- */
+/** How `<kbd>` is drawn as a key cap, and where `.btn`'s hover breaks from the accent button whose shape it shares. */
 
 import { describe, expect, it } from "vitest";
 
@@ -9,15 +6,8 @@ import { declaration, ruleBody, token } from "#shared/styles/test-helpers.ts";
 
 describe("kbd", () => {
   it("draws a key cap instead of the browser default", () => {
-    // <kbd> ships with no border, background or radius of its own -- only a
-    // monospace font, which the rule above already sets. Reusing the shared
-    // control chrome's own tokens means a key reads as the same kind of
-    // control-shaped mark .btn and .task-open draw, rather than a color
-    // nothing would have a test for. The pair is --ds-text
-    // on --ds-raised, which the shared control-surface case in
-    // `shared/styles/tokens.css.test.ts` already holds to 4.5:1 -- not read
-    // through declaration()/token() here, since both are themed and token()
-    // would silently collapse to the light theme's value only.
+    // Matched with a regex, not declaration()/token(): both are themed, and
+    // token() would silently collapse to only the light theme's value.
     const body = ruleBody("kbd");
     expect(declaration(body, "border-radius", "kbd")).toBe("4px");
     expect(body).toMatch(/^\s*color:\s*var\(--ds-text\);/m);
@@ -28,10 +18,9 @@ describe("kbd", () => {
 
 describe(".btn", () => {
   it("brightens .docsclose/.keysclose's border to the neutral --ds-n-5 on hover, not the accent", () => {
-    // .btn shares its resting shape with .task-open but not its hover color:
-    // .task-open opens the level switcher and brightens to the themed accent
-    // to draw the eye, while .btn only closes a dialog the player already
-    // opened. Guards the two against drifting onto one token.
+    // .btn shares its resting shape with .task-open but diverges on hover
+    // color, since .task-open draws the eye toward the accent while .btn
+    // merely closes a dialog. Guards the two against drifting onto one token.
     expect(declaration(ruleBody(".btn:hover"), "border-color", ".btn:hover")).toBe(token("ds-n-5"));
   });
 });

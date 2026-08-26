@@ -1,25 +1,7 @@
 /**
- * The inline SVG icon set, replacing the Font Awesome 4.1 webfont.
- *
- * The legacy markup drew its icons from the bundled `font-awesome-4.1-1.0`
- * webfont (`.eot`/`.svg`/`.ttf`/`.woff`). Shipping an entire icon font — plus a
- * render-blocking stylesheet — for a handful of glyphs is a lot of bytes, so
- * the outlines are inlined here and the font is dropped.
- *
- * Attribution: the path data below is copied verbatim from the glyph outlines in
- * `font-awesome-4.1-1.0/fonts/fontawesome-webfont.svg` by Dave Gandy
- * (https://fontawesome.com). Font Awesome 4 icon outlines are licensed under the
- * SIL OFL 1.1 (https://scripts.sil.org/OFL); the same artwork as shipped in Font
- * Awesome Free 5 and later is licensed under CC BY 4.0
- * (https://creativecommons.org/licenses/by/4.0/), which is not the license this
- * artwork arrives under. See `fontawesome-license.txt` for the full text and
- * `fontawesome-glyphs.json` for which glyph came from which codepoint.
- *
- * Coordinate system: font outlines are y-up with the baseline at y = 0. Each
- * icon is emitted with a `viewBox` of `0 0 <advance> {@link ICON_EM_UNITS}` and
- * its path is flipped into SVG's y-down space by translating down to the ascent
- * and mirroring. Drawing an icon at `height: 1em` with the advance-derived width
- * therefore reproduces the metrics the webfont glyph had at the same font size.
+ * Inline SVG icon set, replacing the Font Awesome 4.1 webfont. Path data is
+ * copied verbatim from the Font Awesome 4 glyph outlines (SIL OFL 1.1), not
+ * the CC BY 4.0 artwork in Font Awesome 5+.
  */
 
 /** SVG namespace, needed because icons are built with `createElementNS`. */
@@ -49,9 +31,7 @@ export const ICONS = {
     advance: 640,
     path: "M0 192v896q0 26 19 45t45 19t45 -19l448 -448q19 -19 19 -45t-19 -45l-448 -448q-19 -19 -45 -19t-45 19t-19 45z",
   },
-  // The reference page's two floor-button glyphs. It is static HTML and writes
-  // them out by hand; these entries are what `src/page.test.ts` holds the
-  // hand-written pair to.
+  // Hand-duplicated in the reference page's static HTML; keep them in sync.
   minus: {
     advance: 1408,
     path: "M0 608v192q0 40 28 68t68 28h1216q40 0 68 -28t28 -68v-192q0 -40 -28 -68t-68 -28h-1216q-40 0 -68 28t-28 68z",
@@ -66,25 +46,21 @@ export const ICONS = {
 export type IconName = keyof typeof ICONS;
 
 /**
- * Rendered width of an icon, in `em`, matching the webfont glyph advance.
+ * Rendered width of an icon in `em`, matching the webfont glyph's advance.
  *
- * @param name - Icon to measure.
- * @returns The width as a CSS `em` length, rounded to four decimals.
+ * @returns A CSS `em` length, rounded to four decimals.
  */
 export function iconWidthEm(name: IconName): string {
   return `${(ICONS[name].advance / ICON_EM_UNITS).toFixed(4)}em`;
 }
 
 /**
- * Builds an icon element.
+ * Builds an icon element. Decorative: hidden from assistive tech and out of
+ * the tab order, since every control with one also carries visible text or
+ * an `aria-label`.
  *
- * Icons are decorative: they are hidden from assistive technology and kept out
- * of the tab order, because every control that carries one also carries either
- * visible text or an `aria-label`.
- *
- * @param name - Icon to draw.
- * @param className - Extra classes to add alongside `icon`.
- * @returns A detached `<svg>` element that takes its color from `currentColor`.
+ * @param className - Added alongside the `icon` class, not in place of it.
+ * @returns A detached `<svg>` that takes its color from `currentColor`.
  */
 export function createIcon(name: IconName, className?: string): SVGSVGElement {
   const { advance, path } = ICONS[name];
@@ -104,13 +80,11 @@ export function createIcon(name: IconName, className?: string): SVGSVGElement {
 }
 
 /**
- * Markup for an icon, for embedding in a template literal.
+ * Markup for an icon, for embedding in a template literal. Trusted markup:
+ * built only from this module's constants and the caller's class name, never
+ * from player input.
  *
- * The result is trusted markup: it is built only from this module's constants
- * and the caller-supplied class name, never from player input.
- *
- * @param name - Icon to draw.
- * @param className - Extra classes to add alongside `icon`.
+ * @param className - Added alongside the `icon` class, not in place of it.
  * @returns The `<svg>` markup.
  */
 export function iconMarkup(name: IconName, className?: string): string {
@@ -124,22 +98,12 @@ export function iconMarkup(name: IconName, className?: string): string {
 }
 
 /**
- * The stroked icon family: flat 16x16 outlines drawn for this design rather
- * than traced from a webfont. Kept apart from {@link ICONS} because the two do
- * not share a shape — an entry here is one or more raw SVG shapes at native
- * 16x16 size, some with their own paint overrides (a filled star, a
- * heavier-stroked check mark), where every {@link ICONS} entry is exactly one
- * path flipped out of a webfont's y-up em box. Consumers wear a `ds-icon`
- * wrapper class rather than `icon`: this family is fixed-pixel, not
- * em-relative, and the two would fight over one class.
+ * The stroked icon family: flat 16x16 outlines, distinct from {@link ICONS}'s
+ * webfont-traced paths. Uses a `ds-icon` wrapper class, not `icon`, since this
+ * family is fixed-pixel rather than em-relative.
  */
 export const SPRITE_ICONS = {
-  // `.ds-icon` already carries the stroked default (no fill, `currentcolor`,
-  // 1.6 wide, round caps and joins), but every stroked shape below spells it
-  // out anyway, the same reason `star` spells out its own paint rather than
-  // leaving it to inherited CSS.
-  //
-  // The docs opener's glyph: an open book, split down the spine.
+  // Docs opener glyph.
   book: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -183,9 +147,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The copy-link glyph. `features/manage-seed` draws it on the seed row's
-  // link while the run is unpinned: pinning this draw into the address bar is
-  // the same gesture under another name.
+  // The seed row's copy-link glyph.
   copy: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -217,8 +179,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The tier popover's "not decided yet" mark, between check and x — the
-  // requirement it sits on is neither held nor lost while a run is live.
+  // Tier popover's "not decided yet" mark, between check and x.
   dash: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -235,9 +196,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The seed block's reroll glyph. `features/manage-seed` draws it on the seed
-  // row's link once the run is pinned: throwing this draw away and starting
-  // again without it is the reroll.
+  // The seed row's reroll glyph, shown once the run is pinned.
   dice: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -270,8 +229,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // A floor's "call a car going down" lamp, and the lower of the two boarding
-  // lamps on a car's header. Both are this one glyph at two sizes.
+  // Down-call lamp; also the lower boarding lamp on a car's header.
   down: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -288,8 +246,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // A stylized keyboard, on the settings popover's row that opens the hotkeys
-  // dialog.
+  // Keyboard glyph for the hotkeys-dialog row.
   keys: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -332,8 +289,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The goal bar's "nothing to meter here" mark, for the sandbox's own
-  // never-resolving level condition.
+  // Goal bar's "nothing to meter" mark, for sandbox levels.
   lamp: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -374,9 +330,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The speed control's "slower" arrow, `#i-left` — {@link SPRITE_ICONS.right}
-  // mirrored, so that the pair either side of the speed reading reads as one
-  // control pointing two ways.
+  // Speed control's "slower" arrow; mirror of {@link SPRITE_ICONS.right}.
   left: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -393,8 +347,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The About block's own glyph, next to the two `.setlink` anchors out to
-  // this fork's and the original game's repositories.
+  // About block's glyph, next to the repository links.
   link: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -433,8 +386,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // `features/switch-layout`'s "code only" button — the workspace collapsed
-  // to just its editor pane.
+  // Switch-layout's "code only" button.
   "only-code": {
     viewBox: "0 0 16 16",
     shapes: [
@@ -466,8 +418,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // `features/switch-layout`'s "game only" button — the workspace collapsed
-  // to just its building pane.
+  // Switch-layout's "game only" button.
   "only-game": {
     viewBox: "0 0 16 16",
     shapes: [
@@ -499,9 +450,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The run button's glyph while a run is playing, `#i-pause`. Two bars, drawn
-  // at 2.4 rather than the family's 1.6: a pause mark is read as two solid
-  // blocks, and at 16px the shared stroke width draws it as two hairlines.
+  // Run button's "playing" glyph. Stroke-width 2.4, not the family's 1.6, so
+  // the bars read as solid blocks rather than hairlines.
   pause: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -518,12 +468,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // A passenger. Two filled shapes rather than an outline, and the only glyphs
-  // in this table whose viewBox is not 16x16:
-  // a person is drawn 11 wide by 20 tall so the figure fills its box at every
-  // size the building scales it to, from a rider squeezed into a narrow cabin
-  // to a full-height figure waiting in a roomy corridor. An outline at those
-  // sizes is the same blob `star`'s own comment describes.
+  // Passenger glyph. Filled, not outlined, and 11x20, not this family's usual
+  // 16x16, so the figure fills its box at any scale the building draws it at.
   person: {
     viewBox: "0 0 11 20",
     shapes: [
@@ -541,14 +487,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The other two of `game/world.ts`'s three `displayType`s. Every passenger
-  // carries a type so that a crowd on a floor reads as a crowd of people
-  // rather than one repeated stamp. Both are drawn in this family's flat-fill
-  // idiom: an outline reads as a smudge at the size a figure gets here.
-  //
-  // A child stands in the same 11x20 box as an adult, occupying only its lower
-  // two-thirds, so that both are sized by one CSS height and still stand on the
-  // same line — the box is the floor, not the figure.
+  // Child and female passenger variants, flat-filled like `person`. A child
+  // sits in the box's lower two-thirds so both share one baseline.
   "person-child": {
     viewBox: "0 0 11 20",
     shapes: [
@@ -583,10 +523,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The run button's glyph while a run is stopped. Filled *and* stroked,
-  // unlike {@link SPRITE_ICONS.star}, which turns the stroke off when it turns
-  // the fill on: keeping the round-joined stroke gives the triangle the same
-  // softened corners and optical weight as the pause bars it swaps with.
+  // Run button's "stopped" glyph. Filled and stroked, unlike `star`, so its
+  // corners match the pause bars it swaps with.
   play: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -603,9 +541,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // `widgets/editor-pane`'s "Undo reset" glyph: {@link SPRITE_ICONS.undo}
-  // mirrored about the middle of the box, arrowhead and all, so the pair reads
-  // as one control turned around -- which is what the two buttons are.
+  // Editor pane's "redo" glyph; mirror of {@link SPRITE_ICONS.undo}.
   redo: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -622,10 +558,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The "Start over" button's glyph, `#i-restart`: a circle open at the top
-  // with an arrowhead turning back into it. Distinct from {@link
-  // SPRITE_ICONS.undo}, which the editor pane uses for throwing an edit away —
-  // this one throws a *run* away, and the two sit in the same bar.
+  // "Start over" button's glyph; distinct from `undo`, which discards an edit
+  // rather than a run.
   restart: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -642,8 +576,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The generic disclosure chevron: the settings popover's `keysOpen` row
-  // (`.chev`) among other places, and the speed control's "faster" arrow.
+  // Disclosure chevron; also the speed control's "faster" arrow.
   right: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -660,8 +593,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The settings trigger's own glyph, `#setOpen` — sliders standing in for
-  // "preferences" the same way a gear does elsewhere.
+  // Settings trigger's glyph.
   slider: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -704,8 +636,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // `features/switch-layout`'s "code left" button — the divider drawn on the
-  // right two-thirds of the way across.
+  // Switch-layout's "code left" button.
   "split-left": {
     viewBox: "0 0 16 16",
     shapes: [
@@ -737,8 +668,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // `features/switch-layout`'s "code right" button — the divider drawn on the
-  // left third of the way across.
+  // Switch-layout's "code right" button.
   "split-right": {
     viewBox: "0 0 16 16",
     shapes: [
@@ -770,9 +700,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // Filled solid rather than outlined, unlike every other glyph in this
-  // table: at the 10-11px a star draws in a tile or a tier badge, an
-  // outlined star is a blob, not a star.
+  // Filled solid, not outlined: at the ~10px this draws, an outline is a blob.
   star: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -786,9 +714,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // `widgets/editor-pane`'s "Reset code" glyph, `#i-undo`: an arrow curling
-  // back on itself, the mark every editor uses for "put it back the way it
-  // was".
+  // Editor pane's "reset code" glyph.
   undo: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -805,7 +731,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // See `down` above for where the pair is drawn.
+  // Up-call lamp; pair of `down`.
   up: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -822,12 +748,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // `widgets/editor-pane`'s error banner glyph, `#i-warn`: a hollow triangle
-  // with a bang in it. Outlined rather than the solid Font Awesome
-  // `warning` triangle the banner drew before, so that it sits at the same
-  // weight as `undo` and `redo` a row above it, and so that the tinted
-  // `--ds-bad-soft` band shows through it instead of being blotted out by a
-  // 16px block of `--ds-bad`.
+  // Editor pane's error-banner glyph. Outlined, not solid, so the tinted
+  // `--ds-bad-soft` band shows through it.
   warn: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -879,7 +801,6 @@ export type SpriteIconName = keyof typeof SPRITE_ICONS;
 
 /** One shape making up a {@link SpriteIconDefinition} — a direct, typed stand-in for an SVG element. */
 interface SpriteShape {
-  /** The SVG element to build. */
   readonly tag: "circle" | "path" | "rect";
   /** Attributes to set on it verbatim. */
   readonly attrs: Readonly<Record<string, string>>;
@@ -892,16 +813,10 @@ interface SpriteIconDefinition {
 }
 
 /**
- * Builds a sprite icon element.
+ * Builds a sprite icon element. Decorative, same as {@link createIcon}.
  *
- * Decorative and out of the tab order for the same reason {@link createIcon}
- * is: every control that carries one also carries its own visible text or
- * `aria-label`.
- *
- * @param name - Icon to draw.
- * @param className - Extra classes to add alongside `ds-icon`.
- * @returns A detached `<svg>` element that takes its color from `currentColor`
- * unless one of its shapes overrides that.
+ * @param className - Added alongside the `ds-icon` class, not in place of it.
+ * @returns A detached `<svg>`; color is `currentColor` unless a shape overrides it.
  */
 export function createSpriteIcon(name: SpriteIconName, className?: string): SVGSVGElement {
   const { viewBox, shapes } = SPRITE_ICONS[name];
@@ -921,13 +836,11 @@ export function createSpriteIcon(name: SpriteIconName, className?: string): SVGS
 }
 
 /**
- * Markup for a sprite icon, for embedding in a template literal.
+ * Markup for a sprite icon, for embedding in a template literal. Trusted
+ * markup, built only from {@link SPRITE_ICONS} and the caller's class name,
+ * never from player input.
  *
- * The result is trusted markup, built only from {@link SPRITE_ICONS} and the
- * caller-supplied class name, never from player input.
- *
- * @param name - Icon to draw.
- * @param className - Extra classes to add alongside `ds-icon`.
+ * @param className - Added alongside the `ds-icon` class, not in place of it.
  * @returns The `<svg>` markup.
  */
 export function spriteIconMarkup(name: SpriteIconName, className?: string): string {

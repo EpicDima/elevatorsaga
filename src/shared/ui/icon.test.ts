@@ -16,10 +16,7 @@ import {
 } from "./icon.ts";
 import type { IconName, SpriteIconName } from "./icon.ts";
 
-/**
- * Every `fa-*` glyph still drawn, with the codepoint that class resolved to in
- * `font-awesome-4.1-1.0/css/font-awesome.css`.
- */
+/** Every `fa-*` glyph still drawn, with the codepoint that class resolved to. */
 const LEGACY_GLYPHS: Readonly<Record<IconName, string>> = {
   "caret-right": "U+F0DA",
   minus: "U+F068",
@@ -34,13 +31,8 @@ describe("ICONS", () => {
     expect(Object.keys(ICONS).toSorted()).toEqual(ICON_NAMES.toSorted());
   });
 
-  // Every one of these outlines is copied verbatim from the Font Awesome 4.1
-  // webfont, and nothing in the game reads that webfont at runtime any more, so
-  // nothing else would notice if an outline were swapped for another, truncated
-  // or nudged: the icons would simply be wrong, and every other test would keep
-  // passing. src/shared/ui/fontawesome-glyphs.json is a copy taken from the font
-  // itself (not from ICONS, which would make this circular), and this is the
-  // assertion that holds ICONS to it.
+  // Nothing in the game reads the webfont at runtime any more, so a swapped,
+  // truncated, or nudged outline would leave every other test passing.
   it("reproduces the Font Awesome 4.1 outlines exactly", () => {
     expect(Object.keys(fontAwesome.glyphs).toSorted()).toEqual(ICON_NAMES.toSorted());
     for (const name of ICON_NAMES) {
@@ -64,7 +56,6 @@ describe("ICONS", () => {
 
 describe("iconWidthEm", () => {
   it("derives the width from the glyph advance", () => {
-    // The caret advances 640 of 1792 font units, the plus 1408.
     expect(iconWidthEm("caret-right")).toBe("0.3571em");
     expect(iconWidthEm("plus")).toBe("0.7857em");
   });
@@ -111,9 +102,7 @@ describe("iconMarkup", () => {
   });
 
   it("carries the base class alone when no extra classes were asked for", () => {
-    // The class name is optional here as it is on createIcon, and an icon
-    // written without one has to come out `class="icon"` rather than
-    // `class="icon undefined"`.
+    // An icon without an extra class must come out `class="icon"`, not `class="icon undefined"`.
     const template = document.createElement("template");
     template.innerHTML = iconMarkup("caret-right");
     expect(template.content.firstElementChild?.outerHTML).toBe(createIcon("caret-right").outerHTML);
@@ -132,9 +121,8 @@ const STROKE_DEFAULTS = (strokeWidth: string) => ({
   "stroke-linejoin": "round",
 });
 
-// These outlines are drawn by hand and read by nothing else at runtime, so a
-// truncated or nudged path would leave every other test passing. The
-// assertions below are what holds each glyph to its shape.
+// These outlines are drawn by hand and read by nothing else at runtime, so
+// a truncated or nudged path would leave every other test passing.
 describe("SPRITE_ICONS", () => {
   it("reproduces the star glyph exactly", () => {
     expect(SPRITE_ICONS.star).toEqual({
@@ -152,7 +140,6 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // The stroke defaults are spelled out per shape; see icon.ts for why.
   it("reproduces the check/x/dash glyphs exactly", () => {
     expect(SPRITE_ICONS.check).toEqual({
       viewBox: "0 0 16 16",
@@ -393,8 +380,7 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // The disclosure chevron the settings popover's keysOpen row draws, and its
-  // mirror, which the speed control uses as its "slower" arrow.
+  // The disclosure chevron, and its mirror used as the speed control's "slower" arrow.
   it("reproduces the right and left glyphs exactly", () => {
     expect(SPRITE_ICONS.right).toEqual({
       viewBox: "0 0 16 16",
@@ -406,9 +392,8 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // The run controls' three glyphs. `play` overrides `fill` without turning
-  // `stroke` off, so it keeps the stroke defaults on top of a fill; `pause` is
-  // the only glyph in the family with a heavier stroke.
+  // `play` overrides `fill` without turning `stroke` off, keeping the stroke
+  // defaults on top of a fill; `pause` is the only glyph with a heavier stroke.
   it("reproduces the play, pause and restart glyphs exactly", () => {
     expect(SPRITE_ICONS.play).toEqual({
       viewBox: "0 0 16 16",
@@ -438,9 +423,7 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // The two glyphs widgets/editor-pane draws: its "Reset code" arrow and its
-  // error banner's triangle. `redo` is mirrored out of `undo` rather than
-  // drawn, so there is no shape of its own to hold it to.
+  // `redo` is mirrored out of `undo` rather than drawn, so it has no shape of its own to test here.
   it("reproduces the undo and warn glyphs exactly", () => {
     expect(SPRITE_ICONS.undo).toEqual({
       viewBox: "0 0 16 16",
