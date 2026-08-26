@@ -1,11 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  type EventChannel,
-  type EventName,
-  Observable,
-  PlayerObservable,
-} from "./observable.ts";
+import { type EventChannel, type EventName, Observable, PlayerObservable } from "./observable.ts";
 
 type TestEvents = {
   up_button_pressed: [floor: number];
