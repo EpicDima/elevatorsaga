@@ -184,15 +184,16 @@ emitter's spellings of `one()` and `off("*")` rather than the original's.
 program — under `develevateChallengeCode_<level>_<slot>` in `localStorage`, a prefix left spelled
 the way it was so that nothing saved before the rename went missing — instead of all nineteen
 sharing the one buffer the legacy key held, so changing your answer on level 8 no longer touches
-what you left on level 7. Each level also offers three interchangeable slots for a program you want
-to keep, switched with the buttons above the editor: nothing built into them means "attempt" or
-"goal", they are just three places to put code so you never have to lose one to try another. The
-legacy key, `elevatorCrushCode_v5`, is read once as the starting point for level 1's first slot —
-the one slot a player who saved code before slots existed will find it under — and stays in use for
-the sandbox, which has no level index of its own to key a slot by. The reset backup follows the same
-split, one per level and slot rather than the single `develevateBackupCode` it used to share. Reads
-and writes are wrapped in `try`/`catch`, so a browser that refuses storage degrades instead of
-crashing.
+what you left on level 7. Every level offers three interchangeable slots for a program you want to
+keep, switched with the buttons above the editor: nothing built into them means "attempt" or "goal",
+they are just three places to put code so you never have to lose one to try another. The lessons and
+chapter two key theirs by level id (`develevateTutorialCode_<id>`), and the sandbox, which has no
+level of its own, keys them under the legacy `elevatorCrushCode_v5`; in both, only the second and
+third slots carry a `_<slot>` suffix, so whatever you saved before the other two existed is still
+what the first slot opens on. That legacy key is also read once as the starting point for level 1's
+first slot. The reset backup follows the same split, one per level and slot rather than the single
+`develevateBackupCode` it used to share. Reads and writes are wrapped in `try`/`catch`, so a browser
+that refuses storage degrades instead of crashing.
 
 ## Fixed bugs
 

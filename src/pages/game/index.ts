@@ -342,7 +342,7 @@ export class App {
   #goalBar: GoalBarPresenter | undefined = undefined;
   /** The stats panel for the run on screen, or `undefined` before the first one; rebuilt by every {@link #startRun}. */
   #statsPanel: StatsPanelPresenter | undefined = undefined;
-  /** The code slot open in the editor for the current level, in-memory only; set by {@link startChapter1Level}. */
+  /** The code slot open in the editor for the run on screen, in-memory only; set by whichever `start…` began it. */
   #currentSlot: CodeSlot = DEFAULT_CODE_SLOT;
   /** The parameters of the URL the current level was started from. */
   #query: RouteQuery = new Map<string, string>();
@@ -566,14 +566,15 @@ export class App {
     const tutorial = this.#tutorial;
     const chapter2 = this.#chapter2;
     const sandbox = this.#sandbox;
+    const slot = this.#currentSlot;
     if (tutorial !== undefined) {
-      this.startTutorial(tutorial.index, autoStart);
+      this.startTutorial(tutorial.index, autoStart, slot);
     } else if (chapter2 !== undefined) {
-      this.startChapter2Level(chapter2.index, autoStart);
+      this.startChapter2Level(chapter2.index, autoStart, slot);
     } else if (sandbox === undefined) {
-      this.startChapter1Level(this.currentChapter1Index, autoStart, this.#currentSlot);
+      this.startChapter1Level(this.currentChapter1Index, autoStart, slot);
     } else {
-      this.startSandbox(sandbox, autoStart);
+      this.startSandbox(sandbox, autoStart, slot);
     }
   }
 
@@ -667,16 +668,28 @@ export class App {
 
   /** Switches the editor to another code slot without disturbing the run in progress; a no-op when that slot is already open. */
   selectCodeSlot(slot: CodeSlot): void {
-    // No level index to key a slot by on the track, in chapter two, or in sandbox, so this is a no-op there.
-    if (this.#tutorial !== undefined || this.#chapter2 !== undefined || this.isPlayingSandbox) {
-      return;
-    }
     if (slot === this.#currentSlot) {
       return;
     }
     this.#currentSlot = slot;
-    this.#editor.openChapter1Buffer(this.currentChapter1Index, slot);
+    this.#openSlot(slot);
     this.#editorPane.update();
+  }
+
+  /**
+   * Opens `slot`'s buffer for whatever is on screen, dispatching on the
+   * special-run fields in the same order {@link #restart} does. Every run kind
+   * has three slots; only the key they are stored under differs.
+   */
+  #openSlot(slot: CodeSlot): void {
+    const named = this.#tutorial?.level ?? this.#chapter2?.level;
+    if (named !== undefined) {
+      this.#editor.openNamedLevelBuffer(named.id, named.startingCode, slot);
+    } else if (this.isPlayingSandbox) {
+      this.#editor.openPlayerBuffer(slot);
+    } else {
+      this.#editor.openChapter1Buffer(this.currentChapter1Index, slot);
+    }
   }
 
   /** The code slot currently open in the editor. */
@@ -685,35 +698,50 @@ export class App {
   }
 
   /** Tears the current level down and starts a sandbox run; the building comes entirely from the URL, so a bookmark reproduces it. */
-  startSandbox(options: SandboxOptions, autoStart = false): void {
+  startSandbox(
+    options: SandboxOptions,
+    autoStart = false,
+    slot: CodeSlot = DEFAULT_CODE_SLOT,
+  ): void {
     this.#clearSpecialRuns();
     this.#sandbox = options;
-    this.#editor.openPlayerBuffer();
+    this.#currentSlot = slot;
+    this.#editor.openPlayerBuffer(slot);
     this.#startRun(createSandboxLevel(options), null, autoStart);
   }
 
   /** Tears the current run down and starts a level of the learning track; opens its buffer before {@link #startRun} compiles it. */
-  startTutorial(tutorialIndex: number, autoStart = false): void {
+  startTutorial(
+    tutorialIndex: number,
+    autoStart = false,
+    slot: CodeSlot = DEFAULT_CODE_SLOT,
+  ): void {
     const level = tutorialLevels[tutorialIndex];
     if (level === undefined) {
       throw new RangeError(`No tutorial level with index ${String(tutorialIndex)}`);
     }
     this.#clearSpecialRuns();
     this.#tutorial = { level, index: tutorialIndex };
-    // The player's own attempt if they left one, else the level's starting code.
-    this.#editor.openNamedLevelBuffer(level.id, level.startingCode);
+    this.#currentSlot = slot;
+    // The player's own attempt if they left one in this slot, else the level's starting code.
+    this.#editor.openNamedLevelBuffer(level.id, level.startingCode, slot);
     this.#startRun(level, null, autoStart);
   }
 
   /** Starts a chapter two level like {@link startTutorial} does, except `startingCode` is never optional — its levels assume mechanics chapter one's don't. */
-  startChapter2Level(chapter2Index: number, autoStart = false): void {
+  startChapter2Level(
+    chapter2Index: number,
+    autoStart = false,
+    slot: CodeSlot = DEFAULT_CODE_SLOT,
+  ): void {
     const level = chapter2Levels[chapter2Index];
     if (level === undefined) {
       throw new RangeError(`No chapter two level with index ${String(chapter2Index)}`);
     }
     this.#clearSpecialRuns();
     this.#chapter2 = { level, index: chapter2Index };
-    this.#editor.openNamedLevelBuffer(level.id, level.startingCode);
+    this.#currentSlot = slot;
+    this.#editor.openNamedLevelBuffer(level.id, level.startingCode, slot);
     this.#startRun(level, null, autoStart);
   }
 

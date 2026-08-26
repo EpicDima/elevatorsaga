@@ -39,6 +39,28 @@ export async function seedLevelCode(
 }
 
 /**
+ * Plants a program in one of a lesson's code slots, the same way
+ * {@link seedLevelCode} does for a numbered level. Only the second and third
+ * slots carry a suffix, so `slot` defaults to the bare key the first opens on.
+ */
+export async function seedLessonCode(
+  page: Page,
+  levelId: string,
+  code: string,
+  slot = 1,
+): Promise<void> {
+  await page.addInitScript(
+    (seed: { key: string; code: string }) => {
+      localStorage.setItem(seed.key, seed.code);
+    },
+    {
+      key: `develevateTutorialCode_${levelId}${slot === 1 ? "" : `_${String(slot)}`}`,
+      code,
+    },
+  );
+}
+
+/**
  * The CodeMirror editing surface, found by its accessible name - a translated
  * string, so a spec in another language must pass the name it expects.
  */

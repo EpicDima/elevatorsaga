@@ -313,6 +313,68 @@ describe("CodeEditor buffers", () => {
     expect(storage.getItem("develevateTutorialCode_tutorial-4")).toBe("// level 4 skeleton");
   });
 
+  it("gives every one of a level's slots a storage key of its own", () => {
+    const { editor, view, storage } = setUp();
+
+    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton", 2);
+    view.type("// my second try at level 3");
+    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton", 3);
+    view.type("// my third try at level 3");
+    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton", 1);
+
+    // The first slot keeps the bare key, so a program saved before the other
+    // two existed is still the one the level opens on.
+    expect(storage.getItem("develevateTutorialCode_tutorial-3")).toBe("// level 3 skeleton");
+    expect(storage.getItem("develevateTutorialCode_tutorial-3_2")).toBe(
+      "// my second try at level 3",
+    );
+    expect(storage.getItem("develevateTutorialCode_tutorial-3_3")).toBe(
+      "// my third try at level 3",
+    );
+  });
+
+  it("keeps a separate reset backup per slot of a named level", () => {
+    const { editor, view, storage } = setUp();
+    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton", 1);
+    view.type("// slot 1 attempt");
+    editor.reset();
+    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton", 2);
+    view.type("// slot 2 attempt");
+    editor.reset();
+
+    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton", 1);
+    editor.undoReset();
+
+    expect(view.getValue()).toBe("// slot 1 attempt");
+    expect(storage.getItem("develevateTutorialBackupCode_tutorial-3")).toBe("// slot 1 attempt");
+    expect(storage.getItem("develevateTutorialBackupCode_tutorial-3_2")).toBe("// slot 2 attempt");
+  });
+
+  it("gives every one of the player's own slots a storage key of its own", () => {
+    const { editor, view, storage } = setUp();
+
+    view.type("// the program every existing player has");
+    editor.openPlayerBuffer(2);
+    view.type("// something else to try");
+    editor.openPlayerBuffer(1);
+
+    expect(view.getValue()).toBe("// the program every existing player has");
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// the program every existing player has");
+    expect(storage.getItem(`${CODE_STORAGE_KEY}_2`)).toBe("// something else to try");
+  });
+
+  it("opens a named level's first slot when none is asked for", () => {
+    const { editor, view, storage } = setUp();
+    editor.openNamedLevelBuffer("tutorial-1", "// fill this in", 1);
+    view.type("// my attempt at level 1");
+
+    editor.openPlayerBuffer();
+    editor.openNamedLevelBuffer("tutorial-1", "// fill this in");
+
+    expect(view.getValue()).toBe("// my attempt at level 1");
+    expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// my attempt at level 1");
+  });
+
   it("opens a level nobody has started with the program it hands out", () => {
     const { editor, view, storage } = setUp();
 
@@ -1736,8 +1798,8 @@ describe("the starting program", () => {
   });
 
   it("follows the language, rather than the language it was imported in", () => {
-    // `PLAYER_BUFFER.starterCode` must be a getter: a module-scope constant
-    // would be evaluated at import time, before the locale is known.
+    // The player buffer's `starterCode` must be a getter: a value read when the
+    // buffer is built would be fixed at the locale that was active then.
     const { editor, view } = setUp();
     expect(view.getValue()).toContain("// Let's use the first elevator");
 

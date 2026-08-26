@@ -88,6 +88,17 @@ function chapter1BackupKey(chapter1Index: number, slot: CodeSlot): string {
   return `${CHAPTER1_BACKUP_KEY_PREFIX}${String(chapter1Index)}_${String(slot)}`;
 }
 
+/**
+ * A key's spelling for one slot of the buffers that predate slots — the
+ * player's own and the named levels'. The first slot keeps the bare key it was
+ * always saved under, so nothing already stored goes missing; only the other
+ * two carry a suffix. Chapter one's keys, written slot-suffixed from the start,
+ * are spelled by {@link chapter1CodeKey} instead.
+ */
+function slotKey(key: string, slot: CodeSlot): string {
+  return slot === DEFAULT_CODE_SLOT ? key : `${key}_${String(slot)}`;
+}
+
 /** How long typing must pause before the program is saved, in milliseconds. */
 export const AUTOSAVE_DELAY_MS = 1000;
 
@@ -223,27 +234,29 @@ interface EditorBuffer {
   readonly writesStarterOnOpen: boolean;
 }
 
-/** The buffer holding the player's own program, and the editor's initial buffer. */
-const PLAYER_BUFFER: EditorBuffer = {
-  codeKey: CODE_STORAGE_KEY,
-  backupKey: BACKUP_STORAGE_KEY,
-  get starterCode(): string {
-    return defaultCode();
-  },
-  writesStarterOnOpen: false,
-};
+/** Describes one slot of the player's own program; its first slot is the editor's initial buffer. */
+function playerBuffer(slot: CodeSlot): EditorBuffer {
+  return {
+    codeKey: slotKey(CODE_STORAGE_KEY, slot),
+    backupKey: slotKey(BACKUP_STORAGE_KEY, slot),
+    get starterCode(): string {
+      return defaultCode();
+    },
+    writesStarterOnOpen: false,
+  };
+}
 
 /**
- * Describes a learning-track level's buffer, keyed by the level's stable id
+ * Describes one slot of a named level's buffer, keyed by the level's stable id
  * rather than its position in the track. Throws if `levelId` is blank.
  */
-function namedLevelBuffer(levelId: string, starterCode: string): EditorBuffer {
+function namedLevelBuffer(levelId: string, starterCode: string, slot: CodeSlot): EditorBuffer {
   if (levelId.trim() === "") {
     throw new RangeError(`Level id must not be blank, got ${JSON.stringify(levelId)}`);
   }
   return {
-    codeKey: `${TUTORIAL_CODE_KEY_PREFIX}${levelId}`,
-    backupKey: `${TUTORIAL_BACKUP_KEY_PREFIX}${levelId}`,
+    codeKey: slotKey(`${TUTORIAL_CODE_KEY_PREFIX}${levelId}`, slot),
+    backupKey: slotKey(`${TUTORIAL_BACKUP_KEY_PREFIX}${levelId}`, slot),
     get starterCode(): string {
       return localizeStarterCode(starterCode);
     },
@@ -268,7 +281,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   readonly #view: TextEditorView;
   readonly #storage: Storage;
   /** The buffer on screen; every read and write of program text goes to it. */
-  #buffer: EditorBuffer = PLAYER_BUFFER;
+  #buffer: EditorBuffer = playerBuffer(DEFAULT_CODE_SLOT);
   /**
    * Every key this editor has written, kept in memory for the life of the
    * page. Backs a switch between buffers when the store refuses writes (full
@@ -421,18 +434,23 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.trigger("change");
   }
 
-  /** Shows the player's own program, keeping whatever was on screen. */
-  openPlayerBuffer(): void {
-    this.#openBuffer(PLAYER_BUFFER);
+  /** Shows one slot of the player's own program, keeping whatever was on screen. */
+  openPlayerBuffer(slot: CodeSlot = DEFAULT_CODE_SLOT): void {
+    this.#openBuffer(playerBuffer(slot));
   }
 
   /**
-   * Shows a level's own attempt, or `starterCode` if it has none, keeping
-   * whatever was on screen. The storage prefix is `develevateTutorialCode_`
-   * for legacy reasons and must not be renamed, or every saved attempt is lost.
+   * Shows a level's own attempt in one slot, or `starterCode` if that slot has
+   * none, keeping whatever was on screen. The storage prefix is
+   * `develevateTutorialCode_` for legacy reasons and must not be renamed, or
+   * every saved attempt is lost.
    */
-  openNamedLevelBuffer(levelId: string, starterCode: string): void {
-    this.#openBuffer(namedLevelBuffer(levelId, starterCode));
+  openNamedLevelBuffer(
+    levelId: string,
+    starterCode: string,
+    slot: CodeSlot = DEFAULT_CODE_SLOT,
+  ): void {
+    this.#openBuffer(namedLevelBuffer(levelId, starterCode, slot));
   }
 
   /** Shows one chapter one level's one code slot, keeping whatever was on screen. */

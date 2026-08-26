@@ -11,6 +11,7 @@ import {
   editor,
   languagePicker,
   seedCode,
+  seedLessonCode,
   seedLevelCode,
   startButton,
   storedCode,
@@ -120,6 +121,20 @@ test("starts the code slot that is open, not the one the level opened on", async
   const banner = page.locator(".errorline");
   await expect(banner).toBeVisible();
   await expect(banner).toContainText("e2e slot two");
+});
+
+test("switches code slots on a lesson as well as on a numbered level", async ({ page }) => {
+  await seedLessonCode(page, "tutorial-1", "// e2e lesson slot one", 1);
+  await seedLessonCode(page, "tutorial-1", "// e2e lesson slot two", 2);
+
+  await page.goto("/#level=tutorial-1");
+  await expect(editor(page)).toContainText("e2e lesson slot one");
+
+  await page.getByRole("button", { name: "Code 2" }).click();
+  await expect(editor(page)).toContainText("e2e lesson slot two");
+
+  await page.getByRole("button", { name: "Code 1" }).click();
+  await expect(editor(page)).toContainText("e2e lesson slot one");
 });
 
 test("surfaces a program that throws once the simulation is running", async ({ page }) => {

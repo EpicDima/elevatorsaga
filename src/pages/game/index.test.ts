@@ -371,6 +371,68 @@ describe("App code slots", () => {
     expect(app.currentCodeSlot).toBe(2);
     expect(view.getValue()).toBe("// slot two's program");
   });
+
+  it("switches the editor to another slot on a lesson too", () => {
+    const { app, editorPaneMount, view, storage } = setUp();
+    app.startTutorial(1);
+    storage.setItem("develevateTutorialCode_tutorial-2_2", "// slot two's program");
+    const world = app.world;
+
+    codeSlotButtons(editorPaneMount)[1]?.click();
+
+    expect(app.currentCodeSlot).toBe(2);
+    expect(view.getValue()).toBe("// slot two's program");
+    expect(app.world).toBe(world);
+  });
+
+  it("keeps a lesson's first slot on the unsuffixed key it was always saved under", () => {
+    // The key a player who saved before the other two slots existed will find their work under.
+    const { app, view, storage } = setUp();
+    app.startTutorial(1);
+    app.selectCodeSlot(2);
+    view.type("// slot two's program");
+    app.selectCodeSlot(1);
+
+    expect(storage.getItem("develevateTutorialCode_tutorial-2")).toBe(
+      tutorialLevels[1]?.startingCode,
+    );
+    expect(storage.getItem("develevateTutorialCode_tutorial-2_2")).toBe("// slot two's program");
+  });
+
+  it("switches the editor to another slot in the sandbox too", () => {
+    const { app, view, storage } = setUp();
+    storage.setItem(`${CODE_STORAGE_KEY}_3`, "// slot three's program");
+    app.handleRoute(...routeFor("#level=sandbox,floors=6"));
+
+    app.selectCodeSlot(3);
+
+    expect(app.currentCodeSlot).toBe(3);
+    expect(view.getValue()).toBe("// slot three's program");
+  });
+
+  it("keeps the slot a start-over reopens on a lesson", () => {
+    const { app, elements, view, storage } = setUp();
+    app.startTutorial(1);
+    storage.setItem("develevateTutorialCode_tutorial-2_2", "// slot two's program");
+    app.selectCodeSlot(2);
+
+    requireElement(".startover", elements.controls).click();
+
+    expect(app.currentCodeSlot).toBe(2);
+    expect(view.getValue()).toBe("// slot two's program");
+  });
+
+  it("opens the first slot again on the next lesson, rather than carrying the last one over", () => {
+    // A slot is a place within one level, not a mode the player is in.
+    const { app, storage } = setUp();
+    app.startTutorial(1);
+    storage.setItem("develevateTutorialCode_tutorial-2_2", "// slot two's program");
+    app.selectCodeSlot(2);
+
+    app.startTutorial(2);
+
+    expect(app.currentCodeSlot).toBe(DEFAULT_CODE_SLOT);
+  });
 });
 
 describe("App level outcome", () => {
@@ -1421,17 +1483,18 @@ describe("App chapter two", () => {
     expect(view.getValue()).toBe("// half an answer");
   });
 
-  it("leaves the code-slot switcher inert while one of its levels is on screen", () => {
-    // Buffers are keyed by level id, not slot index, so a stray press can't replace
-    // this level's program with a numbered level's slot.
+  it("switches the code slot to this level's own second buffer, not a numbered level's", () => {
+    // Slots key off the level id here, so a numbered level's slot two must stay untouched.
     const { app, storage, view } = setUp();
-    storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
+    storage.setItem("develevateChallengeCode_0_2", "// a numbered level's slot two");
+    storage.setItem("develevateTutorialCode_chapter2-1_2", "// slot two's program");
     app.startChapter2Level(0);
 
     app.selectCodeSlot(2);
 
-    expect(app.currentCodeSlot).toBe(DEFAULT_CODE_SLOT);
-    expect(view.getValue()).toBe(levelAt(0).startingCode);
+    expect(app.currentCodeSlot).toBe(2);
+    expect(view.getValue()).toBe("// slot two's program");
+    expect(storage.getItem("develevateChallengeCode_0_2")).toBe("// a numbered level's slot two");
   });
 
   it("records a medal for a win, under the level's own id", () => {
