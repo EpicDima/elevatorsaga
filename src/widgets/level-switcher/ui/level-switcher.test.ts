@@ -276,7 +276,7 @@ describe("presentLevelSwitcher", () => {
     expect(requireElement(".task-name", skyscraper.parent).textContent).toBe("Tower 2");
   });
 
-  it("labels a cleared tutorial tile as completed", () => {
+  it("names the gold a cleared tutorial tile holds, and badges it like any other tile", () => {
     const [firstLevel] = tutorialLevels;
     const { parent, options } = setUp({
       selection: { kind: "tutorial", index: 0 },
@@ -284,9 +284,38 @@ describe("presentLevelSwitcher", () => {
     });
     presentLevelSwitcher(parent, options);
     const [tutorialBlock] = parent.querySelectorAll(".taskblock");
-    const firstTile = tutorialBlock?.querySelector(".tasklink");
+    const [firstTile, secondTile] = [...(tutorialBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    expect(firstTile?.getAttribute("aria-label")).toBe("Tutorial level 1, completed");
+    expect(firstTile?.getAttribute("aria-label")).toBe("Tutorial level 1, Gold");
+    expect(firstTile?.getAttribute("data-tier")).toBe("gold");
+    expect(firstTile?.querySelectorAll(".star.is-on")).toHaveLength(3);
+    // An uncleared tile still draws the badge, as empty slots, so the track's
+    // tiles line up with the numbered ones rather than standing bare.
+    expect(secondTile?.getAttribute("aria-label")).toBe("Tutorial level 2");
+    expect(secondTile?.getAttribute("data-tier")).toBe(null);
+    expect(secondTile?.querySelectorAll(".star")).toHaveLength(3);
+    expect(secondTile?.querySelectorAll(".star.is-on")).toHaveLength(0);
+  });
+
+  it("never marks a tile done without the tier its tint is mixed from", () => {
+    // `.tasklink.is-done` reads `--tier-tint`, which only a `data-tier` sets;
+    // one without the other leaves the rule with nothing to mix.
+    const [firstLevel] = tutorialLevels;
+    const { parent, options } = setUp({
+      levels: fixtureLevels(3),
+      skyscraperLevels: fixtureSkyscraperLevels(2),
+      bestTiers: new Map<number, LevelTier>([[0, "bronze"]]),
+      bestSkyscraperTiers: new Map<string, LevelTier>([["sky-1", "silver"]]),
+      clearedTutorialLevels: new Set(firstLevel === undefined ? [] : [firstLevel.id]),
+      // Away from all three, so none of them is drawn current instead of done.
+      selection: { kind: "sandbox" },
+    });
+    presentLevelSwitcher(parent, options);
+
+    for (const tile of parent.querySelectorAll(".tasklink.is-done")) {
+      expect(tile.getAttribute("data-tier")).not.toBe(null);
+    }
+    expect(parent.querySelectorAll(".tasklink.is-done")).toHaveLength(3);
   });
 
   it("names the medal a level tile holds, and says nothing where none is held", () => {

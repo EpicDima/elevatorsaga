@@ -93,12 +93,12 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "game.levelSwitcher.skyscraperBlockLabel": "Небоскрёб",
   "game.levelSwitcher.skyscraperTileLabel": "Уровень небоскрёба {number}",
   "game.levelSwitcher.tutorialTileLabel": "Учебный уровень {number}",
-  "game.levelSwitcher.tutorialTileClearedLabel": "Учебный уровень {number}, пройден",
   // {tier} names a game.goalBar.tier.* rank in the nominative, as an
   // appositive, so it needs no gender agreement (unlike a predicate, where
   // "bronze" and "gold" take different verb endings).
   "game.levelSwitcher.levelTileEarnedLabel": "Уровень {number}, {tier}",
   "game.levelSwitcher.skyscraperTileEarnedLabel": "Уровень небоскрёба {number}, {tier}",
+  "game.levelSwitcher.tutorialTileEarnedLabel": "Учебный уровень {number}, {tier}",
   "game.levelSwitcher.tutorialTriggerLabel": "Урок {number}",
   "game.levelSwitcher.skyscraperTriggerLabel": "Башня {number}",
   // Hidden when locateCodeError finds nothing for the player's exception.

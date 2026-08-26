@@ -5,6 +5,7 @@
 
 import { listLevels, type Level } from "#entities/level/index.ts";
 import type { LevelTier } from "#entities/level-tier/index.ts";
+import { TUTORIAL_CLEARED_TIER } from "#entities/tutorial-level/model/progress.ts";
 import type { SkyscraperLevel } from "#game/skyscraper.ts";
 import type { TutorialLevel } from "#game/tutorial.ts";
 
@@ -43,14 +44,12 @@ export interface TutorialMenuTile {
   readonly index: number;
   readonly number: number;
   readonly current: boolean;
-  readonly cleared: boolean;
+  /** Set once cleared; the track grades nothing, so gold is the only medal it hands out. */
+  readonly tier: LevelTier | undefined;
   readonly href: string;
 }
 
-/**
- * One tile of the «Небоскрёб» block. Carries a `tier` rather than a `cleared` flag: a
- * demo level that grades nothing records gold on a win, so one field covers both cases.
- */
+/** One tile of the «Небоскрёб» block. */
 export interface SkyscraperMenuTile {
   readonly kind: "skyscraper";
   readonly index: number;
@@ -109,7 +108,7 @@ function buildTutorialBlock(input: LevelMenuInput): LevelMenuBlock {
       index,
       number: index + 1,
       current: input.selection.kind === "tutorial" && input.selection.index === index,
-      cleared: input.clearedTutorialLevels.has(level.id),
+      tier: input.clearedTutorialLevels.has(level.id) ? TUTORIAL_CLEARED_TIER : undefined,
       href: input.buildHref({ kind: "tutorial", levelId: level.id }),
     })),
   };

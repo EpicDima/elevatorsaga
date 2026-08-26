@@ -2,10 +2,30 @@ import { describe, expect, it } from "vitest";
 
 import { MemoryStorage } from "../../../ui/test-helpers.ts";
 import {
+  TUTORIAL_CLEARED_TIER,
   TUTORIAL_PROGRESS_STORAGE_KEY,
   readClearedTutorialLevels,
   recordClearedTutorialLevel,
 } from "./progress.ts";
+import { evaluateLevelTier } from "#game/level-tiers.ts";
+import type { LevelWorldStats } from "#game/levels.ts";
+import { tutorialLevels } from "#game/tutorial.ts";
+
+/** A world in which nothing at all has happened: enough, since a track level asks nothing of one. */
+const NOTHING_HAPPENED: LevelWorldStats = {
+  elapsedTime: 0,
+  transportedCounter: 0,
+  maxWaitTime: 0,
+  moveCount: 0,
+  transportedPerSec: 0,
+  avgLoadFactorOnMove: 0,
+  avgWaitTime: 0,
+  maxPickupTime: 0,
+  avgPickupTime: 0,
+  avgRideTime: 0,
+  stopCount: 0,
+  avgPeoplePerStop: 0,
+};
 
 /** A `Storage` that throws from everything, as Safari does in private mode. */
 function deniedStorage(): Storage {
@@ -54,6 +74,16 @@ describe("TUTORIAL_PROGRESS_STORAGE_KEY", () => {
     // profile; `elevatorCrush*` means something else over there.
     expect(TUTORIAL_PROGRESS_STORAGE_KEY).toBe("develevateTutorialProgress");
     expect(TUTORIAL_PROGRESS_STORAGE_KEY.startsWith("elevator")).toBe(false);
+  });
+});
+
+describe("TUTORIAL_CLEARED_TIER", () => {
+  it("is the medal the engine would award every track level for a win", () => {
+    // The store holds a flag rather than a tier, so nothing else would catch a
+    // track level being given a silver or gold bar of its own.
+    for (const level of tutorialLevels) {
+      expect(evaluateLevelTier(true, NOTHING_HAPPENED, level.tiers)).toBe(TUTORIAL_CLEARED_TIER);
+    }
   });
 });
 

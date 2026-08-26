@@ -92,9 +92,12 @@ function tileText(tile: LevelMenuTile): string {
 function tileAccessibleName(tile: LevelMenuTile): string {
   switch (tile.kind) {
     case "tutorial": {
-      return tile.cleared
-        ? t("game.levelSwitcher.tutorialTileClearedLabel", { number: tile.number })
-        : t("game.levelSwitcher.tutorialTileLabel", { number: tile.number });
+      return tile.tier === undefined
+        ? t("game.levelSwitcher.tutorialTileLabel", { number: tile.number })
+        : t("game.levelSwitcher.tutorialTileEarnedLabel", {
+            number: tile.number,
+            tier: t(TIER_NAME_KEY[tile.tier]),
+          });
     }
     case "level": {
       return tile.tier === undefined
@@ -145,9 +148,9 @@ function tileTemplate(tile: LevelMenuTile): string {
   const name = tileAccessibleName(tile);
   const current = tile.current ? raw(' aria-current="page"') : raw("");
   // Computed once so `data-tier` and the badge below can't disagree about `undefined`.
-  const medalled = tile.kind === "level" || tile.kind === "skyscraper";
+  const medalled = tile.kind !== "sandbox";
   const earned = medalled ? tile.tier : undefined;
-  const done = earned !== undefined || (tile.kind === "tutorial" && tile.cleared);
+  const done = earned !== undefined;
   const classes = [
     "tasklink",
     tile.kind === "sandbox" ? "is-free" : "",

@@ -27,8 +27,9 @@ of what you have finished, no buttons under the prose: what is true of the whole
 menu's business, and this is the level. The editor belongs to the track too: what you write is kept
 per tutorial level and your own program in the game's editor is never written to, so what leaves the
 track is whatever you copy out with the **Copy this program** button beside the answer. Cleared ones
-are remembered in `localStorage` and the menu marks them cleared, and nothing is ever locked: every
-one of them is playable by its address from the first visit.
+are remembered in `localStorage` and the menu gives each of them three stars — the track asks nothing
+beyond its own condition, so clearing one is gold outright — and nothing is ever locked: every one of
+them is playable by its address from the first visit.
 
 The track refuses one thing you can write in the URL, with a console warning and taken back out of
 the address bar: `seed`, because whether the given program really loses is a fact about the

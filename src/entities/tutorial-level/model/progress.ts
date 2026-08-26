@@ -1,5 +1,13 @@
 /** Tracks which learning-track levels this browser has cleared; the track itself locks nothing. */
 
+import type { LevelTier } from "#game/level-tiers.ts";
+
+/**
+ * The medal a cleared track level wears. Its levels carry `WINNING_IS_GOLD`, so
+ * every win on one is gold and this store only has to hold the flag.
+ */
+export const TUTORIAL_CLEARED_TIER: LevelTier = "gold";
+
 /** Storage key for cleared tutorial levels; changing it discards players' saved progress. */
 export const TUTORIAL_PROGRESS_STORAGE_KEY = "develevateTutorialProgress";
 

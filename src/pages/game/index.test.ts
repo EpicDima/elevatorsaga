@@ -1014,7 +1014,7 @@ describe("App learning track", () => {
     const { app, elements } = setUp();
     app.startTutorial(2);
 
-    // "completed" is the switcher tile's wording, not the trigger's.
+    // The medal is the tile's business, not the trigger's.
     expect(taskName(elements)).toBe("Lesson 3");
   });
 
@@ -1113,6 +1113,22 @@ describe("App learning track", () => {
 
     expect(verdictTitle(elements)).toBe("Level failed");
     expect(elements.feedback.querySelector("a")).toBeNull();
+    expect(elements.feedback.querySelector(".stars")).toBeNull();
+  });
+
+  it("puts the same gold on the card that the cleared tile shows", () => {
+    const { app, elements } = setUp();
+    app.startTutorial(0);
+
+    endRun(app, true);
+
+    const stars = requireElement(".verdict h3 .stars", elements.feedback);
+    expect(stars.getAttribute("data-tier")).toBe("gold");
+    expect(requireElement(".verdict h3 .visually-hidden", elements.feedback).textContent).toBe(
+      "Level stars: Gold",
+    );
+    // The track grades nothing, so there is no next bar to name.
+    expect(elements.feedback.querySelector(".verdict-more")).toBeNull();
   });
 
   it("records a cleared level, and records it once however often it is cleared", () => {
@@ -1228,7 +1244,8 @@ describe("App learning track", () => {
 
       expect(requireElement(".tutorialhint", elements.tutorial)).toBe(hint);
       expect(hint.open).toBe(true);
-      expect(tile().getAttribute("aria-label")).toBe("Tutorial level 1, completed");
+      expect(tile().getAttribute("aria-label")).toBe("Tutorial level 1, Gold");
+      expect(tile().getAttribute("data-tier")).toBe("gold");
     });
 
     it("leaves the run controls to be the only way to start the level again", () => {
@@ -1420,6 +1437,34 @@ describe("App Skyscraper block", () => {
     expect(
       requireElement('[href^="#level=sky-1"]', elements.levelSwitcher).getAttribute("data-tier"),
     ).toBe("gold");
+    // The card names the same medal, though the block's levels have no index to key one by.
+    expect(requireElement(".verdict h3 .stars", elements.feedback).getAttribute("data-tier")).toBe(
+      "gold",
+    );
+  });
+
+  it("puts a graded level's own star and its next-star hint on the card", () => {
+    // `sky-3` grades in moves, and the block has no level index to key a tier by; the
+    // card owes the same bronze and the same "for silver" line a numbered level's would.
+    const { app, elements, storage } = setUp();
+    app.startSkyscraperLevel(2);
+
+    // Enough passengers to clear the level, in more moves than silver allows.
+    const world = app.world;
+    if (world === undefined) {
+      throw new Error("There is no run to end");
+    }
+    world.transportedCounter = 1000;
+    world.moveCount = 260;
+    world.trigger("stats_changed");
+
+    expect(readBestSkyscraperTiers(storage)).toEqual(new Map([[levelAt(2).id, "bronze"]]));
+    expect(requireElement(".verdict h3 .stars", elements.feedback).getAttribute("data-tier")).toBe(
+      "bronze",
+    );
+    expect(requireElement(".verdict-more", elements.feedback).textContent).toBe(
+      "For silver: elevators travel no more than 250 floors (now 260)",
+    );
   });
 
   it("records nothing for a level that was lost", () => {

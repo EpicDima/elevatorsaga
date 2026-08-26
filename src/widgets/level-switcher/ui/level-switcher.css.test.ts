@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { LEVEL_TIERS } from "#game/level-tiers.ts";
 import { declaration, ruleBody, token } from "#shared/styles/test-helpers.ts";
 
 /** The shortest window the game page promises to fit (`app/styles/document.css`). */
@@ -47,6 +48,23 @@ describe("the level popover's ceiling", () => {
     // `hidden auto`, not `auto`: a lone `overflow-y` would hang a needless
     // horizontal scrollbar on a grid that only narrows around one.
     expect(declaration(ruleBody(".taskmenu"), "overflow", ".taskmenu")).toBe("hidden auto");
+  });
+});
+
+describe("the tint a cleared tile is drawn in", () => {
+  it("is mixed from a value only a `data-tier` defines", () => {
+    // `.tasklink.is-done` passes no fallback, so a tile marked done without a
+    // `data-tier` mixes an undefined property and loses both declarations. The
+    // markup keeps the two together; these rules are what that rests on.
+    for (const tier of LEVEL_TIERS) {
+      const selector = `.tasklink[data-tier="${tier}"]`;
+      expect(declaration(ruleBody(selector), "--tier-tint", selector)).toBe(
+        token(`ds-tier-${tier}`),
+      );
+    }
+    const done = ruleBody(".tasklink.is-done");
+    expect(declaration(done, "border-color", ".tasklink.is-done")).toContain("var(--tier-tint)");
+    expect(declaration(done, "background", ".tasklink.is-done")).toContain("var(--tier-tint)");
   });
 });
 

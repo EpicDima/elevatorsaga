@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildLevelMenu, type LevelLinkTarget, type LevelMenuInput } from "./level-menu.ts";
+import { TUTORIAL_CLEARED_TIER } from "#entities/tutorial-level/model/progress.ts";
 import { WINNING_IS_GOLD } from "#game/level-tiers.ts";
 import { requireUserCountWithinTime, type Level } from "#game/levels.ts";
 import type { SkyscraperLevel } from "#game/skyscraper.ts";
@@ -82,7 +83,7 @@ describe("buildLevelMenu", () => {
     });
   });
 
-  it("marks a tutorial tile cleared once its level id is in the cleared set", () => {
+  it("gives a tutorial tile gold once its level id is in the cleared set, and nothing before", () => {
     const [firstLevel] = tutorialLevels;
     const [tutorialBlock] = buildLevelMenu(
       baseInput({
@@ -90,8 +91,19 @@ describe("buildLevelMenu", () => {
       }),
     );
 
-    expect(tutorialBlock?.tiles[0]).toMatchObject({ cleared: true });
-    expect(tutorialBlock?.tiles[1]).toMatchObject({ cleared: false });
+    expect(tutorialBlock?.tiles[0]).toMatchObject({ tier: TUTORIAL_CLEARED_TIER });
+    expect(tutorialBlock?.tiles[1]).toMatchObject({ tier: undefined });
+  });
+
+  it("hands out gold and no other medal, whichever track levels are cleared", () => {
+    // The track grades nothing, so a tile can only ever be blank or full.
+    const [tutorialBlock] = buildLevelMenu(
+      baseInput({ clearedTutorialLevels: new Set(tutorialLevels.map((level) => level.id)) }),
+    );
+
+    expect(tutorialBlock?.tiles.map((tile) => tile.kind === "tutorial" && tile.tier)).toEqual(
+      tutorialLevels.map(() => "gold"),
+    );
   });
 
   it("marks the tutorial tile at the selected index current, and no other", () => {

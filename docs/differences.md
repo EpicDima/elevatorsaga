@@ -15,7 +15,8 @@ is scored by the same rules.
   program that runs and loses, and ask you to work out why: an elevator that only visits one floor,
   a destination queue that is filled and never started, indicators that lie to the passengers.
   Three hints are there when you want them — the third is the answer — beside a note on what the run
-  was actually doing. The track remembers what you have cleared and marks those tiles in the menu,
+  was actually doing. The track remembers what you have cleared and gives those tiles three stars,
+  the same badge every other level wears, since a track level asks nothing beyond being cleared,
   and the eighth of them is level 1's building and level 1's bar, so the program that clears it is
   one you can take straight into level 1. See [the learning track](learning-track.md).
 - **A jump list for the levels.** Every level is a tile in the level menu at the top of the page, so

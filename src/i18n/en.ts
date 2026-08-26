@@ -97,10 +97,10 @@ export const EN_MESSAGES = {
   "game.levelSwitcher.skyscraperBlockLabel": "Skyscraper",
   "game.levelSwitcher.skyscraperTileLabel": "Skyscraper level {number}",
   "game.levelSwitcher.tutorialTileLabel": "Tutorial level {number}",
-  "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial level {number}, completed",
   // {tier} is a game.goalBar.tier.* name, only rendered once a medal is earned.
   "game.levelSwitcher.levelTileEarnedLabel": "Level {number}, {tier}",
   "game.levelSwitcher.skyscraperTileEarnedLabel": "Skyscraper level {number}, {tier}",
+  "game.levelSwitcher.tutorialTileEarnedLabel": "Tutorial level {number}, {tier}",
   "game.levelSwitcher.tutorialTriggerLabel": "Lesson {number}",
   "game.levelSwitcher.skyscraperTriggerLabel": "Tower {number}",
   // Hidden when locateCodeError finds nothing for the player's exception.

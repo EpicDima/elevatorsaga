@@ -30,6 +30,7 @@ import {
 } from "#entities/level-tier/index.ts";
 import { readBestSkyscraperTiers, recordSkyscraperTier } from "#entities/skyscraper-level/index.ts";
 import {
+  TUTORIAL_CLEARED_TIER,
   readClearedTutorialLevels,
   recordClearedTutorialLevel,
 } from "#entities/tutorial-level/model/progress.ts";
@@ -889,10 +890,11 @@ export class App {
     const run = this.#run;
     const world = this.world;
     const levelIndex = run?.levelIndex ?? null;
-    // Recomputed rather than cached, so a `relocalize` redraw stays in sync
-    // without a field of its own.
+    // Recomputed rather than cached, so a `relocalize` redraw stays in sync without a
+    // field of its own. Not gated on `levelIndex`: that is null for a Skyscraper level
+    // too, and its card owes the same medal its tile shows. The sandbox never gets here.
     const tier =
-      won && levelIndex !== null && run !== undefined && world !== undefined
+      won && run !== undefined && world !== undefined
         ? (evaluateLevelTier(true, world, run.level.tiers) ?? undefined)
         : undefined;
     presentVerdictToast(this.#elements.feedback, {
@@ -961,7 +963,7 @@ export class App {
         : won
           ? t("game.feedback.success.message")
           : t("game.feedback.failure.message"),
-      // A track level grades nothing, so there is no next star to name.
+      // The track grades nothing, so a win is already gold and no star is left to name.
       hint: "",
       // Seed dropped — the router refuses one on a level address anyway.
       url: finished
@@ -969,8 +971,9 @@ export class App {
         : won && nextLevel !== undefined
           ? createParamsUrl(this.#query, { [LEVEL_KEY]: nextLevel.id, seed: null })
           : "",
-      // The track's progress is a cleared flag, not a medal, so its card shows none.
-      tier: undefined,
+      // The same constant the track's tiles read, so the card and the tile a win
+      // lights up can't disagree about which medal it was.
+      tier: won ? TUTORIAL_CLEARED_TIER : undefined,
     });
     if (won) {
       this.#relabelFeedbackLink(
