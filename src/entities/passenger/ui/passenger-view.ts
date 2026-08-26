@@ -6,7 +6,7 @@
 
 import type { User } from "#game/user.ts";
 import { setClass, setTransformPos } from "#shared/lib/dom.ts";
-import type { StageScale } from "#shared/lib/stage-scale.ts";
+import { worldXToPx, type StageScale } from "#shared/lib/stage-scale.ts";
 import { spriteIconMarkup, type SpriteIconName } from "#shared/ui/icon.ts";
 
 /** How a passenger is drawn; mirrors the simulation's `UserDisplayType`. */
@@ -46,7 +46,7 @@ export function createPassengerView(user: User, scale: StageScale): PassengerVie
   const element = renderPassenger(user.displayType ?? "male", user.done);
 
   user.on("new_display_state", () => {
-    setTransformPos(element, user.worldX * scale.scaleX, user.worldY * scale.scaleY);
+    setTransformPos(element, worldXToPx(scale, user.worldX), user.worldY * scale.scaleY);
     if (user.done) {
       element.classList.add("is-leaving");
     }

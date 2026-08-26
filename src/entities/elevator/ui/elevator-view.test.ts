@@ -6,7 +6,7 @@ import { createElevatorView, elevatorButtonTemplate, elevatorTemplate } from "./
 import { Elevator } from "#game/elevator.ts";
 import { DEFAULT_LOCALE, setLocale } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
-import type { StageScale } from "#shared/lib/stage-scale.ts";
+import { unscaled, type StageScale } from "#shared/lib/stage-scale.ts";
 import { renderElement, renderFragment } from "#shared/ui/markup.ts";
 
 import { elevatorFloorButtonLabel, elevatorLabel } from "../../../ui/templates.ts";
@@ -23,7 +23,7 @@ function marks(view: { element: HTMLElement }): HTMLElement[] {
 
 describe("createElevatorView", () => {
   it("draws one order mark per floor, unlit, inside the shaft's own strip", () => {
-    const view = createElevatorView(fixtureElevator(), 0, { scaleX: 1, scaleY: 1 });
+    const view = createElevatorView(fixtureElevator(), 0, unscaled());
 
     const buttons = marks(view);
     expect(buttons).toHaveLength(5);
@@ -38,7 +38,7 @@ describe("createElevatorView", () => {
 
   it("moves the car inside the shaft, at the live StageScale, and never sideways", () => {
     const elevator = fixtureElevator();
-    const scale: StageScale = { scaleX: 1, scaleY: 1 };
+    const scale: StageScale = unscaled();
     const view = createElevatorView(elevator, 0, scale);
     const car = requireElement(".car", view.element);
 
@@ -57,7 +57,7 @@ describe("createElevatorView", () => {
 
   it("shows the floor the car is on", () => {
     const elevator = fixtureElevator();
-    const view = createElevatorView(elevator, 0, { scaleX: 1, scaleY: 1 });
+    const view = createElevatorView(elevator, 0, unscaled());
     const label = requireElement(".car-floor", view.element);
 
     // World y 0 is the top floor of a five-floor building; the label is read
@@ -71,7 +71,7 @@ describe("createElevatorView", () => {
 
   it("lights an order mark once pressed, and presses it back when clicked", () => {
     const elevator = fixtureElevator();
-    const view = createElevatorView(elevator, 0, { scaleX: 1, scaleY: 1 });
+    const view = createElevatorView(elevator, 0, unscaled());
     const buttons = marks(view);
 
     elevator.pressFloorButton(2);
@@ -80,14 +80,14 @@ describe("createElevatorView", () => {
     expect(buttons[1]?.classList.contains("is-lit")).toBe(false);
 
     const otherElevator = fixtureElevator();
-    const otherView = createElevatorView(otherElevator, 0, { scaleX: 1, scaleY: 1 });
+    const otherView = createElevatorView(otherElevator, 0, unscaled());
     requireElement(".mark", otherView.element).dispatchEvent(new Event("click"));
     expect(otherElevator.buttonStates[0]).toBe(true);
   });
 
   it("draws the boarding lamps from the state that really decides who may board", () => {
     const elevator = fixtureElevator();
-    const view = createElevatorView(elevator, 0, { scaleX: 1, scaleY: 1 });
+    const view = createElevatorView(elevator, 0, unscaled());
     const up = requireElement(".car-dir-up", view.element);
     const down = requireElement(".car-dir-down", view.element);
 
@@ -108,7 +108,7 @@ describe("createElevatorView", () => {
 
   it("opens the doors exactly while the car is standing still on a floor", () => {
     const elevator = fixtureElevator();
-    const view = createElevatorView(elevator, 0, { scaleX: 1, scaleY: 1 });
+    const view = createElevatorView(elevator, 0, unscaled());
     const car = requireElement(".car", view.element);
 
     expect(car.classList.contains("is-open")).toBe(true);
@@ -132,7 +132,7 @@ describe("createElevatorView", () => {
   });
 
   it("places the shaft and centers every mark on its own floor", () => {
-    const view = createElevatorView(fixtureElevator(), 0, { scaleX: 1, scaleY: 1 });
+    const view = createElevatorView(fixtureElevator(), 0, unscaled());
 
     view.setGeometry({
       leftPx: 154,

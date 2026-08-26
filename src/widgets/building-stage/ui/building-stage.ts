@@ -28,7 +28,7 @@ import type { User } from "#game/user.ts";
 import type { World } from "#game/world.ts";
 import { positionAboveAnchor, positionBesideAnchor } from "#shared/lib/smart-position.ts";
 import { requireElement, setClass } from "#shared/lib/dom.ts";
-import type { StageScale } from "#shared/lib/stage-scale.ts";
+import { unscaled, worldXToPx, type StageScale } from "#shared/lib/stage-scale.ts";
 import { markup } from "#shared/ui/markup.ts";
 
 /** Builds the stage's static skeleton: the building tree, and the one shared hover card. */
@@ -117,7 +117,7 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
   card.id = `building-stage-card-${String(nextCardId)}`;
   nextCardId += 1;
 
-  const scale: StageScale = { scaleX: 1, scaleY: 1 };
+  const scale: StageScale = unscaled();
 
   /** Which anchor the card is currently shown for, or `null` while hidden. */
   let shown: ShownCard | null = null;
@@ -390,8 +390,14 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
       width: elevator.width,
       capacity: elevator.maxUsers,
     }));
-    const { scaleX } = computeShaftScale({ stageWidth, levelsWidth, elevators: shaftElevators });
+    const { scaleX, corridorPx, corridorWorld } = computeShaftScale({
+      stageWidth,
+      levelsWidth,
+      elevators: shaftElevators,
+    });
     scale.scaleX = scaleX;
+    scale.corridorPx = corridorPx;
+    scale.corridorWorld = corridorWorld;
     scale.scaleY = computeVerticalScale({
       totalHeight: layout.totalHeight,
       floorCount: world.floors.length,
@@ -413,7 +419,7 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
         continue;
       }
       view.setGeometry({
-        leftPx: Math.round(elevator.worldX * scaleX) - padPx,
+        leftPx: Math.round(worldXToPx(scale, elevator.worldX)) - padPx,
         widthPx: Math.round(elevator.width * scaleX) + 2 * padPx,
         padPx,
         markBottomsPx,
@@ -424,14 +430,10 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     // and would otherwise steal the queue's pointer events.
     const lastElevator = shaftElevators.at(-1);
     const worldSpan = lastElevator === undefined ? 0 : lastElevator.worldX + lastElevator.width;
-    const firstElevator = shaftElevators.at(0);
-    const corridorPx =
-      firstElevator === undefined
-        ? 0
-        : Math.max(0, Math.round(firstElevator.worldX * scaleX) - padPx);
-    tracks.style.width = `${String(Math.round(worldSpan * scaleX) + TRAILING_ROOM)}px`;
+    const queueWidthPx = Math.max(0, Math.round(corridorPx) - padPx);
+    tracks.style.width = `${String(Math.round(worldXToPx(scale, worldSpan)) + TRAILING_ROOM)}px`;
     for (const queue of queueEls) {
-      queue.style.width = `${String(corridorPx)}px`;
+      queue.style.width = `${String(queueWidthPx)}px`;
     }
 
     for (const elevator of world.elevators) {

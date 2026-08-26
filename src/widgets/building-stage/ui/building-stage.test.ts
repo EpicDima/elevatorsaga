@@ -5,13 +5,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { presentBuildingStage, type BuildingStagePresenter } from "./building-stage.ts";
 import { elevatorCardText, floorCardText } from "../lib/hover-card-text.ts";
 import { layoutBuilding } from "../lib/layout-building.ts";
-import { computeShaftScale, shaftPadPx, TRAILING_ROOM } from "../lib/shaft-scale.ts";
+import {
+  computeShaftScale,
+  shaftPadPx,
+  CORRIDOR_PX,
+  TRAILING_ROOM,
+  type ShaftScale,
+} from "../lib/shaft-scale.ts";
 import { computeVerticalScale } from "../lib/vertical-scale.ts";
 import { at } from "#game/test-helpers.ts";
 import { createWorld } from "#game/world.ts";
 import type { World } from "#game/world.ts";
 import { User } from "#game/user.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
+import { worldXToPx } from "#shared/lib/stage-scale.ts";
 
 /** A mounted stage, sized by hand, with everything a test reaches for. */
 interface Mounted {
@@ -85,7 +92,7 @@ function expectedLayout(world: World, stage: HTMLElement) {
 }
 
 /** The shaft scale `presentBuildingStage` itself would have computed for a stage this size. */
-function expectedScaleX(world: World, stage: HTMLElement): number {
+function expectedShaftScale(world: World, stage: HTMLElement): ShaftScale {
   return computeShaftScale({
     stageWidth: stage.clientWidth,
     levelsWidth: 0,
@@ -94,7 +101,12 @@ function expectedScaleX(world: World, stage: HTMLElement): number {
       width: elevator.width,
       capacity: elevator.maxUsers,
     })),
-  }).scaleX;
+  });
+}
+
+/** Just the shaft-band scale, for the assertions that only need a width. */
+function expectedScaleX(world: World, stage: HTMLElement): number {
+  return expectedShaftScale(world, stage).scaleX;
 }
 
 describe("presentBuildingStage", () => {
@@ -164,22 +176,38 @@ describe("presentBuildingStage", () => {
     expect(queues[1]?.style.top).toBe("0px");
   });
 
-  it("makes the corridor as wide as the walk to the first car, and the world one span plus room to leave", () => {
+  it("gives the corridor its fixed width, and the world one span plus room to leave", () => {
     const world = createWorld({ floorCount: 2, elevatorCount: 2 });
     const { parent, stage } = mount(world, 800, 218);
 
-    const scaleX = expectedScaleX(world, stage);
-    const first = at(world.elevators, 0);
+    const scale = expectedShaftScale(world, stage);
     const last = at(world.elevators, 1);
     expect(requireElement(".tracks", parent).style.width).toBe(
-      `${String(Math.round((last.worldX + last.width) * scaleX) + TRAILING_ROOM)}px`,
+      `${String(Math.round(worldXToPx(scale, last.worldX + last.width)) + TRAILING_ROOM)}px`,
     );
     // One pad short of the first car: that pad is the shaft's own wall, whose order marks need
     // the pointer events a queue drawn underneath would otherwise take.
     for (const queue of queryAll(".queue", parent)) {
-      expect(queue.style.width).toBe(
-        `${String(Math.round(first.worldX * scaleX) - shaftPadPx(scaleX))}px`,
-      );
+      expect(queue.style.width).toBe(`${String(CORRIDOR_PX - shaftPadPx(scale.scaleX))}px`);
+    }
+  });
+
+  it("stands the first car the same distance from the wall on a small level and a skyscraper", () => {
+    // The whole point of holding the corridor out of the fit: these two used to differ by
+    // well over a hundred pixels, since the second one's shafts scaled the walk down with them.
+    // Measured to the car rather than to the queue strip, which stops a shaft pad short of it.
+    const small = createWorld({ floorCount: 2, elevatorCount: 1 });
+    const tall = createWorld({ floorCount: 21, elevatorCount: 8, elevatorCapacities: [6, 8] });
+    const smallMount = mount(small, 900, 600);
+    const tallMount = mount(tall, 900, 600);
+
+    expect(expectedScaleX(tall, tallMount.stage)).toBeLessThan(
+      expectedScaleX(small, smallMount.stage),
+    );
+    for (const { parent } of [smallMount, tallMount]) {
+      const shaft = requireElement(".shafts .elevator", parent);
+      const pad = Number.parseFloat(shaft.style.getPropertyValue("--ds-shaft-pad"));
+      expect(Number.parseFloat(shaft.style.left) + pad).toBe(CORRIDOR_PX);
     }
   });
 
@@ -223,14 +251,17 @@ describe("presentBuildingStage", () => {
     const world = createWorld({ floorCount: 4, elevatorCount: 6, elevatorCapacities: [10] });
     const { parent, stage } = mount(world, 500, 400);
 
-    const scaleX = expectedScaleX(world, stage);
+    const scale = expectedShaftScale(world, stage);
+    const scaleX = scale.scaleX;
     const padPx = shaftPadPx(scaleX);
     expect(scaleX).toBeLessThan(1);
 
     const shafts = queryAll(".shafts .elevator", parent);
     for (const [index, elevator] of world.elevators.entries()) {
       const shaft = shafts[index];
-      expect(shaft?.style.left).toBe(`${String(Math.round(elevator.worldX * scaleX) - padPx)}px`);
+      expect(shaft?.style.left).toBe(
+        `${String(Math.round(worldXToPx(scale, elevator.worldX)) - padPx)}px`,
+      );
       expect(shaft?.style.width).toBe(
         `${String(Math.round(elevator.width * scaleX) + 2 * padPx)}px`,
       );
@@ -256,12 +287,12 @@ describe("presentBuildingStage", () => {
     expect(bottoms).toEqual(["45px", "135px"]);
   });
 
-  it("positions cars and passengers by worldX/worldY times the computed scale", () => {
+  it("positions cars and passengers by the mapped worldX and the scaled worldY", () => {
     const world = createWorld({ floorCount: 3, elevatorCount: 1 });
     const { parent, stage } = mount(world, 800, 300);
 
     const layout = expectedLayout(world, stage);
-    const scaleX = expectedScaleX(world, stage);
+    const scale = expectedShaftScale(world, stage);
     const scaleY = computeVerticalScale({
       totalHeight: layout.totalHeight,
       floorCount: world.floors.length,
@@ -273,19 +304,21 @@ describe("presentBuildingStage", () => {
     const shaftEl = requireElement(".shafts .elevator", parent);
     const carEl = requireElement(".car", shaftEl);
     expect(shaftEl.style.left).toBe(
-      `${String(Math.round(elevator.worldX * scaleX) - shaftPadPx(scaleX))}px`,
+      `${String(Math.round(worldXToPx(scale, elevator.worldX)) - shaftPadPx(scale.scaleX))}px`,
     );
     expect(carEl.style.transform).toBe(
       `translate3d(0px, ${String(elevator.worldY * scaleY)}px, 0)`,
     );
 
+    // A passenger waiting at world x 30 is still inside the corridor, so their x comes
+    // from its fixed width rather than from the shaft band's own scale.
     const user = new User(60);
     world.trigger("new_user", user);
     user.moveTo(30, 40);
     user.updateDisplayPosition();
     const userEl = requireElement(".people .person", parent);
     expect(userEl.getAttribute("style")).toContain(
-      `translate3d(${String(30 * scaleX)}px, ${String(40 * scaleY)}px, 0)`,
+      `translate3d(${String(worldXToPx(scale, 30))}px, ${String(40 * scaleY)}px, 0)`,
     );
   });
 

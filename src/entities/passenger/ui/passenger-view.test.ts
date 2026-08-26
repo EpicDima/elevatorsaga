@@ -4,19 +4,16 @@ import { describe, expect, it } from "vitest";
 
 import { createPassengerView, userTemplate } from "./passenger-view.ts";
 import { User } from "#game/user.ts";
-import type { StageScale } from "#shared/lib/stage-scale.ts";
+import { unscaled, type StageScale } from "#shared/lib/stage-scale.ts";
 import { renderFragment } from "#shared/ui/markup.ts";
 
 describe("createPassengerView", () => {
   it("draws the silhouette its display type asks for", () => {
     const child = createPassengerView(
       Object.assign(new User(80), { displayType: "child" as const }),
-      {
-        scaleX: 1,
-        scaleY: 1,
-      },
+      unscaled(),
     );
-    const male = createPassengerView(new User(80), { scaleX: 1, scaleY: 1 });
+    const male = createPassengerView(new User(80), unscaled());
 
     expect(child.element.classList.contains("person")).toBe(true);
     expect(child.element.classList.contains("is-leaving")).toBe(false);
@@ -29,7 +26,7 @@ describe("createPassengerView", () => {
 
   it("scales worldX/worldY by the live StageScale on every new_display_state", () => {
     const user = new User(80);
-    const scale: StageScale = { scaleX: 2, scaleY: 0.5 };
+    const scale: StageScale = { ...unscaled(), scaleX: 2, scaleY: 0.5 };
     const view = createPassengerView(user, scale);
 
     user.moveTo(50, 40);
@@ -40,7 +37,7 @@ describe("createPassengerView", () => {
 
   it("marks a delivered passenger as leaving and the longest wait as waiting long", () => {
     const user = new User(80);
-    const view = createPassengerView(user, { scaleX: 1, scaleY: 1 });
+    const view = createPassengerView(user, unscaled());
 
     user.done = true;
     user.setWaitingLongest(true);
@@ -54,7 +51,7 @@ describe("createPassengerView", () => {
     // the shaft and is unreadable on a car, so a passenger has to say in the
     // DOM which of the two surfaces they are standing on.
     const user = new User(80);
-    const view = createPassengerView(user, { scaleX: 1, scaleY: 1 });
+    const view = createPassengerView(user, unscaled());
     const car = new User(80);
 
     user.setParent(car);
@@ -68,7 +65,7 @@ describe("createPassengerView", () => {
 
   it("removes the element once the passenger finishes walking off", () => {
     const user = new User(80);
-    const view = createPassengerView(user, { scaleX: 1, scaleY: 1 });
+    const view = createPassengerView(user, unscaled());
     document.body.append(view.element);
 
     user.trigger("removed");

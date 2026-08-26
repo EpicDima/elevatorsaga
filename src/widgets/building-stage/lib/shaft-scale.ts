@@ -1,7 +1,8 @@
 /**
- * Computes the single `scaleX` that fits the real building (engine coordinates, not
+ * Computes the `scaleX` that fits the real building (engine coordinates, not
  * `layoutBuilding()`'s own drawn shaft widths) into the stage, so cars, seats and passengers
- * stay in the engine's own proportions and can grow past 1 as well as shrink.
+ * stay in the engine's own proportions and can grow past 1 as well as shrink. Only the shaft
+ * band is fitted: the corridor left of it is drawn at {@link CORRIDOR_PX} on every level.
  */
 
 /**
@@ -26,6 +27,21 @@ export const MAX_ZOOM = 1.5;
 export const TRAILING_ROOM = 44;
 
 /**
+ * The corridor's drawn width in pixels: the walk between the floor numbers and the first
+ * shaft. Held out of the fit so it reads the same on a three-floor level and a skyscraper,
+ * where scaling it with the shafts swung it between roughly 160px and 290px. 200px draws the
+ * engine's own 200-unit corridor 1:1, near the middle of that old swing.
+ */
+export const CORRIDOR_PX = 200;
+
+/**
+ * The narrowest the corridor may be squeezed to, in pixels, once the cars have already hit
+ * {@link MIN_CAR} and something still has to give. Empty walking space is the right thing to
+ * give up before the cars are, but a corridor thinner than this stops reading as a walk.
+ */
+export const MIN_CORRIDOR_PX = 120;
+
+/**
  * How much of the 20 world units the engine leaves between two cars belongs to each car's
  * own shaft, per side: 8 either side leaves 4 between shafts, the narrowest seam that still
  * reads as two shafts rather than one wide one.
@@ -37,11 +53,13 @@ const MIN_SHAFT_PAD = 2;
 
 /**
  * How wide one shaft's wall is on either side of its car, in whole pixels.
- * Rounded to a whole pixel since a fractional pad would round differently between the
- * shaft's edge shift and the car's inset, misaligning the drawn car from its world coordinate.
+ * Held to a whole pixel since a fractional pad would round differently between the shaft's
+ * edge shift and the car's inset, misaligning the drawn car from its world coordinate.
+ * Rounded down, not to nearest: a pad rounded up eats the seam between two shafts, which at
+ * scaleX 0.32 closed it to nothing once the drawn edges were rounded to whole pixels too.
  */
 export function shaftPadPx(scaleX: number): number {
-  return Math.max(MIN_SHAFT_PAD, Math.round(SHAFT_PAD_WORLD * scaleX));
+  return Math.max(MIN_SHAFT_PAD, Math.floor(SHAFT_PAD_WORLD * scaleX));
 }
 
 /** Holds a value inside `[low, high]`. */
@@ -77,30 +95,40 @@ export interface ShaftScaleInput {
   readonly elevators: readonly ShaftScaleElevator[];
 }
 
-/** The uniform horizontal scale the whole building is drawn at. */
+/** The horizontal scale the shaft band is drawn at, and the corridor beside it. */
 export interface ShaftScale {
-  /** Multiplies every world x coordinate — cars, seats, passengers — to fit the stage. */
+  /** Multiplies world x past the corridor — cars, seats, riders — to fit the stage. */
   readonly scaleX: number;
+  /** The corridor's drawn width in pixels: {@link CORRIDOR_PX} unless the stage is too narrow to hold it. */
+  readonly corridorPx: number;
+  /** How much of world x the corridor spans: everything left of the first car. */
+  readonly corridorWorld: number;
 }
 
-/** Computes the uniform horizontal scale for the real building. */
+/** Computes the horizontal scale for the real building's shaft band. */
 export function computeShaftScale(input: ShaftScaleInput): ShaftScale {
   const { stageWidth, levelsWidth, elevators } = input;
   if (elevators.length === 0) {
-    return { scaleX: 1 };
+    return { scaleX: 1, corridorPx: 0, corridorWorld: 0 };
   }
 
-  const free = Math.max(120, stageWidth - 32 - levelsWidth - TRAILING_ROOM);
+  const first = requireAt(elevators, 0);
   const last = requireAt(elevators, elevators.length - 1);
-  // From world x 0, not the first car: the corridor left of it scales too, since its queue
-  // walks to that car.
-  const naturalWidth = last.worldX + last.width;
+  const free = Math.max(120, stageWidth - 32 - levelsWidth - TRAILING_ROOM);
+  // The corridor takes its pixels off the top, so what the band is fitted into no longer
+  // depends on how wide a walk this level's engine coordinates put in front of the cars.
+  // From the first car, not world x 0, for the same reason.
+  const bandWidth = last.worldX + last.width - first.worldX;
   // Math.min(1, ...) stops a car already narrower than MIN_CAR from demanding to be grown;
   // the widest per-car floor wins, since one scale draws every shaft.
   const minShaftScale = Math.max(
     ...elevators.map((elevator) => Math.min(1, MIN_CAR / elevator.width)),
   );
-  const scaleX = clamp(minShaftScale, free / naturalWidth, MAX_ZOOM);
+  const scaleX = clamp(minShaftScale, (free - CORRIDOR_PX) / bandWidth, MAX_ZOOM);
+  // Whatever the band left behind, but never more than the corridor asked for. Only the
+  // busiest level at the smallest window gets here: once MIN_CAR floors the scale, holding
+  // the full corridor anyway would spill the building sideways instead.
+  const corridorPx = clamp(MIN_CORRIDOR_PX, free - bandWidth * scaleX, CORRIDOR_PX);
 
-  return { scaleX };
+  return { scaleX, corridorPx, corridorWorld: first.worldX };
 }
