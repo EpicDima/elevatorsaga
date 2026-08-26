@@ -7,8 +7,7 @@
 
 /**
  * The narrowest a car may be drawn, in pixels, unless it is already narrower than this at
- * full size. Not `layout-building.ts`'s `MIN_SHAFT`: that floors *drawn* shaft widths, not
- * real car width, and reusing it here would force a scale above 1, disabling shrink entirely.
+ * full size.
  */
 export const MIN_CAR = 30;
 

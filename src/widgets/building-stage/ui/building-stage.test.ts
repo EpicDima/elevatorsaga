@@ -76,22 +76,19 @@ function stubScroll(
   });
 }
 
-/**
- * The layout `presentBuildingStage` itself would have computed for a stage this size.
- * `levelsWidth` is 0 because jsdom applies no stylesheet, so `.levels`'s `offsetWidth`
- * is 0 both here and in the presenter's own measurement.
- */
+/** The layout `presentBuildingStage` itself would have computed for a stage this size. */
 function expectedLayout(world: World, stage: HTMLElement) {
   return layoutBuilding({
     stageHeight: stage.clientHeight,
-    stageWidth: stage.clientWidth,
-    levelsWidth: 0,
     floorWeights: world.floors.map(() => 1),
-    capacities: world.elevators.map((elevator) => elevator.maxUsers),
   });
 }
 
-/** The shaft scale `presentBuildingStage` itself would have computed for a stage this size. */
+/**
+ * The shaft scale `presentBuildingStage` itself would have computed for a stage this size.
+ * `levelsWidth` is 0 because jsdom applies no stylesheet, so `.levels`'s `offsetWidth`
+ * is 0 both here and in the presenter's own measurement.
+ */
 function expectedShaftScale(world: World, stage: HTMLElement): ShaftScale {
   return computeShaftScale({
     stageWidth: stage.clientWidth,

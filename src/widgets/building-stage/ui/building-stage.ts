@@ -354,10 +354,7 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
 
     const layout = layoutBuilding({
       stageHeight,
-      stageWidth,
-      levelsWidth,
       floorWeights: world.floors.map(() => 1),
-      capacities: world.elevators.map((elevator) => elevator.maxUsers),
     });
 
     // Read by CSS for floor-number size, rider figures and the cabin;
