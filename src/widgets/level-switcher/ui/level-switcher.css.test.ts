@@ -9,7 +9,15 @@
 import { describe, expect, it } from "vitest";
 
 import { LEVEL_TIERS } from "#game/level-tiers.ts";
-import { declaration, ruleBody, token } from "#shared/styles/test-helpers.ts";
+import {
+  contrast,
+  declaration,
+  over,
+  ruleBody,
+  THEMES,
+  themed,
+  token,
+} from "#shared/styles/test-helpers.ts";
 
 /** The shortest window the game page promises to fit (`app/styles/document.css`). */
 const FLOOR = 600;
@@ -66,6 +74,29 @@ describe("the tint a cleared tile is drawn in", () => {
     expect(declaration(done, "border-color", ".tasklink.is-done")).toContain("var(--tier-tint)");
     expect(declaration(done, "background", ".tasklink.is-done")).toContain("var(--tier-tint)");
   });
+});
+
+describe("the stars on the tile a player is standing on", () => {
+  // The one tile that doesn't paint its stars from --ds-tier-off: on brass, the
+  // empty slots are a wash of the tile itself, and the lit ones are its ink.
+  it.each(THEMES)(
+    "keeps an empty slot off both the tile and a lit star, %s theme",
+    (_, palette) => {
+      const selector = ".tasklink.is-current .star";
+      const empty = over(
+        declaration(ruleBody(selector), "color", selector),
+        themed(palette, "ds-accent"),
+      );
+      expect(
+        contrast(empty, themed(palette, "ds-accent")),
+        "against the tile",
+      ).toBeGreaterThanOrEqual(2);
+      expect(
+        contrast(empty, themed(palette, "ds-accent-ink")),
+        "against a lit star",
+      ).toBeGreaterThanOrEqual(3);
+    },
+  );
 });
 
 describe("the level popover's tile grid", () => {

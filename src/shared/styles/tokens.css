@@ -49,7 +49,8 @@
   --ds-tier-bronze: #cf8c4e;
   --ds-tier-silver: #b9c3d1;
   --ds-tier-gold: #ecc04a;
-  --ds-tier-off: var(--ds-n-4);
+  /* An empty slot has to be countable too: 3.16:1 on the page, and still 21 L* below the dimmest tier above. */
+  --ds-tier-off: #5d6676;
 
   --ds-ok: #62c186;
   --ds-ok-soft: rgb(98 193 134 / 14%);
@@ -138,7 +139,8 @@ html[data-theme="light"] {
   --ds-tier-bronze: #a4601f;
   --ds-tier-silver: #78828f;
   --ds-tier-gold: #b3860f;
-  --ds-tier-off: var(--ds-n-4);
+  /* Stops at 1.99:1, short of the dark theme's own figure: darker than this and an empty star reaches --ds-tier-gold's lightness and reads as earned. */
+  --ds-tier-off: #b2ad9f;
 
   --ds-ok: #2c8455;
   --ds-ok-soft: rgb(44 132 85 / 12%);

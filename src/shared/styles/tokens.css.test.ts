@@ -43,6 +43,32 @@ describe("the palette", () => {
     }
   });
 
+  it.each([
+    ["dark", DARK_PALETTE, 2.7],
+    ["light", LIGHT_PALETTE, 1.9],
+  ])("keeps an unearned star countable, %s theme", (_, palette, floor) => {
+    // How many stars a level is worth is told by the empty slots, so they have
+    // to be seen. The light theme stops under WCAG 1.4.11's 3:1 deliberately:
+    // a star dark enough for it reaches --ds-tier-gold's lightness, as the token's own note says.
+    for (const surface of ["ds-bg", "ds-panel", "ds-raised"]) {
+      expect(
+        contrast(themed(palette, "ds-tier-off"), themed(palette, surface)),
+        `--ds-tier-off on --${surface}`,
+      ).toBeGreaterThanOrEqual(floor);
+    }
+  });
+
+  it.each(THEMES)("keeps an unearned star out of the earned three, %s theme", (_, palette) => {
+    // The gap the test above trades against: color alone says earned here, so
+    // raising --ds-tier-off any further has to answer to these three as well.
+    for (const tier of ["ds-tier-bronze", "ds-tier-silver", "ds-tier-gold"]) {
+      expect(
+        contrast(themed(palette, "ds-tier-off"), themed(palette, tier)),
+        `--ds-tier-off against --${tier}`,
+      ).toBeGreaterThanOrEqual(1.4);
+    }
+  });
+
   it.each(THEMES)("keeps the sitewide focus ring readable on the page, %s theme", (_, palette) => {
     // A graphical indicator (WCAG 1.4.11's 3:1), not text (1.4.3's 4.5:1);
     // --ds-bg is the palest page surface it can be drawn against.

@@ -177,8 +177,13 @@ html[data-theme="dark"] .tasklink.is-done {
   font-weight: 650;
 }
 
+/*
+ * Two floors at once: darkening this wash lifts an empty slot off the brass
+ * tile but walks it toward --ds-accent-ink, which is the lit star here. 40% is
+ * where the dark theme, the tighter of the two, balances them at 2.52 and 3.06.
+ */
 .tasklink.is-current .star {
-  color: rgb(0 0 0 / 22%);
+  color: rgb(0 0 0 / 40%);
 }
 
 .tasklink.is-current .star.is-on {
