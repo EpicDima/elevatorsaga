@@ -100,7 +100,7 @@ test.describe("at that floor, the app bar's popovers", () => {
       const menu = page.locator(".setmenu");
       await expect(menu).toBeVisible();
       await expect(menu).toBeInViewport({ ratio: 1 });
-      // The About block at the foot is what the overflow put out of reach.
+      // The source block at the foot is what the overflow put out of reach.
       await menu.evaluate((element) => {
         element.scrollTop = element.scrollHeight;
       });

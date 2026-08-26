@@ -1,6 +1,6 @@
 /**
  * App bar's trailing toolbar: the docs opener and the settings popover, gluing together
- * the theme, layout, language, and seed features plus a static About block.
+ * the theme, layout, language, and seed features plus a static source block.
  */
 
 import { presentSeedPanel, seedPanelTemplate } from "#features/manage-seed/index.ts";
@@ -16,11 +16,11 @@ import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw } from "#shared/ui/markup.ts";
 import type { SeedLinkData } from "../../../ui/templates.ts";
 
-/** This fork's own repository, linked from the About block. */
+/** This fork's own repository, linked from the source block. */
 const FORK_URL = "https://github.com/EpicDima/elevatorsaga";
 /** {@link FORK_URL}'s address, as the reader sees it under the link's name. */
 const FORK_DOMAIN = "github.com/EpicDima/elevatorsaga";
-/** The game this is forked from, linked from the About block. */
+/** The game this is forked from, linked from the source block. */
 const ORIGINAL_URL = "https://github.com/magwo/elevatorsaga";
 /** {@link ORIGINAL_URL}'s address, as the reader sees it under the link's name. */
 const ORIGINAL_DOMAIN = "github.com/magwo/elevatorsaga";
@@ -36,12 +36,12 @@ export function appBarSettingsTemplate(seed: SeedLinkData | null): string {
   const themeCaption = t("game.switchTheme.caption");
   const layoutCaption = t("game.switchLayout.caption");
   const languageCaption = t("page.language.label");
-  const aboutCaption = t("game.appBar.aboutCaption");
-  const forkLabel = t("game.appBar.aboutForkLabel");
-  const originalLabel = t("game.appBar.aboutOriginalLabel");
-  const copyright = t("game.appBar.aboutCopyright.html");
+  const sourceCaption = t("game.appBar.sourceCaption");
+  const forkLabel = t("game.appBar.sourceForkLabel");
+  const originalLabel = t("game.appBar.sourceOriginalLabel");
+  const copyright = t("game.appBar.sourceCopyright.html");
 
-  return markup`<button type="button" class="ghost docsopen" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></button><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock" data-set-block="language"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div><div data-set-block="seed">${raw(seedPanelTemplate(seed))}</div><div class="setblock" data-set-block="hotkeys"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock" data-set-block="about"><span class="cap">${aboutCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${raw(copyright)}</p></div></div></div>`;
+  return markup`<button type="button" class="ghost docsopen" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></button><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock" data-set-block="language"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div><div data-set-block="seed">${raw(seedPanelTemplate(seed))}</div><div class="setblock" data-set-block="hotkeys"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock" data-set-block="source"><span class="cap">${sourceCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${raw(copyright)}</p></div></div></div>`;
 }
 
 /** What {@link presentAppBarSettings} needs in order to drive the toolbar it fills in. */
@@ -101,7 +101,7 @@ export function presentAppBarSettings(
   const languageBlock = requireElement('[data-set-block="language"]', parent);
   const seedBlock = requireElement('[data-set-block="seed"]', parent);
   const hotkeysBlock = requireElement('[data-set-block="hotkeys"]', parent);
-  const aboutBlock = requireElement('[data-set-block="about"]', parent);
+  const sourceBlock = requireElement('[data-set-block="source"]', parent);
   const keysOpen = requireElement(".keysopen", parent);
 
   const docsLabelEl = requireElement(".lbl", docsOpen);
@@ -110,8 +110,8 @@ export function presentAppBarSettings(
   const layoutCaptionEl = requireElement(".cap", layoutBlock);
   const languageCaptionEl = requireElement(".cap", languageBlock);
   const hotkeysLabelEl = requireElement("span", hotkeysBlock);
-  const aboutCaptionEl = requireElement(".cap", aboutBlock);
-  const setLinks = aboutBlock.querySelectorAll("a.setlink");
+  const sourceCaptionEl = requireElement(".cap", sourceBlock);
+  const setLinks = sourceBlock.querySelectorAll("a.setlink");
   const [forkLinkEl, originalLinkEl] = setLinks;
   if (forkLinkEl === undefined || originalLinkEl === undefined) {
     // Unreachable against this module's own markup; guarded for a caller that hands in something else.
@@ -119,7 +119,7 @@ export function presentAppBarSettings(
   }
   const forkLabelEl = requireElement("b", forkLinkEl);
   const originalLabelEl = requireElement("b", originalLinkEl);
-  const copyrightEl = requireElement(".sethint", aboutBlock);
+  const copyrightEl = requireElement(".sethint", sourceBlock);
 
   const languageSelect = requireElement(".langpick", parent);
   if (!(languageSelect instanceof HTMLSelectElement)) {
@@ -225,11 +225,11 @@ export function presentAppBarSettings(
       languageCaptionEl.textContent = languageCaption;
       languageSelect.setAttribute("aria-label", languageCaption);
       hotkeysLabelEl.textContent = hotkeysLabel;
-      aboutCaptionEl.textContent = t("game.appBar.aboutCaption");
-      forkLabelEl.textContent = t("game.appBar.aboutForkLabel");
-      originalLabelEl.textContent = t("game.appBar.aboutOriginalLabel");
+      sourceCaptionEl.textContent = t("game.appBar.sourceCaption");
+      forkLabelEl.textContent = t("game.appBar.sourceForkLabel");
+      originalLabelEl.textContent = t("game.appBar.sourceOriginalLabel");
       // `innerHTML`, not `textContent`: the `.html` key suffix marks this as trusted markup.
-      copyrightEl.innerHTML = t("game.appBar.aboutCopyright.html");
+      copyrightEl.innerHTML = t("game.appBar.sourceCopyright.html");
 
       theme.relabel(themeLabels());
       layout.relabel(layoutLabels());

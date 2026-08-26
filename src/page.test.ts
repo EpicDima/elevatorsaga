@@ -329,7 +329,7 @@ describe("index.html", () => {
   });
 
   it("has one landmark of each kind, and a single top-level heading", () => {
-    // No footer: credits and license notices live on the help pages and the About popover instead.
+    // No footer: credits and license notices live on the help pages and the settings popover instead.
     expect(page.querySelectorAll("header, main, footer")).toHaveLength(2);
     expect(page.querySelectorAll("h1")).toHaveLength(1);
   });

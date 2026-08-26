@@ -1,7 +1,7 @@
 /**
  * Whether the settings popover can be reached at the smallest window the game
  * promises to fit. It reads as fine closed, but opening the seed block's
- * disclosure can push the About block below the window with no visible error.
+ * disclosure can push the source block below the window with no visible error.
  */
 
 import { describe, expect, it } from "vitest";

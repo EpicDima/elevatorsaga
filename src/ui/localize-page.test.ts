@@ -146,7 +146,7 @@ describe("localizePage", () => {
   });
 
   it("writes a message that ends in .html as markup rather than as its characters", () => {
-    const scrap = shell(`<p ${TEXT_KEY_ATTRIBUTE}="game.appBar.aboutCopyright.html">Shipped</p>`);
+    const scrap = shell(`<p ${TEXT_KEY_ATTRIBUTE}="game.appBar.sourceCopyright.html">Shipped</p>`);
 
     localizePage(scrap, USER_AGENTS.windows);
 

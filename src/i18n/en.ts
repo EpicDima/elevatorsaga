@@ -131,10 +131,10 @@ export const EN_MESSAGES = {
   "game.appBar.docsOpenLabel": "Help",
   "game.appBar.settingsLabel": "Settings",
   "game.appBar.hotkeysOpenLabel": "Hotkeys",
-  "game.appBar.aboutCaption": "About",
-  "game.appBar.aboutForkLabel": "This game",
-  "game.appBar.aboutOriginalLabel": "Original",
-  "game.appBar.aboutCopyright.html":
+  "game.appBar.sourceCaption": "Code and license",
+  "game.appBar.sourceForkLabel": "This game",
+  "game.appBar.sourceOriginalLabel": "Original",
+  "game.appBar.sourceCopyright.html":
     'Elevator Saga © 2015 Magnus Wolffelt,<br /> © 2026 EpicDima,<br /> <a href="licenses.txt">MIT</a>',
   "game.hotkeys.title": "Keyboard shortcuts",
   "game.hotkeys.closeTitle": "Close window",

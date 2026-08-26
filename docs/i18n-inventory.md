@@ -772,34 +772,38 @@ to the workspace. That presenter is called from `src/main.ts`, so this runs in t
 
 The widget that composes `switch-theme`, `switch-layout`, `switch-language` and `manage-seed` into
 one settings popover, plus the two elements around and inside it that are this module's own: the
-`docsOpen` button beside the popover, and the popover's own hotkeys-opener row and About block.
+`docsOpen` button beside the popover, and the popover's own hotkeys-opener row and source block.
 `docsOpenLabel` and `hotkeysOpenLabel` name openers only — Phase 10 is where the docs and hotkeys
 dialogs themselves get built, so both buttons take an injected click callback and do nothing on
 their own yet, the same "build inert first" staging every widget in this migration follows.
-`aboutForkLabel`/`aboutOriginalLabel`/`aboutCopyright.html` are the only prose in a block that
+`sourceForkLabel`/`sourceOriginalLabel`/`sourceCopyright.html` are the only prose in a block that
 otherwise consists of two real, hardcoded GitHub URLs — an address is not a translator's business,
 so the URLs and the domain text under each link are plain constants rather than catalog keys.
 
-`aboutCopyright.html` is deliberately the same string in both locales: "Elevator Saga © 2015 Magnus
+`sourceCaption` names the block for what is in it — two repositories and the license that covers
+them — rather than for what an About section usually holds: the block has no description of the game
+and no version number, so "About" promised something it never delivered.
+
+`sourceCopyright.html` is deliberately the same string in both locales: "Elevator Saga © 2015 Magnus
 Wolffelt, © 2026 EpicDima, MIT" names a license, and a license notice does not change with the
 reader's language. It breaks onto three lines of its own rather than wrapping wherever the popover's
 width happens to run out, which is what the two `<br />`s are for.
 
 It is also the whole of the game's route to `licenses.txt`. The footer that used to link that file
-went when the app bar took the page over, and a row of its own in the About block would have changed
+went when the app bar took the page over, and a row of its own in the source block would have changed
 its shape — so the word "MIT", already in the notice and already naming the thing the file contains,
 is the link. That is why the key carries `.html`: the suffix is this catalog's mark for a value
 written with `innerHTML` rather than as text.
 
-| Key                               | English                                                                                                   | Notes                                                                                  |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `game.appBar.docsOpenLabel`       | Help                                                                                                      | the `docsOpen` button's visible label and `title`                                      |
-| `game.appBar.settingsLabel`       | Settings                                                                                                  | the popover trigger's visible label, `title` and `aria-label`                          |
-| `game.appBar.hotkeysOpenLabel`    | Hotkeys                                                                                                   | the popover's `keysOpen` row; closes the popover before its own callback fires         |
-| `game.appBar.aboutCaption`        | About                                                                                                     | the About block's `.cap` caption                                                       |
-| `game.appBar.aboutForkLabel`      | This game                                                                                                 | the name over this repository's own URL                                                |
-| `game.appBar.aboutOriginalLabel`  | Original                                                                                                  | the name over the game this is forked from                                             |
-| `game.appBar.aboutCopyright.html` | Elevator Saga © 2015 Magnus Wolffelt,`<br />` © 2026 EpicDima,`<br />` `<a href="licenses.txt">`MIT`</a>` | markup; byte-identical in every locale, like a `.code` key, though not one — see above |
+| Key                                | English                                                                                                   | Notes                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `game.appBar.docsOpenLabel`        | Help                                                                                                      | the `docsOpen` button's visible label and `title`                                      |
+| `game.appBar.settingsLabel`        | Settings                                                                                                  | the popover trigger's visible label, `title` and `aria-label`                          |
+| `game.appBar.hotkeysOpenLabel`     | Hotkeys                                                                                                   | the popover's `keysOpen` row; closes the popover before its own callback fires         |
+| `game.appBar.sourceCaption`        | Code and license                                                                                          | the source block's `.cap` caption                                                      |
+| `game.appBar.sourceForkLabel`      | This game                                                                                                 | the name over this repository's own URL                                                |
+| `game.appBar.sourceOriginalLabel`  | Original                                                                                                  | the name over the game this is forked from                                             |
+| `game.appBar.sourceCopyright.html` | Elevator Saga © 2015 Magnus Wolffelt,`<br />` © 2026 EpicDima,`<br />` `<a href="licenses.txt">`MIT`</a>` | markup; byte-identical in every locale, like a `.code` key, though not one — see above |
 
 Mounted from `src/main.ts`, which hands it the app bar, the document root, storage, the system-theme
 check, the layout mode and seed the page starts in, and the callbacks that relabel the page and

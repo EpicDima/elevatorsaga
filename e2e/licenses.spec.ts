@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
 
 import { openSettingsMenu } from "./game-page.ts";
 
-test("serves the license notices from the About block's copyright line", async ({ page }) => {
+test("serves the license notices from the source block's copyright line", async ({ page }) => {
   await page.goto("/");
 
   // The game's only route to the file: the word "MIT" in the copyright notice, not a footer link.

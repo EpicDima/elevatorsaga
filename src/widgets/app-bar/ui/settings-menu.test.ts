@@ -105,7 +105,7 @@ describe("appBarSettingsTemplate", () => {
     expect(keysOpen.textContent).toContain("Hotkeys");
   });
 
-  it("draws two real links in the About block, pointing at this fork and the original game", () => {
+  it("draws two real links in the source block, pointing at this fork and the original game", () => {
     const parent = document.createElement("div");
     parent.innerHTML = appBarSettingsTemplate(null);
 
@@ -344,11 +344,11 @@ describe("presentAppBarSettings", () => {
 
         expect(requireElement(".keysopen", parent).textContent).toContain("Горячие клавиши");
 
-        const aboutBlock = requireElement('[data-set-block="about"]', parent);
-        expect(aboutBlock.querySelector(".cap")?.textContent).toBe("Об игре");
-        const links = [...aboutBlock.querySelectorAll("a.setlink b")];
+        const sourceBlock = requireElement('[data-set-block="source"]', parent);
+        expect(sourceBlock.querySelector(".cap")?.textContent).toBe("Код и лицензия");
+        const links = [...sourceBlock.querySelectorAll("a.setlink b")];
         expect(links.map((link) => link.textContent)).toEqual(["Эта игра", "Оригинал"]);
-        expect(aboutBlock.querySelector(".sethint")?.textContent).toBe(
+        expect(sourceBlock.querySelector(".sethint")?.textContent).toBe(
           "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT",
         );
 

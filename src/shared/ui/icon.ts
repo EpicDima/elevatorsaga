@@ -347,7 +347,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // About block's glyph, next to the repository links.
+  // The source block's glyph, next to the repository links.
   link: {
     viewBox: "0 0 16 16",
     shapes: [
