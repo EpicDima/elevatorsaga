@@ -1,17 +1,17 @@
 /**
- * The reference pages' English text: what `documentation.html` says.
+ * The reference page's English text: this is what `documentation.html` says.
  *
- * Not read by anything the browser runs. The two reference pages are static
- * HTML, and this is the reference they are held to: `page.test.ts` compares
- * every passage of both of them against the message it was lifted from, which
- * is what keeps the English page and the Russian one one document in two
- * languages rather than two that drift.
+ * Not a copy of the page — the page is built from it. `src/docs-page/render.ts`
+ * renders one file per locale at build time, so these messages are the only
+ * place this prose exists and a new language is another catalog rather than
+ * another HTML file.
  *
  * Hence a module of its own rather than a section of `en.ts`. A key in
  * `EN_MESSAGES` is downloaded by every player — the catalog is statically
  * imported by everything that calls `t()`, so it lands whole in the entry
- * chunk — and this text is read by a test and by nothing else. Nothing outside
- * the tests imports this file, so none of it reaches a bundle.
+ * chunk — and this text is read by the build and by nothing the browser runs.
+ * Nothing outside the build and the tests imports this file, so none of it
+ * reaches a bundle.
  *
  * `docs.basics.example.code` is the exception that stays in `en.ts`: the
  * completion popup inserts it.
@@ -101,6 +101,10 @@ export const EN_DOCS_MESSAGES = {
   "docs.table.type": "Type",
   "docs.table.explanation": "Explanation",
   "docs.table.example": "Example",
+  // What the type column says of a member. A word on the page rather than the
+  // identifier beside it, so it is translated.
+  "docs.type.function": "function",
+  "docs.type.array": "array",
 
   "docs.api.events.heading": "Event methods",
   "docs.api.events.intro":
@@ -240,6 +244,16 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "docs.api.floor.destinationRequested.example.code": `floor.on("destination_requested", function(destinationFloor, floor) {
     // Maybe pick an elevator for this journey?
 })`,
+
+  // ------------------------------------------------ the help page: the footer
+
+  "docs.footer.made": "Made by Magnus Wolffelt and contributors",
+  "docs.footer.source.html":
+    '<a href="https://github.com/EpicDima/elevatorsaga">Source code</a> on GitHub, forked from <a href="https://github.com/magwo/elevatorsaga">the original</a>',
+  // The file the link names is written into `dist/` by the build; see
+  // `LICENSES_FILE` in `vite.config.ts`.
+  "docs.footer.licenses.html":
+    '<a href="licenses.txt">Licenses</a> for the game and everything it bundles',
 } as const satisfies Readonly<Record<string, string>>;
 
 /** Every message the reference pages are answerable for, by name. */

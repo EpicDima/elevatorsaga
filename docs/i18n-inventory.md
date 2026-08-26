@@ -107,7 +107,7 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalog holds **505 keys** in two locales, each locale spread over two files. `src/i18n/en.ts`
+The catalog holds **510 keys** in two locales, each locale spread over two files. `src/i18n/en.ts`
 is the reference — its text is the English wording, extracted verbatim — and `src/i18n/ru.ts` is
 the Russian translation; `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts` are the same thing for the
 reference pages, kept in files of their own so that the bundle cannot reach them. The types make
@@ -116,13 +116,13 @@ key English does not have, or giving a plural message the wrong number of forms 
 error, not a runtime surprise.
 
 ```sh
-grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | wc -l       # 505
+grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | wc -l       # 510
 grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
 | Prefix         | Keys    | What reads them                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 93      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`, and it is the one that stays in `src/i18n/en.ts` for that reason; the other 92 by nothing, and they live in `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts`, which only `src/page.test.ts` imports                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `docs.*`       | 98      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`, and it is the one that stays in `src/i18n/en.ts` for that reason; the other 97 by `src/docs-page/render.ts`, which the build runs and the browser never loads, and they live in `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `tutorial.*`   | 73      | `src/game/tutorial.ts` (the 16 programs), `src/widgets/tutorial-panel/ui/tutorial-panel.ts` (the 48 prose keys and the panel's own five), `src/pages/game/index.ts` (the four of the finish overlay)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `skyscraper.*` | 19      | `src/game/skyscraper.ts`, whose getters read all nineteen; the card six of them end up on is `src/widgets/level-briefing/ui/level-briefing.ts`, which is handed the finished strings and so names no key itself. Thirteen of the nineteen are starting programs, one per level                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `game.*`       | 209     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (8), `src/entities/level-tier/ui/requirement-text.ts` (14), `src/entities/level-tier/ui/tier-hint.ts` (3), `src/widgets/verdict-toast/ui/verdict-toast.ts` (3), `src/widgets/level-switcher/ui/level-switcher.ts` (13), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (5), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
@@ -132,7 +132,7 @@ grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | tr -d '"' | cut -d. 
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `editor.*`     | 8       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Total**      | **505** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Total**      | **510** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 Which keys nothing reads:
 
@@ -147,18 +147,28 @@ The four catalog files are excluded by name rather than by `--exclude='docs-*.ts
 also drop `src/features/docs-reference/ui/docs-modal.ts` and hand back 24 `game.docs.*` keys as
 unread.
 
-It lists **91 keys**, every one of them `docs.*`: the catalog carries nothing else that nothing
-on screen asks for.
+It lists **2 keys**, `docs.type.function` and `docs.type.array` — the only two the catalog holds
+that no file names in full. `src/docs-page/render.ts` builds them as `docs.type.${row.type}`
+from the member type in `src/docs-page/structure.ts`, which is the one place in the catalog where
+a key is assembled rather than written; `src/page.test.ts` checks the words they hold appear in
+the Type column of every language's page, since a grep never will.
+
+The list used to be ninety-odd, all `docs.*`, because nothing in the tree named the reference
+page's prose. Rendering the page from the catalog is what shortened it: those keys are now named
+by `src/docs-page/structure.ts` and read by `src/docs-page/render.ts`. Neither reaches the
+browser — the build runs them and emits HTML — so "read" here means read by something, not
+shipped to somebody.
+
 Two things the grep cannot see, both of which make it optimistic rather than pessimistic: it
 matches text rather than calls, so a key that is a prefix of another key counts as read whenever
 the longer one is, and a key named only in a comment counts as read too. The prefix case costs
-nothing today — the same grep with each key required to end where the key ends lists the same 91
+nothing today — the same grep with each key required to end where the key ends lists the same 2
 — and the comment case costs two. `page.noscript` is one: nothing renders it, and `index.html`
 names it in a comment saying so. `docs.play.statistics.html` is the other: it is a paragraph of
 the reference page like its neighbors, and `src/game/world.ts` and
 `src/widgets/stats-panel/ui/stats-panel.ts` between them name it three times in prose explaining
-what the statistics panel measures. So the true figure is 93: 92 `docs.*` — every one the pages
-hold, bar the skeleton the popup borrows — and `page.noscript`. The grep also needs
+what the statistics panel measures — though the page it belongs to now names it too, so it would
+count as read either way. The grep also needs
 `src/widgets/tutorial-panel/ui/tutorial-panel.ts` and `src/game/tutorial.ts` to be in the tree, since between them that
 is what reads the 64 `tutorial.level*` messages: the panel each level's prose, the level table each
 level's two programs.
@@ -172,17 +182,17 @@ the build renders the shell per language.
 reached", pins that: it parses the page with `DOMParser`, which _does_ see the paragraph, and
 requires `localizePage` to leave it alone even in Russian.
 
-**The 92 `docs.*` keys have no call site because the reference page answers for itself.**
-`documentation.html` and `documentation.ru.html` are two static files rather than one document
-translated at run time. That duplication is deliberate and no longer silent — see _Known
-overlap_ at the end, and `src/page.test.ts`, which holds the two pages and the two catalogs in
-step.
+**The 97 `docs.*` keys have no call site because the page is written, not shown.**
+`documentation.html` and `documentation.ru.html` are static files rather than one document
+translated at run time — but they are rendered from these keys at build time, one file per
+locale, rather than kept by hand. `src/docs-page/render.ts` does that, and `src/page.test.ts`
+renders them again to hold every key to reaching the page.
 
 They are also the reason `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts` exist. `en.ts` is
 imported statically, so every key in it is bytes the player downloads before the first level
-draws; 86 keys of help text that only a static file ever shows are bytes nobody can be shown.
-Moving them into modules that nothing but `src/page.test.ts` imports takes them out of the build
-by structure rather than by hoping the bundler proves them dead.
+draws; keys of help text that only a static file ever shows are bytes nobody can be shown.
+Moving them into modules that nothing in the browser imports takes them out of the build by
+structure rather than by hoping the bundler proves them dead.
 
 ## The strings
 
@@ -236,20 +246,24 @@ attribute, which no keyboard can reach.
 The shell links to the reference page nowhere. It used to: a `Learning track` link and a
 `<nav>` of three, retargeted per language by a third attribute, `data-i18n-doc`. Those went with
 the header they sat in — the help the game offers is now the docs dialog, and
-`documentation.html` and `documentation.ru.html` are standalone pages the build still emits and
-still translates key for key. Six `page.*` keys went with them.
+`documentation.html` and `documentation.ru.html` are standalone pages, one per locale, that the
+build renders from these keys. Six `page.*` keys went with them.
 
-### `documentation.html` — the reference page, 93 `docs.*` keys
+### `documentation.html` — the reference page, 98 `docs.*` keys
 
-One of these is read. The editor's skeleton completion inserts `docs.basics.example.code`, so
-the program the popup offers and the program the help page walks through are the same bytes in
-whichever language the reader is in; it is filed here rather than under `src/ui/completions.ts`
-because this is where its wording is decided, and the popup borrows it. It is also why that one
-key sits in `src/i18n/en.ts` while the other 92 sit in `src/i18n/docs-en.ts`. Those 92 have no
-call site: their English is on screen in `documentation.html` and their Russian in
-`documentation.ru.html`. `src/page.test.ts` holds every one of them to being the same text as
-the passage it was lifted from, in both languages, and its "leaves no docs.\* message unchecked"
-case makes sure no key escapes that comparison.
+One of these is read at runtime. The editor's skeleton completion inserts
+`docs.basics.example.code`, so the program the popup offers and the program the help page walks
+through are the same bytes in whichever language the reader is in; it is filed here rather than
+under `src/ui/completions.ts` because this is where its wording is decided, and the popup borrows
+it. It is also why that one key sits in `src/i18n/en.ts` while the other 97 sit in
+`src/i18n/docs-en.ts`.
+
+Those 97 are the page. `src/docs-page/render.ts` builds `documentation.html` out of them at build
+time, once per locale, from the shape in `src/docs-page/structure.ts` — so there is no second copy
+of this prose anywhere to drift from, and a new language is a catalog file and an entry in
+`LOCALES` rather than another hand-written page. `src/page.test.ts` renders both pages and holds
+every message to appearing on the one it belongs to, as the text the catalog has; its "leaves no
+docs.\* message unchecked" case makes sure no key escapes that comparison.
 
 | Key                                                 | English                                                                                                         | Notes                                                                                                                              |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -290,6 +304,8 @@ case makes sure no key escapes that comparison.
 | `docs.table.type`                                   | Type                                                                                                            |                                                                                                                                    |
 | `docs.table.explanation`                            | Explanation                                                                                                     |                                                                                                                                    |
 | `docs.table.example`                                | Example                                                                                                         |                                                                                                                                    |
+| `docs.type.function`                                | function                                                                                                        | what the Type column says of a member; a word on the page, not the identifier beside it, so it is translated                       |
+| `docs.type.array`                                   | array                                                                                                           | likewise                                                                                                                           |
 | `docs.api.events.heading`                           | Event methods                                                                                                   |                                                                                                                                    |
 | `docs.api.events.intro`                             | Every elevator and every floor is an event emitter, and these are the methods it gives you. They all return th… |                                                                                                                                    |
 | `docs.api.events.on`                                | Register a listener. Listeners run in the order they were registered, and the same function may be registered … |                                                                                                                                    |
@@ -346,6 +362,9 @@ case makes sure no key escapes that comparison.
 | `docs.api.floor.buttonStateChange.example.code`     | floor.on("buttonstate_change", function(buttonStates) {                                                         | code; only the comments are translated                                                                                             |
 | `docs.api.floor.destinationRequested`               | Triggered when someone at a floor has asked to be taken to another floor, in a building whose passengers anno…  |                                                                                                                                    |
 | `docs.api.floor.destinationRequested.example.code`  | floor.on("destination_requested", function(destinationFloor, floor) {                                           | code; only the comments are translated                                                                                             |
+| `docs.footer.made`                                  | Made by Magnus Wolffelt and contributors                                                                        |                                                                                                                                    |
+| `docs.footer.source.html`                           | Source code on GitHub, forked from the original                                                                 | markup; links to this fork and to `magwo/elevatorsaga`                                                                             |
+| `docs.footer.licenses.html`                         | Licenses for the game and everything it bundles                                                                 | markup; links to `licenses.txt`, which the build writes into `dist/`                                                               |
 
 ### The learning track — 73 `tutorial.*` keys
 
@@ -1494,33 +1513,28 @@ Standard Time)` down to `21:03:57`; the line itself is gone now, with the messag
 `formatTimeOfDay` wrapper behind it, because there is no status line under the editor and a
 confirmation that reports the same success every few seconds is not news.
 
-## Known overlap: `documentation.ru.html`
+## Settled overlap: the reference page
 
-While this catalog was being written, another change added `documentation.ru.html` — a
-separate, fully translated Russian copy of the reference page, with `hreflang` alternates linking
-the pair. That covers the same ground as the 86 unread `docs.*` keys, by a different route: a
-static file per language instead of one document translated at run time.
+While this catalog was being written, another change added `documentation.ru.html` — a separate,
+fully translated Russian copy of the reference page, with `hreflang` alternates linking the pair.
+That covered the same ground as the unread `docs.*` keys by a different route, and both were
+kept, which meant maintaining the Russian documentation twice. It cost what that always costs: a
+review of the Russian page put a dozen corrections into `documentation.ru.html`, and every one of
+them stayed there while `ru.ts` went on saying the thing that had been corrected.
 
-Both were kept, which would ordinarily mean maintaining the Russian documentation twice — and it
-did: a review of the Russian page put a dozen corrections into `documentation.ru.html`, and every
-one of them stayed there while `ru.ts` went on saying the thing that had been corrected.
-`src/page.test.ts` now closes that gap from both ends, so the duplication is still there and can
-no longer drift silently. What it used to cost besides the upkeep — the whole of the help text
-in every player's first download — the move to `src/i18n/docs-en.ts` has taken away. That turns
-the choice below from pending into deferred:
+The catalog is now the only copy. Both pages are rendered from it at build time by
+`src/docs-page/render.ts`, out of the shape in `src/docs-page/structure.ts`, and the two
+hand-written HTML files are gone. Nothing has to hold two copies in step because there is one,
+and a third language is a catalog file rather than a third page — which is what makes _Adding a
+language_ below as short as it is.
 
-- **Keep the static pages** and drop the `docs.*` keys from the catalog, or generate
-  `documentation.ru.html` from them at build time. The 86 unread keys have no other call site, so
-  removing them touches nothing else — but `docs.basics.example.code` does have one, and would
-  have to stay, which is why it never left `src/i18n/en.ts`.
-- **Keep the catalog** and reduce `documentation.ru.html` to a redirect.
-
-Whoever takes it up should read `src/page.test.ts` first: whichever side is dropped, those
-assertions are the specification of what the surviving side has to keep saying.
+`src/page.test.ts` is still the specification of what the page has to say. It renders both pages
+and checks them against the facades player code is actually handed, which is the half no
+generator can guarantee: the catalog can describe a method that no longer exists.
 
 ## Adding a language
 
-One catalog file, plus three lines the compiler demands anyway:
+Two catalog files, plus four lines the compiler demands anyway:
 
 1. Add the code to `Locale` and `LOCALES` in `src/i18n/locale.ts`, and its endonym to
    `LOCALE_NAMES`. The language picker needs no edit at all: the options are built from
@@ -1536,11 +1550,15 @@ One catalog file, plus three lines the compiler demands anyway:
    forms and the English one against English's two. The `import()` sits inside that assignment
    rather than around it, so splitting the catalog out of the bundle costs none of the
    checking.
+5. Write `src/i18n/docs-<code>.ts` as `DocsCatalog` and add it to `CATALOGS` in
+   `src/docs-page/render.ts`. That is the whole of the reference page: the build renders
+   `documentation.<code>.html` from it and links it from every other language's copy, so there is
+   no HTML to write and no page to keep in step. Step 1 is what forces this one — a locale in
+   `LOCALES` with no entry in `CATALOGS` does not compile.
 
-The reference page is a separate job and deliberately so: the game no longer links to it, so the
-set of catalogs and the set of translated pages are free to differ. A catalog is one file a
-translator can finish in an afternoon; the reference page is nine hundred lines of tables. Ship
-the interface first.
+Step 5 is the larger half of the work: the interface is a few hundred short strings, the
+reference page is ninety-eight passages and tables. Ship the interface first if you are splitting
+the job.
 
 The tests in `src/i18n/catalog.test.ts` then check the new catalog for key parity, placeholder
 parity, markup that matches the English structure, and example code identical to the English but

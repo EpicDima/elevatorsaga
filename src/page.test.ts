@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { runInNewContext } from "node:vm";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import docsSource from "../documentation.html?raw";
-import docsRuSource from "../documentation.ru.html?raw";
 import pageSource from "../index.html?raw";
+import viteConfig from "../vite.config.ts";
+import { docsPageFile, renderDocsPage } from "./docs-page/render.ts";
 import { Elevator } from "./game/elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
 import { Floor } from "./game/floor.ts";
@@ -450,16 +450,16 @@ describe("index.html", () => {
 /**
  * The reference page, in every language it is published in.
  *
- * `documentation.ru.html` is a translation of `documentation.html` and not a
- * page of its own: same headings, same tables in the same order, same anchors,
- * same examples, with only the prose and the comments inside the examples in
- * Russian. Every check below therefore runs over both of them, and the parity
- * block at the end is what holds them to being one document in two languages
- * rather than two documents about the same subject.
+ * The versions are one page and not several: same headings, same tables in the
+ * same order, same anchors, same examples, with only the prose and the comments
+ * inside the examples translated. `src/docs-page/render.ts` builds them all from
+ * one structure, so that is now true by construction; the checks below run over
+ * every version anyway, because what they hold the page to is the code it
+ * documents, which the structure knows nothing about.
  */
 const TRANSLATIONS = {
-  en: "documentation.html",
-  ru: "documentation.ru.html",
+  en: docsPageFile("en"),
+  ru: docsPageFile("ru"),
 } as const;
 
 /** A language {@link TRANSLATIONS} publishes the reference page in. */
@@ -476,7 +476,7 @@ type Language = keyof typeof TRANSLATIONS;
  * examples — is an identifier, and identifiers read the same on both pages.
  */
 interface ReferencePage {
-  /** The file it lives in, which is also what names it in the test output. */
+  /** The file it is published as, which is also what names it in the test output. */
   readonly file: string;
   /** Its `lang` attribute, and its key in {@link TRANSLATIONS}. */
   readonly language: Language;
@@ -493,7 +493,7 @@ const DOCUMENTATION_PAGES: readonly ReferencePage[] = [
   {
     file: TRANSLATIONS.en,
     language: "en",
-    document: new DOMParser().parseFromString(docsSource, "text/html"),
+    document: new DOMParser().parseFromString(renderDocsPage("en"), "text/html"),
     headings: {
       eventMethods: "Event methods",
       elevator: "Elevator object",
@@ -504,7 +504,7 @@ const DOCUMENTATION_PAGES: readonly ReferencePage[] = [
   {
     file: TRANSLATIONS.ru,
     language: "ru",
-    document: new DOMParser().parseFromString(docsRuSource, "text/html"),
+    document: new DOMParser().parseFromString(renderDocsPage("ru"), "text/html"),
     headings: {
       eventMethods: "Методы событий",
       elevator: "Объект лифта",
@@ -529,8 +529,20 @@ function pageIn(language: Language): ReferencePage {
   return found;
 }
 
-/** The build configuration, as text; see "is an entry point of the build". */
-const viteConfigSource = readFileSync(join(ROOT, "vite.config.ts"), "utf8");
+/**
+ * The HTML files the build starts from; see "is an entry point of the build".
+ *
+ * `input` accepts a name, a list of them or a map of them, and the config uses
+ * the map form, so the other two are narrowed away here rather than in each
+ * assertion.
+ */
+const BUILD_INPUTS: readonly string[] = (() => {
+  const input = viteConfig.build?.rolldownOptions?.input;
+  if (typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("vite.config.ts no longer names its build inputs as a map");
+  }
+  return Object.values(input);
+})();
 
 describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   const docs = reference.document;
@@ -611,16 +623,12 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   it("is an entry point of the build", () => {
     // Vite only processes the HTML files named in `rolldownOptions.input`, so
     // a page left out of it is simply absent from `dist/`, and the link
-    // between the two versions is a 404 in the built site while working
-    // perfectly in the dev server. Matched as text rather than imported: the
-    // config drags in Vite's plugin types, and `input` is a three-way union
-    // that a single assertion would have to narrow for no gain. Matched as a
-    // whole entry rather than as a substring, so that a filename mentioned in
-    // a comment -- an entry commented out being exactly how a page goes
-    // missing -- does not pass for one that is built.
-    expect(viteConfigSource).toMatch(
-      new RegExp(String.raw`^\s+\w+: "${reference.file.replaceAll(".", "\\.")}",$`, "m"),
-    );
+    // between the versions is a 404 in the built site while working perfectly
+    // in the dev server. Read out of the config itself rather than matched as
+    // text, because no filename is written there any more: the entries are
+    // generated from `LOCALES`, and what has to hold is that this page is
+    // among them.
+    expect(BUILD_INPUTS.map((input) => basename(input))).toContain(reference.file);
   });
 
   it("shows the same favicon as the game", () => {
@@ -784,23 +792,13 @@ function documentedApi(reference: ReferencePage): DocumentedApi {
 }
 
 /**
- * The HTML comments a page's source carries, in document order.
+ * The page's shape, as text.
  *
- * They are part of the page the way a code comment is part of the code: the
- * reasons the undocumented facade members are undocumented are written nowhere
- * else in the file, and are what the next person to read the table finds.
- *
- * @param document - The page.
- * @returns The text of each comment.
+ * The reasons the undocumented facade members are undocumented are written in
+ * its JSDoc and nowhere else; see "says beside the table it is missing from why
+ * each member is left out".
  */
-function sourceNoteTexts(document: Document): string[] {
-  const walker = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_COMMENT);
-  const notes: string[] = [];
-  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
-    notes.push(node.textContent ?? "");
-  }
-  return notes;
-}
+const structureSource = readFileSync(join(ROOT, "src/docs-page/structure.ts"), "utf8");
 
 /**
  * Every name player code can reach on a facade.
@@ -978,14 +976,17 @@ describe.each(DOCUMENTATION_PAGES)(
       expect(documented.floorMembers.filter((name) => !floor.has(name))).toEqual([]);
     });
 
-    it("says in its own source why each undocumented member is left out", () => {
+    it("says beside the table it is missing from why each member is left out", () => {
       // The lists above are the machine-readable half of the omissions; the
-      // HTML comment in the table each member is missing from is the half a
-      // maintainer actually meets, and the only place the reasoning is
-      // written down for someone reading the page rather than this file.
-      // Without this, a translation could drop the comment from one page and
-      // keep the count right by adding a trivial one somewhere else.
-      const notes = sourceNoteTexts(docs).join("\n");
+      // JSDoc on the table each member is missing from is the half a maintainer
+      // actually meets, and the only place the reasoning is written down for
+      // someone reading the page's structure rather than this file.
+      // Only the prose of that file counts: a name that reached it as a row --
+      // that is, as a documented member -- would satisfy a plain search while
+      // saying nothing about why it is absent.
+      const notes = [...structureSource.matchAll(/\/\*\*[\s\S]*?\*\//gu)]
+        .map((comment) => comment[0])
+        .join("\n");
       for (const name of [
         ...Object.keys(UNDOCUMENTED_ELEVATOR_MEMBERS),
         ...Object.keys(UNDOCUMENTED_FLOOR_MEMBERS),
@@ -1099,9 +1100,10 @@ describe("documentation.html and documentation.ru.html, as one document in two l
   const russian = pageIn("ru");
 
   it("documents the same members, in the same order", () => {
-    // The facade checks above run over each page on its own, and each of them
-    // passes for a page that documents a subset. This is what makes a method
-    // added to one page and not the other a failure rather than a slow drift.
+    // One structure renders both, so this holds by construction today. It is
+    // kept because it is the assertion that would catch the day it stops: a
+    // renderer that ever branches on locale has to fail here rather than ship
+    // a page that quietly documents a subset.
     const left = documentedApi(english);
     const right = documentedApi(russian);
     expect(right.eventMethods).toEqual(left.eventMethods);
@@ -1145,17 +1147,6 @@ describe("documentation.html and documentation.ru.html, as one document in two l
 
   it("is built the same way, table for table", () => {
     expect(outline(russian.document)).toEqual(outline(english.document));
-  });
-
-  it("carries the same notes in its source", () => {
-    // The reasons the four undocumented facade members are undocumented live in
-    // HTML comments, one per table, and are as much part of the page as its
-    // prose. Counting them is crude -- what each one has to say is checked
-    // against the facades above -- but it is the difference between a
-    // translation that dropped them and one that did not.
-    expect(sourceNoteTexts(russian.document)).toHaveLength(
-      sourceNoteTexts(english.document).length,
-    );
   });
 
   it("offers the learning track to a beginner, in both languages", () => {
@@ -1327,6 +1318,16 @@ const SHELL_KEYS: readonly PageKey[] = [
   "docs.nav.back",
 ];
 
+/** What the footer says, in the order it says it. */
+const FOOTER_LINES: readonly PageKey[] = [
+  "docs.footer.made",
+  "docs.footer.source.html",
+  "docs.footer.licenses.html",
+];
+
+/** The words the type column is allowed to say, which are words and not identifiers. */
+const MEMBER_TYPES: readonly PageKey[] = ["docs.type.function", "docs.type.array"];
+
 /** The `<h2>`s of the reference, in the order the page prints them. */
 const SECTION_HEADINGS: readonly PageKey[] = [
   "docs.about.heading",
@@ -1492,21 +1493,19 @@ function documentedRows(reference: ReferencePage): DocumentedRow[] {
 }
 
 /**
- * The reference pages are the reviewed copy; `src/i18n` is a copy of them.
+ * `src/i18n` is the reference page's text; the page is what that text becomes.
  *
- * Every `docs.*` message was lifted from these pages word for word, and the
- * interface will be wired through the catalog rather than the HTML. Until it
- * is, the page is what a reader sees and the catalog is what nobody sees --
- * which is exactly the arrangement in which one of them gets corrected and the
- * other does not. That is not hypothetical: the review of the Russian page put
- * a dozen corrections into `documentation.ru.html`, and every one of them
- * stayed there while `ru.ts` went on saying the thing that had been corrected.
+ * The catalog cannot drift from the page any more -- the page is rendered from
+ * it -- so what is left to check is the rendering: that every message reaches
+ * the reader, in the place the page means it to appear, as the text the catalog
+ * has rather than merely similar text. A message the renderer stops printing,
+ * or prints somewhere a reader will not look, is invisible in exactly the way
+ * a stale copy used to be.
  *
- * So each message is held against the place it came from, and held to being the
- * same text rather than merely similar text. That is only a fair rule because
- * the keys are cut along the page's own seams -- a paragraph, a table cell, an
- * example -- so no key holds half a sentence and nothing here has to settle for
- * a weaker assertion.
+ * Holding each one to being the same text is only a fair rule because the keys
+ * are cut along the page's own seams -- a paragraph, a table cell, an example --
+ * so no key holds half a sentence and nothing here has to settle for a weaker
+ * assertion.
  */
 describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
   const docs = reference.document;
@@ -1521,6 +1520,14 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
     expect(docs.querySelector("header nav")?.getAttribute("aria-label")).toBe(
       message(reference.language, "docs.nav.label"),
     );
+  });
+
+  it("signs itself in the words the catalog has", () => {
+    const lines = [...docs.querySelectorAll("footer.footer p")];
+    expect(lines).toHaveLength(FOOTER_LINES.length);
+    FOOTER_LINES.forEach((key, index) => {
+      expectSays(lines[index] ?? null, reference, key);
+    });
   });
 
   it("prints the catalog's prose, in the order the catalog has it", () => {
@@ -1541,6 +1548,23 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
         expectSays(cells[column] ?? null, reference, key);
       });
     });
+  });
+
+  it("says what a member is in the words the catalog has", () => {
+    // The type column holds a word, not the identifier beside it, so an
+    // untranslated catalog shows English on every page. Matched as a set
+    // because which row is which is the structure's business, not this file's:
+    // what has to hold is that the column says these words and no others, and
+    // that neither word has quietly stopped being printed.
+    const typed = [...docs.querySelectorAll("table.doctable tbody tr")]
+      .map((row) => [...row.querySelectorAll("td")])
+      .filter((cells) => cells.length === 4)
+      .map((cells) => collapse(cells[1]?.textContent ?? ""))
+      .filter((text) => text !== "");
+    expect(typed.length).toBeGreaterThan(0);
+    expect(new Set(typed)).toEqual(
+      new Set(MEMBER_TYPES.map((key) => message(reference.language, key))),
+    );
   });
 
   it("explains every member in the words the catalog has", () => {
@@ -1584,6 +1608,8 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
     // to be laid out to look for it.
     const checked = new Set<string>([
       ...SHELL_KEYS,
+      ...FOOTER_LINES,
+      ...MEMBER_TYPES,
       ...SECTION_HEADINGS,
       ...SUBSECTION_HEADINGS,
       ...PARAGRAPHS,

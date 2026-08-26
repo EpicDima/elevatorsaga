@@ -5,10 +5,12 @@ import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
 import packageJson from "./package.json" with { type: "json" };
+import { docsPageFile, renderDocsPage } from "./src/docs-page/render.ts";
+import { LOCALES, type Locale } from "./src/i18n/locale.ts";
 
 /**
- * The notice file the build emits beside the two pages, linked from the footer
- * of both.
+ * The notice file the build emits beside the pages, linked from every reference
+ * page's footer.
  *
  * `dist/` is what players are actually served, and it carries MIT-licensed code
  * (CodeMirror and its Lezer parser, ~500 kB of the bundle) and OFL-licensed
@@ -184,8 +186,55 @@ function licenseNotices(): Plugin {
   };
 }
 
+/**
+ * The reference pages, which exist as no file: `src/docs-page/render.ts` builds
+ * each from the catalogs at `src/i18n/docs-*.ts`.
+ *
+ * They are offered to Vite as ordinary HTML entries living at the root, so the
+ * build injects their script and stylesheet as it does for `index.html` and
+ * writes them out under the addresses they have always had. The dev server
+ * reads HTML off disk, so it needs the pages handed to it separately.
+ *
+ * @returns The plugin.
+ */
+function referencePages(): Plugin {
+  const pathFor = (locale: Locale): string => resolve(import.meta.dirname, docsPageFile(locale));
+  const localeFor = (id: string): Locale | undefined =>
+    LOCALES.find((locale) => pathFor(locale) === id);
+  return {
+    name: "elevator-saga-reference-pages",
+    // Ahead of Vite's own HTML handling, which would otherwise try to read a
+    // file that is not there.
+    enforce: "pre",
+    resolveId(id) {
+      return localeFor(id) === undefined ? null : id;
+    },
+    load(id) {
+      const locale = localeFor(id);
+      return locale === undefined ? null : renderDocsPage(locale);
+    },
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        const path = (request.url ?? "").split("?")[0];
+        const locale = LOCALES.find((candidate) => path === `/${docsPageFile(candidate)}`);
+        if (locale === undefined) {
+          next();
+          return;
+        }
+        server
+          .transformIndexHtml(request.url ?? "", renderDocsPage(locale))
+          .then((html) => {
+            response.setHeader("Content-Type", "text/html; charset=utf-8");
+            response.end(html);
+          })
+          .catch(next);
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [licenseNotices()],
+  plugins: [licenseNotices(), referencePages()],
   resolve: {
     // Mirrors tsconfig.json's compilerOptions.paths: TypeScript resolves these
     // for type-checking, but Vite/esbuild/Vitest never read that field, so the
@@ -233,12 +282,18 @@ export default defineConfig({
     rolldownOptions: {
       // The game, and the help/API reference in each of its languages. Every
       // page needs its own entry: Vite only processes the HTML files named
-      // here, so one left out is simply absent from `dist/` -- and the link
-      // between the two reference pages would 404 in the built site.
+      // here, so one left out is simply absent from `dist/` -- and the links
+      // between the reference pages would 404 in the built site. The reference
+      // entries are absolute paths because no file sits at any of them: they
+      // are what `referencePages` above answers `resolveId` with.
       input: {
         index: "index.html",
-        documentation: "documentation.html",
-        documentationRu: "documentation.ru.html",
+        ...Object.fromEntries(
+          LOCALES.map((locale) => [
+            `documentation-${locale}`,
+            resolve(import.meta.dirname, docsPageFile(locale)),
+          ]),
+        ),
       },
       output: {
         // The editor is ~92% of the bundle (CodeMirror and its Lezer parser,

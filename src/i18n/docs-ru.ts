@@ -1,10 +1,11 @@
 /**
- * The reference pages' Russian text: what `documentation.ru.html` says.
+ * The reference page's Russian text: this is what `documentation.ru.html` says.
  *
  * Typed as `DocsCatalog`, so it is checked against the English one key by key,
- * exactly as `ru.ts` is checked against `en.ts`. Why the reference pages' text
- * is kept out of the message catalog is explained in `docs-en.ts`; the glossary
- * this translation keeps to is in `ru.ts`.
+ * exactly as `ru.ts` is checked against `en.ts`. Why the reference page's text
+ * is kept out of the message catalog is explained in `docs-en.ts`, which also
+ * says how the page is built from it; the glossary this translation keeps to is
+ * in `ru.ts`.
  */
 
 import type { DocsCatalog } from "./docs-en.ts";
@@ -85,6 +86,10 @@ export const RU_DOCS_MESSAGES: DocsCatalog = {
   "docs.table.type": "Тип",
   "docs.table.explanation": "Описание",
   "docs.table.example": "Пример",
+  // Что колонка типа говорит о члене API. Это слово на странице, а не
+  // идентификатор рядом с ним, поэтому оно переводится.
+  "docs.type.function": "функция",
+  "docs.type.array": "массив",
 
   "docs.api.events.heading": "Методы событий",
   "docs.api.events.intro":
@@ -222,4 +227,14 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   "docs.api.floor.destinationRequested.example.code": `floor.on("destination_requested", function(destinationFloor, floor) {
     // Может, выбрать лифт для этой поездки?
 })`,
+
+  // --------------------------------------------------------- справка: подвал
+
+  "docs.footer.made": "Сделали Magnus Wolffelt и другие участники",
+  "docs.footer.source.html":
+    '<a href="https://github.com/EpicDima/elevatorsaga">Исходный код</a> на GitHub, форк <a href="https://github.com/magwo/elevatorsaga">оригинала</a>',
+  // Файл, на который ведёт ссылка, создаётся сборкой в `dist/`; см.
+  // `LICENSES_FILE` в `vite.config.ts`.
+  "docs.footer.licenses.html":
+    '<a href="licenses.txt">Лицензии</a> игры и всего, что входит в её сборку',
 };

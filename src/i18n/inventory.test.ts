@@ -201,6 +201,7 @@ const NON_PATHS: ReadonlyMap<string, string> = new Map([
   ["src/app/app.ts:207", "the first rotted pin _How this file is anchored_ exhibits"],
   ["src/ui/completions.ts:148", "the second, the one that rotted onto a plausible wrong line"],
   ["src/i18n/<code>.ts", "the placeholder in _Adding a language_, `<code>` being the locale"],
+  ["src/i18n/docs-<code>.ts", "the same placeholder, for that language's reference page"],
   ["src/…", "the ellipsis in check 4's own wording"],
   [
     "src/ui/presenters.ts",

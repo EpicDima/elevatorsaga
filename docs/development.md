@@ -49,11 +49,15 @@ src/
   app/        the fitness benchmark and the worker it runs in
   ui/         the CodeMirror integration, which sits outside the layers on
               purpose, plus a few utility modules not yet moved into shared/
-  cli/        the benchmark as a terminal command; the only part of src/ not
-              meant for a browser
+  cli/        the benchmark as a terminal command
+  docs-page/  the reference page's shape, and the renderer that turns it and
+              the docs catalogs into one HTML file per locale; run by the
+              build, as cli/ is run by a terminal -- these two are the parts
+              of src/ no browser ever loads
   styles/     the single stylesheet
   main.ts     entry point: mounts the game page and starts it
-  docs.ts     entry point for the documentation pages (styles and font only)
+  docs.ts     entry point for the reference pages: the stylesheet, and the
+              one script they run
 ```
 
 Each layer's boundary is enforced by hand-rolled `no-restricted-imports` rules in
