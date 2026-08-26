@@ -137,7 +137,7 @@ describe("presentBuildingStage", () => {
   });
 
   it("sizes every floor row, band and queue strip from layoutBuilding's own geometry", () => {
-    // room = max(160, 218-38) = 180; unit = 180/2 = 90, inside [48, 96].
+    // room = max(160, 218-38) = 180; unit = 180/2 = 90, inside [54, 96].
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });
     const { parent, stage } = mount(world, 800, 218);
 

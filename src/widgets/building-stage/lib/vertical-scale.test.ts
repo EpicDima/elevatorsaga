@@ -11,9 +11,9 @@ describe("computeVerticalScale", () => {
     expect(computeVerticalScale({ totalHeight: 400, floorCount: 4, floorHeight: 50 })).toBe(2);
   });
 
-  it("scales down when floors are compressed toward MIN_FLOOR", () => {
-    // Ten floors compressed to 48px each (MIN_FLOOR), same shape as
-    // layoutBuilding's own "clamps ... up to MIN_FLOOR" case.
+  it("scales down when the building is drawn shorter than the world's own units", () => {
+    // Ten floors drawn at 48px each against a 50px world floor: a building
+    // squeezed shorter than the world it stands for.
     expect(computeVerticalScale({ totalHeight: 480, floorCount: 10, floorHeight: 50 })).toBe(0.96);
   });
 

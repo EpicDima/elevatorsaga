@@ -36,7 +36,7 @@ html[data-theme="light"] .shaft {
 
 /*
  * 24px button height meets WCAG 2.5.8's target size (floors are always
- * >=48px, so targets never meet); the tick stays small so it doesn't misread
+ * >=54px, so targets never meet); the tick stays small so it doesn't misread
  * as a neighboring floor. Width is under 24px, which 2.5.8's spacing exception allows here.
  */
 .mark {
@@ -94,7 +94,7 @@ html[data-theme="dark"] .mark.is-lit::before {
   z-index: 1;
 }
 
-/* Still readable at the minimum floor height (48px leaves a 36px car). */
+/* Still readable at the minimum floor height (54px leaves a 46px car). */
 .building:not([data-density="full"]) .car {
   --ds-car-top-h: 14px;
 }

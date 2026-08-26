@@ -5,7 +5,7 @@
  */
 
 /** The shortest a floor may be squeezed to, in pixels, before the stage scrolls instead. */
-export const MIN_FLOOR = 48;
+export const MIN_FLOOR = 54;
 
 /** The narrowest a shaft may be squeezed to, in pixels, before a cabin has no room left for a count like "7/10". */
 export const MIN_SHAFT = 46;

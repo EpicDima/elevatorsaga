@@ -20,7 +20,7 @@ describe("layoutBuilding", () => {
     expect(layout.floorHeights).toEqual(uniformWeights(25).map(() => MIN_FLOOR));
     expect(layout.shortestFloor).toBe(MIN_FLOOR);
     expect(layout.totalHeight).toBe(25 * MIN_FLOOR);
-    expect(layout.carHeight).toBe(40);
+    expect(layout.carHeight).toBe(46);
     expect(layout.density).toBe("compact");
   });
 
@@ -203,11 +203,11 @@ describe("layoutBuilding", () => {
       floorWeights: uniformWeights(20),
       capacities: [3, 3, 5],
     });
-    // unit = clamp(48, (max(160,762))/20 = 38.1, 96) = 48 (MIN_FLOOR binds).
-    expect(layout.floorHeights).toEqual(uniformWeights(20).map(() => 48));
-    expect(layout.totalHeight).toBe(960);
-    expect(layout.shortestFloor).toBe(48);
-    expect(layout.carHeight).toBe(40);
+    // unit = clamp(54, (max(160,762))/20 = 38.1, 96) = 54 (MIN_FLOOR binds).
+    expect(layout.floorHeights).toEqual(uniformWeights(20).map(() => 54));
+    expect(layout.totalHeight).toBe(1080);
+    expect(layout.shortestFloor).toBe(54);
+    expect(layout.carHeight).toBe(46);
     expect(layout.density).toBe("compact");
     // wanted = [55, 55, 71]; free = 900-32-84-170-22 = 592 comfortably clears
     // asked (205), so scale clamps to 1 and every shaft keeps its wanted size.
