@@ -347,9 +347,7 @@ elevator.goingDownIndicator(false);`,
   "game.button.startOver": "Start over",
   "game.button.startOverTitle": "Start the run from the very beginning",
   "game.button.resetCode": "Reset code",
-  "game.button.undoResetCode": "Undo reset",
   "game.button.resetCodeTitle": "Put the level's own starting program back in this slot",
-  "game.button.undoResetCodeTitle": "Bring back the program this slot held before the reset",
   "game.button.runningInstantly": "Crunching...",
   "game.feedback.success.title": "Success!",
   "game.feedback.success.message": "Level completed",
@@ -401,7 +399,6 @@ elevator.goingDownIndicator(false);`,
   "editor.storageRefused":
     "Not saved — this browser will not store it. Your program is here until you close the tab.",
   "editor.confirmReset": "Do you really want to reset to the default implementation?",
-  "editor.confirmUndoReset": "Do you want to bring back the code as before the last reset?",
   // CodeMirror's own labels, keyed by the English phrase its packages ship. Kept verbatim here:
   // the English page has nothing to gain from rewording them, and a mismatch would be silent.
   "editor.phrase.find": "Find",

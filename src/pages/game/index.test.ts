@@ -139,14 +139,8 @@ function setUp(
     onSelectSlot: (slot) => {
       appRef?.selectCodeSlot(slot);
     },
-    canUndoReset: () => editor.canUndoReset(),
     onResetCode: () => {
       editor.reset();
-      editorPane.update();
-    },
-    onUndoReset: () => {
-      editor.undoReset();
-      editorPane.update();
     },
     onGotoLine: () => undefined,
   });

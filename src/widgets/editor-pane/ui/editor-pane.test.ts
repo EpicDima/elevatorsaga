@@ -11,9 +11,7 @@ function baseOptions(overrides: Partial<Parameters<typeof presentEditorPane>[1]>
   return {
     currentSlot: (): CodeSlot => 1,
     onSelectSlot: vi.fn(),
-    canUndoReset: () => false,
     onResetCode: vi.fn(),
-    onUndoReset: vi.fn(),
     onGotoLine: vi.fn(),
     ...overrides,
   };
@@ -26,16 +24,14 @@ describe("editorPaneTemplate", () => {
 
     expect(requireElement(".slots", parent).getAttribute("role")).toBe("group");
     expect(requireElement(".resetcode", parent).tagName).toBe("BUTTON");
-    expect(requireElement(".undoreset", parent).tagName).toBe("BUTTON");
     expect(requireElement(".errorline", parent)).not.toBeNull();
     expect(requireElement(".editor", parent).children).toHaveLength(0);
   });
 
-  it("ships the undo-reset button, the error banner and the goto link hidden", () => {
+  it("ships the error banner and the goto link hidden", () => {
     const parent = document.createElement("div");
     parent.innerHTML = editorPaneTemplate();
 
-    expect(requireElement(".undoreset", parent).hidden).toBe(true);
     expect(requireElement(".errorline", parent).hidden).toBe(true);
     expect(requireElement(".goto", parent).hidden).toBe(true);
   });
@@ -87,37 +83,31 @@ describe("presentEditorPane", () => {
     expect(onSelectSlot).toHaveBeenCalledWith(3);
   });
 
-  it("labels the codetools buttons on the first draw", () => {
+  it("labels the codetools button on the first draw", () => {
     const parent = document.createElement("div");
     presentEditorPane(parent, baseOptions());
 
     expect(requireElement(".resetcode", parent).textContent).toBe("Reset code");
-    expect(requireElement(".undoreset", parent).textContent).toBe("Undo reset");
   });
 
-  it("draws a glyph beside each codetools label without writing over it", () => {
+  it("draws a glyph beside the codetools label without writing over it", () => {
     // The label lives in its own span so relabeling can't take the icon with it, which `textContent =` on the button would do.
     const parent = document.createElement("div");
-    const presenter = presentEditorPane(parent, baseOptions({ canUndoReset: () => true }));
+    const presenter = presentEditorPane(parent, baseOptions());
 
     presenter.update();
 
-    for (const selector of [".resetcode", ".undoreset"]) {
-      const button = requireElement(selector, parent);
-      expect(button.querySelector("svg.ds-icon")).not.toBeNull();
-      expect(requireElement(".lbl", button).textContent).not.toBe("");
-    }
+    const button = requireElement(".resetcode", parent);
+    expect(button.querySelector("svg.ds-icon")).not.toBeNull();
+    expect(requireElement(".lbl", button).textContent).not.toBe("");
   });
 
-  it("says in each codetools tooltip which program the button brings back", () => {
+  it("says in the codetools tooltip which program the button brings back", () => {
     const parent = document.createElement("div");
     presentEditorPane(parent, baseOptions());
 
     expect(requireElement(".resetcode", parent).getAttribute("title")).toBe(
       "Put the level's own starting program back in this slot",
-    );
-    expect(requireElement(".undoreset", parent).getAttribute("title")).toBe(
-      "Bring back the program this slot held before the reset",
     );
   });
 
@@ -129,29 +119,6 @@ describe("presentEditorPane", () => {
     requireElement(".resetcode", parent).click();
 
     expect(onResetCode).toHaveBeenCalledOnce();
-  });
-
-  it("calls onUndoReset when undo reset is clicked", () => {
-    const onUndoReset = vi.fn();
-    const parent = document.createElement("div");
-    presentEditorPane(parent, baseOptions({ canUndoReset: () => true, onUndoReset }));
-
-    requireElement(".undoreset", parent).click();
-
-    expect(onUndoReset).toHaveBeenCalledOnce();
-  });
-
-  it("hides undo reset until canUndoReset says there is one to take back", () => {
-    let canUndo = false;
-    const parent = document.createElement("div");
-    const presenter = presentEditorPane(parent, baseOptions({ canUndoReset: () => canUndo }));
-
-    expect(requireElement(".undoreset", parent).hidden).toBe(true);
-
-    canUndo = true;
-    presenter.update();
-
-    expect(requireElement(".undoreset", parent).hidden).toBe(false);
   });
 
   it("moves the slot mark on update, same as the standalone switcher", () => {

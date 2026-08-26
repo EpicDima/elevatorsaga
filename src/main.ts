@@ -87,26 +87,12 @@ async function main(): Promise<void> {
     onSelectSlot: (slot) => {
       appRef?.selectCodeSlot(slot);
     },
-    canUndoReset: () => editorRef?.canUndoReset() ?? false,
     onResetCode: () => {
       if (editorRef === undefined) {
         return;
       }
-      // The update afterward is what puts "Undo reset" on screen: a refused reset leaves
-      // nothing to undo, so asking the editor covers both outcomes.
       if (window.confirm(t("editor.confirmReset"))) {
         editorRef.reset();
-        editorPane.update();
-      }
-      editorRef.focus();
-    },
-    onUndoReset: () => {
-      if (editorRef === undefined) {
-        return;
-      }
-      if (window.confirm(t("editor.confirmUndoReset"))) {
-        editorRef.undoReset();
-        editorPane.update();
       }
       editorRef.focus();
     },
@@ -137,11 +123,6 @@ async function main(): Promise<void> {
   // isn't.
   editor.on("saved", () => {
     storageStatus.textContent = "";
-  });
-  editor.on("change", () => {
-    // Typing invalidates canUndoReset as surely as pressing Reset does; without this the
-    // pane would keep offering to undo a reset the player already typed over.
-    editorPane.update();
   });
 
   // preventDefault stops two things: default focus, which belongs inside CodeMirror, and
@@ -187,8 +168,6 @@ async function main(): Promise<void> {
     console.info(describeFitnessResults(results));
     return results;
   };
-
-  editor.trigger("change");
 
   startRouter(
     (params, query) => {

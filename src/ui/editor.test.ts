@@ -13,13 +13,7 @@ import type { TutorialLevel } from "../game/tutorial.ts";
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
 import { defaultCode } from "./default-code.ts";
-import {
-  AUTOSAVE_DELAY_MS,
-  BACKUP_STORAGE_KEY,
-  CODE_STORAGE_KEY,
-  CodeEditor,
-  codeMirrorView,
-} from "./editor.ts";
+import { AUTOSAVE_DELAY_MS, CODE_STORAGE_KEY, CodeEditor, codeMirrorView } from "./editor.ts";
 import type { TextEditorView, TextReplacement } from "./editor.ts";
 import { FakeTextEditorView, MemoryStorage, fullStorage } from "./test-helpers.ts";
 
@@ -99,37 +93,6 @@ function deniedStorage(): Storage {
 }
 
 /**
- * A `Storage` with room for its existing keys and not one more: overwriting a
- * key with something no longer keeps working after a *new* key has stopped
- * fitting, mirroring a real quota's byte budget.
- */
-function crowdedStorage(entries: Readonly<Record<string, string>> = {}): Storage {
-  const storage = new MemoryStorage();
-  for (const [key, value] of Object.entries(entries)) {
-    storage.setItem(key, value);
-  }
-  return {
-    get length(): number {
-      return storage.length;
-    },
-    clear: () => {
-      storage.clear();
-    },
-    getItem: (key: string) => storage.getItem(key),
-    key: (index: number) => storage.key(index),
-    removeItem: (key: string) => {
-      storage.removeItem(key);
-    },
-    setItem: (key: string, value: string) => {
-      if (storage.getItem(key) === null) {
-        throw new Error("QuotaExceededError");
-      }
-      storage.setItem(key, value);
-    },
-  };
-}
-
-/**
  * A `Storage` that holds text but refuses to reveal it: `getItem` throws while
  * `setItem` works, as with blocked site data (`SecurityError`).
  */
@@ -183,11 +146,10 @@ afterEach(() => {
 });
 
 describe("storage keys", () => {
-  it("are exactly the keys the legacy game wrote", () => {
-    // Pinned as literals, not the constants: renaming a constant must not
+  it("is exactly the key the legacy game wrote", () => {
+    // Pinned as a literal, not the constant: renaming the constant must not
     // silently change the on-disk key existing players' saves are under.
     expect(CODE_STORAGE_KEY).toBe("elevatorCrushCode_v5");
-    expect(BACKUP_STORAGE_KEY).toBe("develevateBackupCode");
   });
 });
 
@@ -333,23 +295,6 @@ describe("CodeEditor buffers", () => {
     );
   });
 
-  it("keeps a separate reset backup per slot of a named level", () => {
-    const { editor, view, storage } = setUp();
-    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton", 1);
-    view.type("// slot 1 attempt");
-    editor.reset();
-    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton", 2);
-    view.type("// slot 2 attempt");
-    editor.reset();
-
-    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton", 1);
-    editor.undoReset();
-
-    expect(view.getValue()).toBe("// slot 1 attempt");
-    expect(storage.getItem("develevateTutorialBackupCode_tutorial-3")).toBe("// slot 1 attempt");
-    expect(storage.getItem("develevateTutorialBackupCode_tutorial-3_2")).toBe("// slot 2 attempt");
-  });
-
   it("gives every one of the player's own slots a storage key of its own", () => {
     const { editor, view, storage } = setUp();
 
@@ -457,7 +402,6 @@ describe("CodeEditor buffers", () => {
     editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     view.type("// my level 1");
     editor.reset();
-    editor.undoReset();
     editor.openNamedLevelBuffer("tutorial-2", "// level 2");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
@@ -798,50 +742,50 @@ describe("CodeEditor level buffers", () => {
     );
   });
 
-  it("keeps a separate reset backup per level slot", () => {
+  it("resets a carried-forward slot to the default program, not to what it carried", () => {
+    // Carrying an earlier level's program forward is a convenience for arriving
+    // at the next level; a reset is a request for a blank sheet, and a level
+    // whose carried program predates a change to the default must still be able
+    // to ask for the current one.
+    const storage = new MemoryStorage();
+    storage.setItem("develevateChallengeCode_16_1", "// what I wrote back on level 17");
+    const { editor, view } = setUp(storage);
+
+    editor.openChapter1Buffer(17, 1);
+    expect(view.getValue()).toBe("// what I wrote back on level 17");
+    editor.reset();
+
+    expect(view.getValue()).toBe(defaultCode());
+  });
+
+  it("resets one level slot without disturbing another", () => {
     const { editor, view, storage } = setUp();
     editor.openChapter1Buffer(3, 1);
     view.type("// level 4, slot 1 attempt");
-    editor.reset();
     editor.openChapter1Buffer(3, 2);
     view.type("// level 4, slot 2 attempt");
+
     editor.reset();
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
+
     expect(view.getValue()).toBe(defaultCode());
-
-    editor.openChapter1Buffer(3, 1);
-    editor.undoReset();
-
-    // Slot 1's own attempt, not slot 2's, and slot 2's backup is untouched.
-    expect(view.getValue()).toBe("// level 4, slot 1 attempt");
-    expect(storage.getItem("develevateChallengeBackupCode_3_1")).toBe("// level 4, slot 1 attempt");
-    expect(storage.getItem("develevateChallengeBackupCode_3_2")).toBe("// level 4, slot 2 attempt");
+    expect(storage.getItem("develevateChallengeCode_3_1")).toBe("// level 4, slot 1 attempt");
+    expect(storage.getItem("develevateChallengeCode_3_2")).toBe(defaultCode());
   });
 });
 
 describe("CodeEditor reset", () => {
-  it("backs the program up before replacing it, and can bring it back", () => {
+  it("puts the starter program in place of the program on screen", () => {
     const { editor, view, storage } = setUp();
     view.value = "// worth keeping";
 
     editor.reset();
+
     expect(view.getValue()).toBe(defaultCode());
-    expect(storage.getItem(BACKUP_STORAGE_KEY)).toBe("// worth keeping");
-
-    editor.undoReset();
-    expect(view.getValue()).toBe("// worth keeping");
-  });
-
-  it("leaves the program where it is when there is nothing to undo", () => {
-    // "Nothing to undo" is the ordinary state for a level never reset, so
-    // pressing "Undo reset" there must not clear the editor.
-    const { editor, view, storage } = setUp();
-    view.type("// worth keeping");
-
-    editor.undoReset();
-
-    expect(view.getValue()).toBe("// worth keeping");
+    // Stored like any other edit, so the program the player asked to be rid
+    // of is not what the next visit opens on.
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
-    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// worth keeping");
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe(defaultCode());
   });
 
   it("resets a learning-track level to that level's own starting point", () => {
@@ -852,197 +796,31 @@ describe("CodeEditor reset", () => {
     editor.reset();
 
     expect(view.getValue()).toBe("// level 5 skeleton");
-    editor.undoReset();
-    expect(view.getValue()).toBe("// the wrong turn I took");
   });
 
-  it("keeps a separate backup per buffer", () => {
+  it("resets the buffer on screen and no other", () => {
     const { editor, view, storage } = setUp();
+    view.type("// my own program");
     editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     view.type("// my level 1");
-    editor.reset();
-    editor.openNamedLevelBuffer("tutorial-2", "// level 2");
-    view.type("// my level 2");
-    editor.reset();
-    expect(view.getValue()).toBe("// level 2");
-
-    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
-    editor.undoReset();
-
-    // Level 1's own attempt, not level 2's; the player's backup slot is untouched.
-    expect(view.getValue()).toBe("// my level 1");
-    expect(storage.getItem("develevateTutorialBackupCode_tutorial-1")).toBe("// my level 1");
-    expect(storage.getItem(BACKUP_STORAGE_KEY)).toBeNull();
-  });
-
-  it("keeps the first backup when Reset is pressed a second time", () => {
-    // A second press must not overwrite the first backup, or "Undo reset"
-    // would bring back the skeleton instead of the program Reset replaced.
-    const { editor, view, storage } = setUp();
-    view.type("// worth keeping");
 
     editor.reset();
-    editor.reset();
-
-    expect(storage.getItem(BACKUP_STORAGE_KEY)).toBe("// worth keeping");
-    editor.undoReset();
-    expect(view.getValue()).toBe("// worth keeping");
-  });
-
-  it("keeps the backup when Reset follows an emptied editor", () => {
-    // An empty backup is one `undoReset` refuses to restore, so writing an
-    // empty backup over a real one would leave the recovery button doing nothing.
-    const { editor, view, storage } = setUp();
-    view.type("// worth keeping");
-    editor.reset();
-
-    view.type("");
-    editor.reset();
-
-    expect(storage.getItem(BACKUP_STORAGE_KEY)).toBe("// worth keeping");
-    editor.undoReset();
-    expect(view.getValue()).toBe("// worth keeping");
-  });
-
-  it("refuses to reset a program the store will not take a copy of", () => {
-    // A silently failed backup followed by the autosave overwriting the
-    // stored program would leave it in no copy anywhere, so reset must refuse
-    // rather than risk that.
-    const program = "// an afternoon of work";
-    const storage = crowdedStorage({ [CODE_STORAGE_KEY]: program });
-    const { editor, view } = setUp(storage);
-    const saved = vi.fn();
-    editor.on("saved", saved);
-
-    expect(editor.reset()).toBe(false);
-
-    expect(view.getValue()).toBe(program);
-    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
-    expect(storage.getItem(CODE_STORAGE_KEY)).toBe(program);
-    expect(saved).not.toHaveBeenCalled();
-  });
-
-  it("resets anyway when the store is holding nothing to lose", () => {
-    // In a private window every write is refused, so there's no stored
-    // program a reset could destroy: refusing here would protect nothing.
-    const { editor, view } = setUp(deniedStorage());
-    view.type("// worth keeping");
-    // Long enough for the autosave to have tried and failed: the check must ask
-    // what the store holds, not this page's own memory of what it has written.
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
-
-    expect(editor.reset()).toBe(true);
-
-    expect(view.getValue()).toBe(defaultCode());
-    // Recoverable only for as long as the tab lives, since nothing can be stored.
-    editor.undoReset();
-    expect(view.getValue()).toBe("// worth keeping");
-  });
-
-  it("does not empty the editor undoing a reset of an empty program", () => {
-    // An empty program isn't backed up at all, or restoring that backup would
-    // clear whatever the player has written since.
-    const { editor, view } = setUp();
-    view.type("");
-    editor.reset();
-    view.type("// written since");
-
-    editor.undoReset();
-
-    expect(view.getValue()).toBe("// written since");
-  });
-
-  it("never brings one buffer's backup back into another", () => {
-    const { editor, view } = setUp();
-    view.type("// my own program");
-    editor.reset();
-
-    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
-    editor.undoReset();
 
     expect(view.getValue()).toBe("// level 1");
-    editor.openPlayerBuffer();
-    editor.undoReset();
-    expect(view.getValue()).toBe("// my own program");
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// my own program");
   });
 
-  it("answers whether there is anything to bring back, buffer by buffer", () => {
-    // Asked of the buffer on screen, not the editor as a whole: a level that
-    // was reset must not offer to undo it from the player's own program.
-    const { editor, view } = setUp();
-
-    expect(editor.canUndoReset()).toBe(false);
-
-    view.type("// my own program");
-    editor.reset();
-    expect(editor.canUndoReset()).toBe(true);
-
-    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
-    expect(editor.canUndoReset()).toBe(false);
-
-    editor.openPlayerBuffer();
-    expect(editor.canUndoReset()).toBe(true);
-  });
-
-  it("withdraws the offer once the player has written over the skeleton", () => {
-    // A player who has started again has something to lose, and "Undo reset" is the button that would lose it.
-    const { editor, view } = setUp();
-    view.type("// my own program");
-    editor.reset();
-    expect(editor.canUndoReset()).toBe(true);
-
-    view.type(`${defaultCode()}\n// a second attempt`);
-
-    expect(editor.canUndoReset()).toBe(false);
-  });
-
-  it("still offers the way back to a player who reset and came back later", () => {
-    // A player returning after closing the tab has only the store to go on;
-    // an answer kept in this page's memory would drop the program on the way.
-    const storage = new MemoryStorage();
-    const first = setUp(storage);
-    first.view.type("// an afternoon of work");
-    first.editor.reset();
+  it("resets an editor the store will not write to, since there is nothing to store", () => {
+    // In a private window every write is refused, so the program on screen is
+    // all there is; a reset there is still what the player asked for.
+    const { editor, view } = setUp(deniedStorage());
+    view.type("// worth keeping");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
 
-    const returning = setUp(storage);
-
-    expect(returning.view.getValue()).toBe(defaultCode());
-    expect(returning.editor.canUndoReset()).toBe(true);
-    returning.editor.undoReset();
-    expect(returning.view.getValue()).toBe("// an afternoon of work");
-  });
-
-  it("says there is nothing to bring back when the reset was refused", () => {
-    // A refused reset must not offer "Undo reset" just because a backup
-    // attempt happened before the refusal was decided.
-    const program = "// an afternoon of work";
-    const { editor, view } = setUp(crowdedStorage({ [CODE_STORAGE_KEY]: program }));
-    view.value = program;
-
-    expect(editor.reset()).toBe(false);
-
-    expect(editor.canUndoReset()).toBe(false);
-    // Typing afterward is not a reset either, and must not re-arm the offer.
-    view.type("// and another paragraph of it");
-    expect(editor.canUndoReset()).toBe(false);
-  });
-
-  it("says there is nothing to bring back once it has been brought back", () => {
-    // The backup outlives the undo that used it, so the offer must be
-    // withdrawn or it would restore the program already on screen.
-    const { editor, view } = setUp();
-    view.type("// worth keeping");
     editor.reset();
-    expect(editor.canUndoReset()).toBe(true);
 
-    editor.undoReset();
-
-    expect(editor.canUndoReset()).toBe(false);
-    // Typing after the undo must not re-arm it: its effect would discard
-    // everything written since.
-    view.type("// written since");
-    expect(editor.canUndoReset()).toBe(false);
+    expect(view.getValue()).toBe(defaultCode());
   });
 });
 
@@ -1338,6 +1116,18 @@ describe("CodeEditor over a real editing surface", () => {
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe(
       "// level 1 skeleton\n// my attempt at level 1",
     );
+  });
+
+  it("takes a reset back when the player presses undo", () => {
+    // The only way back now that no button offers one: a reset is an ordinary
+    // edit, so it must land in the history the undo key reads.
+    const { editor, parent } = mount("// the program the player left behind");
+
+    editor.reset();
+    expect(editor.getCode()).toBe(defaultCode());
+    pressUndo(parent);
+
+    expect(editor.getCode()).toBe("// the program the player left behind");
   });
 
   it("cannot be undone across a buffer switch", () => {

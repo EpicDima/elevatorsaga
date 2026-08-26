@@ -262,17 +262,15 @@ describe("the storage warning", () => {
 });
 
 describe("the editor pane's tools", () => {
-  it("backs the program up and puts the starter program in its place", async () => {
+  it("puts the starter program in the editor when the reset is confirmed", async () => {
     storage.setItem(SLOT_ONE_KEY, MY_CODE);
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     await boot();
-    expect(requireElement(".undoreset").hidden).toBe(true);
 
     requireElement(".resetcode").click();
 
     expect(confirm).toHaveBeenCalledWith(translateIn("en", "editor.confirmReset"));
     expect(code()).toBe(translateIn("en", "editor.defaultCode.code"));
-    expect(requireElement(".undoreset").hidden).toBe(false);
   });
 
   it("leaves the program alone when the reset is not confirmed", async () => {
@@ -283,34 +281,6 @@ describe("the editor pane's tools", () => {
     requireElement(".resetcode").click();
 
     expect(code()).toBe(MY_CODE);
-    expect(requireElement(".undoreset").hidden).toBe(true);
-  });
-
-  it("brings the program back when the undo is confirmed", async () => {
-    storage.setItem(SLOT_ONE_KEY, MY_CODE);
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    await boot();
-    requireElement(".resetcode").click();
-
-    requireElement(".undoreset").click();
-
-    expect(confirm).toHaveBeenLastCalledWith(translateIn("en", "editor.confirmUndoReset"));
-    expect(code()).toBe(MY_CODE);
-    // Nothing left to take back: what is on screen is the player's own program again.
-    expect(requireElement(".undoreset").hidden).toBe(true);
-  });
-
-  it("keeps the starter program when the undo is not confirmed", async () => {
-    storage.setItem(SLOT_ONE_KEY, MY_CODE);
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    await boot();
-    requireElement(".resetcode").click();
-    confirm.mockReturnValue(false);
-
-    requireElement(".undoreset").click();
-
-    expect(code()).toBe(translateIn("en", "editor.defaultCode.code"));
-    expect(requireElement(".undoreset").hidden).toBe(false);
   });
 
   it("underlines the line the error banner names when its button is pressed", async () => {

@@ -191,9 +191,8 @@ chapter two key theirs by level id (`develevateTutorialCode_<id>`), and the sand
 level of its own, keys them under the legacy `elevatorCrushCode_v5`; in both, only the second and
 third slots carry a `_<slot>` suffix, so whatever you saved before the other two existed is still
 what the first slot opens on. That legacy key is also read once as the starting point for level 1's
-first slot. The reset backup follows the same split, one per level and slot rather than the single
-`develevateBackupCode` it used to share. Reads and writes are wrapped in `try`/`catch`, so a browser
-that refuses storage degrades instead of crashing.
+first slot. Reads and writes are wrapped in `try`/`catch`, so a browser that refuses storage
+degrades instead of crashing.
 
 ## Fixed bugs
 

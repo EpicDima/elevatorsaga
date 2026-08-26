@@ -541,23 +541,6 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // Editor pane's "redo" glyph; mirror of {@link SPRITE_ICONS.undo}.
-  redo: {
-    viewBox: "0 0 16 16",
-    shapes: [
-      {
-        tag: "path",
-        attrs: {
-          d: "M13 8h-7a3 3 0 0 0 0 6h4M13 8l-3-3M13 8l-3 3",
-          fill: "none",
-          stroke: "currentColor",
-          "stroke-width": "1.6",
-          "stroke-linecap": "round",
-          "stroke-linejoin": "round",
-        },
-      },
-    ],
-  },
   // "Start over" button's glyph; distinct from `undo`, which discards an edit
   // rather than a run.
   restart: {

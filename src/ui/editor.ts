@@ -58,9 +58,6 @@ import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 /** Storage key for the player's own program; renaming it loses every saved program. */
 export const CODE_STORAGE_KEY = "elevatorCrushCode_v5";
 
-/** Where the program is copied before "Reset" overwrites it. */
-export const BACKUP_STORAGE_KEY = "develevateBackupCode";
-
 /**
  * Prefix for a learning-track level's storage key, one key per level id. Lives
  * under its own `develevate…` prefix so a player with both this fork and the
@@ -68,24 +65,14 @@ export const BACKUP_STORAGE_KEY = "develevateBackupCode";
  */
 const TUTORIAL_CODE_KEY_PREFIX = "develevateTutorialCode_";
 
-/** Prefix for a level's "Undo reset" backup key; per level so a reset in one level cannot leak into another's undo. */
-const TUTORIAL_BACKUP_KEY_PREFIX = "develevateTutorialBackupCode_";
-
 /**
  * Prefix for a chapter one level+slot's storage key, one key per `(chapter1Index, slot)`
  * pair. Keep the spelling — renaming loses every already-saved program.
  */
 const CHAPTER1_CODE_KEY_PREFIX = "develevateChallengeCode_";
 
-/** Prefix of the per-`(chapter1Index, slot)` "Undo reset" backups. */
-const CHAPTER1_BACKUP_KEY_PREFIX = "develevateChallengeBackupCode_";
-
 function chapter1CodeKey(chapter1Index: number, slot: CodeSlot): string {
   return `${CHAPTER1_CODE_KEY_PREFIX}${String(chapter1Index)}_${String(slot)}`;
-}
-
-function chapter1BackupKey(chapter1Index: number, slot: CodeSlot): string {
-  return `${CHAPTER1_BACKUP_KEY_PREFIX}${String(chapter1Index)}_${String(slot)}`;
 }
 
 /**
@@ -212,33 +199,41 @@ function writeStorage(storage: Storage, key: string, value: string): boolean {
 }
 
 /**
- * One editable program: its storage key, backup key, and starter text. The
- * editor shows exactly one at a time, so all storage access goes through it.
+ * One editable program: its storage key and its starter text. The editor shows
+ * exactly one at a time, so all storage access goes through it.
  */
 interface EditorBuffer {
   /** Where this buffer's text is stored between visits. */
   readonly codeKey: string;
-  /** Where {@link CodeEditor.reset} parks the text before replacing it. */
-  readonly backupKey: string;
   /**
-   * The program {@link CodeEditor.reset} restores, and an empty buffer opens
-   * with. Read fresh on each use, not held, so a language change is picked up
-   * by an already-open buffer.
+   * The program {@link CodeEditor.reset} restores. Read fresh on each use, not
+   * held, so a language change is picked up by an already-open buffer.
    */
   readonly starterCode: string;
   /**
-   * Whether opening this buffer empty may write {@link EditorBuffer.starterCode}
-   * into {@link EditorBuffer.codeKey}. False for the player's own buffer, whose
-   * key must only ever be written by an explicit Save or Reset.
+   * What an empty buffer opens with, when that is not
+   * {@link EditorBuffer.starterCode}. Only chapter one tells the two apart: it
+   * opens on the program carried forward from the level below, but a reset
+   * there still goes back to the starting point the game hands out.
+   */
+  readonly openingCode?: string;
+  /**
+   * Whether opening this buffer empty may write its opening program into
+   * {@link EditorBuffer.codeKey}. False for the player's own buffer, whose key
+   * must only ever be written by an explicit Save or Reset.
    */
   readonly writesStarterOnOpen: boolean;
+}
+
+/** What an untouched buffer holds: its opening program, or its starter when it draws no distinction. */
+function openingCode(buffer: EditorBuffer): string {
+  return buffer.openingCode ?? buffer.starterCode;
 }
 
 /** Describes one slot of the player's own program; its first slot is the editor's initial buffer. */
 function playerBuffer(slot: CodeSlot): EditorBuffer {
   return {
     codeKey: slotKey(CODE_STORAGE_KEY, slot),
-    backupKey: slotKey(BACKUP_STORAGE_KEY, slot),
     get starterCode(): string {
       return defaultCode();
     },
@@ -256,7 +251,6 @@ function namedLevelBuffer(levelId: string, starterCode: string, slot: CodeSlot):
   }
   return {
     codeKey: slotKey(`${TUTORIAL_CODE_KEY_PREFIX}${levelId}`, slot),
-    backupKey: slotKey(`${TUTORIAL_BACKUP_KEY_PREFIX}${levelId}`, slot),
     get starterCode(): string {
       return localizeStarterCode(starterCode);
     },
@@ -264,13 +258,20 @@ function namedLevelBuffer(levelId: string, starterCode: string, slot: CodeSlot):
   };
 }
 
-/** Describes one chapter one level's one code slot's buffer. */
-function chapter1Buffer(chapter1Index: number, slot: CodeSlot, starterCode: string): EditorBuffer {
+/**
+ * Describes one chapter one level's one code slot's buffer. `carriedCode` is
+ * what the slot opens on — the program brought forward from an earlier level —
+ * which is deliberately not what a reset restores: chapter one's levels have no
+ * starting point of their own, so a reset there goes back to the default program.
+ */
+function chapter1Buffer(chapter1Index: number, slot: CodeSlot, carriedCode: string): EditorBuffer {
   return {
     codeKey: chapter1CodeKey(chapter1Index, slot),
-    backupKey: chapter1BackupKey(chapter1Index, slot),
     get starterCode(): string {
-      return localizeStarterCode(starterCode);
+      return defaultCode();
+    },
+    get openingCode(): string {
+      return localizeStarterCode(carriedCode);
     },
     writesStarterOnOpen: true,
   };
@@ -455,20 +456,20 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
 
   /** Shows one chapter one level's one code slot, keeping whatever was on screen. */
   openChapter1Buffer(chapter1Index: number, slot: CodeSlot = DEFAULT_CODE_SLOT): void {
-    // Flushed before resolving the starter code: the legacy fallback key can
+    // Flushed before resolving the carried code: the legacy fallback key can
     // be the very key still on screen, and resolving first would read it
     // before this keystroke's text reaches it.
     this.#flush();
-    const starterCode = this.#resolveChapter1StarterCode(chapter1Index, slot);
-    this.#openBuffer(chapter1Buffer(chapter1Index, slot, starterCode));
+    const carriedCode = this.#resolveChapter1CarriedCode(chapter1Index, slot);
+    this.#openBuffer(chapter1Buffer(chapter1Index, slot, carriedCode));
   }
 
   /**
-   * The starter code for a chapter one level's slot when the slot itself is empty: the
+   * The program a chapter one level's slot opens on when the slot itself is empty: the
    * newest lower-numbered level's same slot that has one, or — for the
    * default slot only — the legacy single-buffer program, or else the bare default.
    */
-  #resolveChapter1StarterCode(chapter1Index: number, slot: CodeSlot): string {
+  #resolveChapter1CarriedCode(chapter1Index: number, slot: CodeSlot): string {
     for (let i = chapter1Index - 1; i >= 0; i -= 1) {
       const stored = this.#read(chapter1CodeKey(i, slot));
       if (stored.state === "text") {
@@ -503,15 +504,16 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       // another language; the player's own text passes through unchanged.
       this.#swapDocument(localizeStarterCode(stored.text));
     } else {
-      // Nothing stored. An empty entry may be written with the starter code;
+      // Nothing stored. An empty entry may be written with the opening code;
       // a refusal to answer may be hiding unsaved work, so only "empty" is
       // treated as safe to write.
+      const opening = openingCode(next);
       if (stored.state === "empty" && next.writesStarterOnOpen) {
         // Written immediately rather than waiting for an autosave, so the
         // level shown is the level a player returns to even untouched.
-        this.#write(next.codeKey, next.starterCode);
+        this.#write(next.codeKey, opening);
       }
-      this.#swapDocument(next.starterCode);
+      this.#swapDocument(opening);
     }
     // Nothing here is unsaved: this text just came from storage or was just
     // written to it, not typed.
@@ -540,9 +542,9 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     }
     const code = this.getCode();
     const stored = this.#read(this.#buffer.codeKey);
-    if (stored.state !== "text" && code === this.#buffer.starterCode) {
-      // Guards the player who typed and then deleted back to the starter
-      // text: `#unsavedEdits` is true, but writing now would create their key
+    if (stored.state !== "text" && code === openingCode(this.#buffer)) {
+      // Guards the player who typed and then deleted back to the text the
+      // buffer opened on: `#unsavedEdits` is true, but writing now would create their key
       // on their behalf, making an untouched install look like a played one.
       return;
     }
@@ -550,53 +552,12 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Backs the program up and replaces it with the starter program. Returns
-   * `false` if the store refused the backup, in which case nothing is changed.
+   * Replaces the program with this buffer's starter program. An edit, not a
+   * swap: the player asked for it, so Ctrl+Z is the way back and the autosave
+   * that follows is the one that stores it.
    */
-  reset(): boolean {
-    const code = this.getCode();
-    if (code === "" || code === this.#buffer.starterCode) {
-      // Skips the backup: there is nothing here worth saving, and backing up
-      // the starter program itself would overwrite a real backup from an
-      // earlier reset, making "Undo reset" bring back nothing.
-      this.setCode(this.#buffer.starterCode);
-      return true;
-    }
-    if (
-      !this.#write(this.#buffer.backupKey, code) &&
-      // Reads the store directly (not `#read`) because the question is what
-      // the store itself holds: a store that refuses writes, or refuses
-      // reads too, has nothing to lose by "failing" this check.
-      readStorage(this.#storage, this.#buffer.codeKey).state === "text"
-    ) {
-      // A quota looks like exactly this: the store took the program but
-      // refuses a second key. Resetting anyway would let the next autosave
-      // overwrite the stored program with the (smaller) starter text.
-      return false;
-    }
+  reset(): void {
     this.setCode(this.#buffer.starterCode);
-    return true;
-  }
-
-  /** Restores the program to before the last {@link CodeEditor.reset} of this buffer, or does nothing if there is no backup. */
-  undoReset(): void {
-    const backup = this.#read(this.#buffer.backupKey);
-    if (backup.state !== "text") {
-      return;
-    }
-    this.setCode(backup.text);
-  }
-
-  /**
-   * Whether {@link CodeEditor.undoReset} would restore something: the
-   * document is exactly the starter program, with a backup behind it — not
-   * "backup differs from current text", which one keystroke could re-arm.
-   */
-  canUndoReset(): boolean {
-    if (this.getCode() !== this.#buffer.starterCode) {
-      return false;
-    }
-    return this.#read(this.#buffer.backupKey).state === "text";
   }
 
   /**

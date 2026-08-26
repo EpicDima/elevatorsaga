@@ -423,7 +423,6 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // `redo` is mirrored out of `undo` rather than drawn, so it has no shape of its own to test here.
   it("reproduces the undo and warn glyphs exactly", () => {
     expect(SPRITE_ICONS.undo).toEqual({
       viewBox: "0 0 16 16",

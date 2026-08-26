@@ -108,7 +108,7 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalog holds **545 keys** in two locales, each locale spread over two files. `src/i18n/en.ts`
+The catalog holds **542 keys** in two locales, each locale spread over two files. `src/i18n/en.ts`
 is the reference — its text is the English wording, extracted verbatim — and `src/i18n/ru.ts` is
 the Russian translation; `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts` are the same thing for the
 reference pages, kept in files of their own so that the bundle cannot reach them. The types make
@@ -117,7 +117,7 @@ key English does not have, or giving a plural message the wrong number of forms 
 error, not a runtime surprise.
 
 ```sh
-grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | wc -l       # 545
+grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | wc -l       # 542
 grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -126,14 +126,14 @@ grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | tr -d '"' | cut -d. 
 | `docs.*`       | 99      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`, and it is the one that stays in `src/i18n/en.ts` for that reason; the other 98 by `src/docs-page/render.ts`, which the build runs and the browser never loads, and they live in `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `tutorial.*`   | 73      | `src/game/tutorial.ts` (the 16 programs), `src/widgets/tutorial-panel/ui/tutorial-panel.ts` (the 48 prose keys and the panel's own five), `src/pages/game/index.ts` (the four of the finish overlay)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `chapter2.*`   | 19      | `src/game/chapter2.ts`, whose getters read all nineteen; the card six of them end up on is `src/widgets/level-briefing/ui/level-briefing.ts`, which is handed the finished strings and so names no key itself. Thirteen of the nineteen are starting programs, one per level                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `game.*`       | 216     | `src/ui/templates.ts` (17), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (8), `src/entities/level-tier/ui/requirement-text.ts` (14), `src/entities/level-tier/ui/tier-hint.ts` (3), `src/widgets/verdict-toast/ui/verdict-toast.ts` (3), `src/widgets/level-switcher/ui/level-switcher.ts` (11), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (5), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 103, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
+| `game.*`       | 214     | `src/ui/templates.ts` (17), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (8), `src/entities/level-tier/ui/requirement-text.ts` (14), `src/entities/level-tier/ui/tier-hint.ts` (3), `src/widgets/verdict-toast/ui/verdict-toast.ts` (3), `src/widgets/level-switcher/ui/level-switcher.ts` (11), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (5), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 103, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
 | `page.*`       | 31      | `index.html`, through `data-i18n` and `data-i18n-attr` (eight of them; `page.noscript` excepted, see below), `src/widgets/stats-panel/ui/stats-panel.ts` (22, every `page.stats.*` but the panel's own `aria-label`), `src/widgets/app-bar/ui/settings-menu.ts` (`page.language.label`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `completion.*` | 37      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `level.*`      | 14      | `src/game/levels.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `editor.*`     | 35      | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **Total**      | **545** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `editor.*`     | 34      | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Total**      | **542** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 Which keys nothing reads:
 
@@ -692,31 +692,28 @@ have rewritten twenty-four Russian and English values to say nothing new.
 | `game.goalBar.req.avgPickupTime.html`       | average wait for a car no more than {time}            | takes `{time}`, itself `level.waitLimit.html`                                                                                                                                                                                                                   |
 | `game.goalBar.req.avgRideTime.html`         | average ride no more than {time}                      | takes `{time}`, itself `level.waitLimit.html`                                                                                                                                                                                                                   |
 
-### `src/widgets/editor-pane/ui/editor-pane.ts` — 5 `game.*` keys
+### `src/widgets/editor-pane/ui/editor-pane.ts` — 3 `game.*` keys
 
 The editor pane's chrome: the code slot switcher (`presentCodeSlots`, drawn as-is from
-`#features/manage-code-slots`, contributing no key of its own here), the "Reset code" and "Undo
-reset" buttons, and an error banner reusing `game.codeStatus` for its own message line.
+`#features/manage-code-slots`, contributing no key of its own here), the "Reset code" button, and
+an error banner reusing `game.codeStatus` for its own message line.
 
-Five keys are drawn here. The two button labels, which this pane is now the only reader of — they
-were the run controls' while the two rows were one, and `run-controls.ts` kept the run and gave
+Three keys are drawn here. The button's label, which this pane is now the only reader of — it was
+the run controls' while the two rows were one, and `run-controls.ts` kept the run and gave
 the code away. The banner's goto link, which `src/ui/error-location.ts`'s `locateCodeError` makes
-work by finding a position for the player's own exception. And a tooltip for each of the two
-buttons, saying the thing their labels have no room for — which of the two programs comes back.
-"Reset code" does not distinguish the level's own starting program from whatever the editor held a
-moment ago, and the buttons sit next to each other undoing one another, which is why each carries
+work by finding a position for the player's own exception. And the button's tooltip, saying the
+thing its label has no room for — which program comes back. "Reset code" does not distinguish the
+level's own starting program from whatever the editor held a moment ago, which is why it carries
 a `title` spelling that out.
 
-| Key                              | English                                                | Notes                                                                                                                             |
-| -------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `game.button.resetCode`          | Reset code                                             | puts the starter program back, behind a confirmation                                                                              |
-| `game.button.undoResetCode`      | Undo reset                                             | hidden until a reset has something to bring back                                                                                  |
-| `game.editorPane.gotoLine`       | Line {line} →                                          | takes `{line}`, 1-based; the label of a button hidden whenever `locateCodeError` finds no position for the player's own exception |
-| `game.button.resetCodeTitle`     | Put the level's own starting program back in this slot | the `title` on `.resetcode`; a description, the accessible name staying the visible "Reset code" (WCAG 2.5.3)                     |
-| `game.button.undoResetCodeTitle` | Bring back the program this slot held before the reset | the `title` on `.undoreset`, likewise                                                                                             |
+| Key                          | English                                                | Notes                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `game.button.resetCode`      | Reset code                                             | puts the starter program back, behind a confirmation                                                                              |
+| `game.editorPane.gotoLine`   | Line {line} →                                          | takes `{line}`, 1-based; the label of a button hidden whenever `locateCodeError` finds no position for the player's own exception |
+| `game.button.resetCodeTitle` | Put the level's own starting program back in this slot | the `title` on `.resetcode`; a description, the accessible name staying the visible "Reset code" (WCAG 2.5.3)                     |
 
 Mounted from `src/main.ts`, which hands it the `.code` element and the callbacks for choosing a code
-slot, resetting the program, undoing that reset, and jumping to the line an error names.
+slot, resetting the program, and jumping to the line an error names.
 
 ### `src/features/switch-theme` — 4 `game.switchTheme.*` keys
 
@@ -1089,23 +1086,16 @@ is `role="separator"`, not a native form control, so it has no other label to bo
 | `game.workspace.codePane` | Code editor  | `aria-label` of `.pane-code`                           |
 | `game.workspace.splitter` | Editor width | `aria-label` of the `role="separator"` splitter handle |
 
-### `src/main.ts` — 2 keys
+### `src/main.ts` — 3 keys
 
 | Key                     | English                                                                                   | Notes                                                                                                             |
 | ----------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `editor.storageRefused` | Not saved — this browser will not store it. Your program is here until you close the tab. | off `storage_refused`, into `#storage_status`; announced rather than drawn, and emptied again by the next `saved` |
+| `editor.confirmReset`   | Do you really want to reset to the default implementation?                                | a `window.confirm`                                                                                                |
 | `fitness.measuring`     | Measuring fitness...                                                                      | `console.info`, before `window.runFitnessSuite`'s own summary line; the suite draws nothing on the page           |
 
-### `src/pages/game/index.ts` — 2 `editor.*` keys
-
-| Key                       | English                                                      | Notes              |
-| ------------------------- | ------------------------------------------------------------ | ------------------ |
-| `editor.confirmReset`     | Do you really want to reset to the default implementation?   | a `window.confirm` |
-| `editor.confirmUndoReset` | Do you want to bring back the code as before the last reset? | a `window.confirm` |
-
-Both are asked by the `onResetCode` and `onUndoReset` callbacks `App` hands to `presentControls`.
-They were `src/main.ts`'s until the run buttons were gathered into one row: the two buttons that
-ask them are drawn by `src/pages/game/index.ts` now, and the app is what knows the editor.
+`editor.confirmReset` is filed here rather than under the pane whose button asks it: the pane is
+handed an `onResetCode` callback, and this file is the one that knows the editor to reset.
 
 `fitness.measuring` is filed here rather than under `src/app/fitness.ts` because that is where it
 is printed; the benchmark itself stopped touching the page.
