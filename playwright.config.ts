@@ -52,10 +52,12 @@ export default defineConfig({
   ],
   webServer: {
     // The production build, not the dev server: the dev server serves unbundled modules with no
-    // code splitting, which isn't what ships.
-    command: `npm run build && npm run preview -- --port ${String(PORT)} --strictPort`,
+    // code splitting, which isn't what ships. `vite build`, not `npm run build`,
+    // whose `tsc --noEmit` half belongs to `npm run typecheck` and answers
+    // nothing these tests ask.
+    command: `npx vite build && npm run preview -- --port ${String(PORT)} --strictPort`,
     url: BASE_URL,
-    // A cold `tsc --noEmit` plus a Vite build takes a while on a cold cache.
+    // A Vite build takes a while on a cold cache.
     timeout: 180_000,
     // Never reuses a listening server, so a stale dist/ can't slip through
     // untested; --strictPort makes a squatting server fail loudly instead.
