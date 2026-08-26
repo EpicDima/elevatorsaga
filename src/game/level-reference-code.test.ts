@@ -84,6 +84,8 @@ function runRawUntil(
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(options, seed);
   const worldController = createWorldController(TICK_SECONDS);
+  // Nothing draws these runs; the verdict comes from `stats_changed`.
+  worldController.updatesDisplay = false;
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
 
   let userCodeError: unknown = null;
@@ -156,6 +158,8 @@ function playLevel(
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(level.options, seed);
   const worldController = createWorldController(TICK_SECONDS);
+  // Nothing draws these runs; the verdict comes from `stats_changed`.
+  worldController.updatesDisplay = false;
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
 
   const run: { verdict: boolean | null; userCodeError: unknown } = {

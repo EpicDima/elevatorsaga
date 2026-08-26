@@ -199,6 +199,16 @@ describe("World controller", () => {
       expect(fakeWorld.updateDisplayPositions).toHaveBeenCalledTimes(1);
       expect(fakeWorld.triggered).toEqual(["stats_display_changed"]);
     });
+
+    it("refreshes neither for a world nobody is watching, but still simulates it", () => {
+      controller.updatesDisplay = false;
+      controller.start(fakeWorld, fakeCodeObj, frameRequester.register, true);
+      frameRequester.trigger();
+      frameRequester.trigger();
+      expect(fakeWorld.updateDisplayPositions).not.toHaveBeenCalled();
+      expect(fakeWorld.triggered).toEqual([]);
+      expect(fakeWorld.update).toHaveBeenCalled();
+    });
   });
 
   describe("the tick loop", () => {

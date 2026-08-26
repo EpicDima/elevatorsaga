@@ -73,6 +73,8 @@ function playRun(
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(options, seed);
   const worldController = createWorldController(TICK_SECONDS);
+  // Nobody watches a sweep, and the verdict comes from `stats_changed`.
+  worldController.updatesDisplay = false;
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
   // A property, not two `let` bindings: both are written inside callbacks the
   // compiler's flow analysis doesn't follow, so a plain local would still be

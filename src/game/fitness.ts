@@ -147,6 +147,9 @@ export function calculateFitness(
 ): FitnessResult {
   // TICK_SECONDS is seconds; stepSize (below) is milliseconds.
   const controller = createWorldController(TICK_SECONDS);
+  // Nothing draws a scored run, and the figures below come from `stats_changed`,
+  // which a tick raises whether or not the display is kept current.
+  controller.updatesDisplay = false;
   const result: FitnessResult = {};
 
   const world = createWorld(level.options, seed);

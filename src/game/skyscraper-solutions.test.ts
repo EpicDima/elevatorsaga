@@ -244,6 +244,8 @@ function playRun(level: SkyscraperLevel, code: string): TierOutcome {
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(level.options, level.seed);
   const worldController = createWorldController(TICK_SECONDS);
+  // Nothing draws these runs; the verdict comes from `stats_changed`.
+  worldController.updatesDisplay = false;
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
   // A property, not a plain `let`: both reads below happen outside the
   // callback that writes it, past where flow analysis narrows a local to `null`.

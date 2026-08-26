@@ -45,6 +45,8 @@ function playRun(level: Level, code: string, seed: RandomSeed): TierOutcome {
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(level.options, seed);
   const worldController = createWorldController(TICK_SECONDS);
+  // Nothing draws these runs; the verdict comes from `stats_changed`.
+  worldController.updatesDisplay = false;
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
   // An object property, not a plain `let`: both reads below are outside the
   // callback that writes it, past where flow analysis follows, so a plain

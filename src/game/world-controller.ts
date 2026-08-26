@@ -79,6 +79,13 @@ export class WorldController extends Observable<WorldControllerEvents> {
   timeScale = 1.0;
   /** Whether the simulation is currently frozen. */
   isPaused = true;
+  /**
+   * Whether each frame ends by refreshing what is drawn. Set it to `false` before
+   * {@link start} for a world nobody is watching: the simulation reads neither the
+   * cached world positions nor the statistics display, and a headless run spends a
+   * third of its time keeping them current for a view that isn't there.
+   */
+  updatesDisplay = true;
 
   readonly #tickSeconds: number;
 
@@ -149,10 +156,12 @@ export class WorldController extends Observable<WorldControllerEvents> {
           ticksRun++;
         }
         accumulator -= ticksRun * this.#tickSeconds;
-        world.updateDisplayPositions();
-        // Every frame, deliberately, so the stats panel always matches what's on screen;
-        // the cost of dispatching it is negligible.
-        world.trigger("stats_display_changed");
+        if (this.updatesDisplay) {
+          world.updateDisplayPositions();
+          // Every frame, deliberately, so the stats panel always matches what's on screen;
+          // the cost of dispatching it is negligible.
+          world.trigger("stats_display_changed");
+        }
       }
       lastT = t;
       if (!world.levelEnded) {
