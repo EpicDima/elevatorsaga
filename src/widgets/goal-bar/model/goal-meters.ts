@@ -1,16 +1,7 @@
 /**
- * The main goal bar's own meters — one per figure a level's bronze condition
- * actually reads. The list of them is a `LevelCondition`'s own
- * {@link TierRequirementInfo} array, so a caller passes
- * `level.condition.requirements` straight through rather than this module
- * reaching into `entities/level` itself for it.
- *
- * Deliberately thin: this only gathers the numbers a meter needs to draw
- * itself (the live figure, how full its bar is, whether it currently holds).
- * Which CSS state a meter shows — `is-done` for the one at-least figure (the
- * delivery target), `is-near`/`is-late` for an at-most one — is a rendering
- * decision the `ui/` layer makes from {@link GoalMeterView.progress}/`.met`
- * at draw time, rather than a pre-baked state field here.
+ * The main goal bar's own meters, one per figure a level's bronze condition
+ * reads. Deliberately thin: gathers only the numbers a meter needs to draw
+ * itself; which CSS state it shows is decided by the `ui/` layer at draw time.
  */
 
 import { requirementMet, requirementProgress } from "#entities/level-tier/index.ts";
@@ -29,17 +20,7 @@ export interface GoalMeterView {
   readonly met: boolean;
 }
 
-/**
- * Builds one {@link GoalMeterView} per requirement, in the order given —
- * already the display order a goal bar wants, since
- * `entities/level`/`LevelCondition.requirements` list the delivery target
- * first and its limit(s) after, top to bottom.
- *
- * @param requirements - A level's own requirement list, e.g. its
- * `condition.requirements`.
- * @param world - The run's current statistics.
- * @returns One view per requirement, same order.
- */
+/** Builds one {@link GoalMeterView} per requirement, in the order given (already the display order a goal bar wants). */
 export function buildGoalMeters(
   requirements: readonly TierRequirementInfo[],
   world: LevelWorldStats,

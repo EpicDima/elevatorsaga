@@ -1,48 +1,13 @@
-/*
- * The settings popover the app bar opens: the panel, its block captions and
- * hints, the segmented switch, the language `<select>`, the row that opens the
- * hotkeys window, and the About block's links.
- *
- * `.seg` and `.langpick` are filed with this popover rather than with the bar:
- * both of them have exactly one user, here, and their own comments below say
- * so. The seed block's rules are not here -- `features/manage-seed` owns them,
- * in `seed-panel.css`.
- */
+/* Settings popover: panel, block captions/hints, segmented switch, language select, hotkeys row, About links. */
 
-/*
- * The popover itself: `.setwrap` is the positioning parent, `.setmenu` the
- * panel it opens. `widgets/app-bar` builds the elements these rules style.
- *
- * `color: var(--ds-text)` is stated rather than inherited: an opaque
- * `.setmenu` sitting over `<body>` needs a text color on it or beneath it, or
- * everything in it that is not a `<p>` or a heading falls back to `<body>`'s
- * own `color: white`, which the document rules never repair. `--ds-text` is
- * `--ds-panel`'s own matched companion token, at roughly 14:1 in dark and
- * higher still in light, meeting WCAG 1.4.3 in both.
- */
 .setwrap {
   position: relative;
 }
 
 /*
- * The ceiling is the one `.taskmenu` carries (`widgets/level-switcher`),
- * measured the same way and for the same reason. Closed, this popover is 528px
- * and clears the 1040x600 minimum `app/styles/document.css` states by 22px --
- * but opening the seed block's disclosure grows it to 673px in English and 708px
- * in Russian, ending 123px and 158px below the window, and `body.app` is
- * `overflow: hidden`, so nothing scrolls to reach the About block underneath.
- *
- * It opens `(--ds-bar-h + --ds-ctl-h) / 2 + 8px` down the page -- the 32px
- * control centered in the 52px bar, plus the 8px gap `top` states above -- so
- * the room under it is the viewport less those 50px, less 16px for the shadow:
- * 534px at a 600px window. `hidden auto` rather than `auto`, because an
- * `overflow` on one axis leaves the other computing to `auto` too, and this
- * column never overflows sideways.
- *
- * The blocks are left shrinkable. They are flex items in a column now shorter
- * than they are, but each one's automatic minimum size is the height its own
- * content wraps to, so none of them has anywhere to give and the overflow goes
- * to the scrollbar rather than into a squeezed block.
+ * `color` is explicit — inherited, it falls back to `<body>`'s own white on an opaque panel.
+ * `max-height` matters too: opening every disclosure can grow this past the viewport, and
+ * `body.app` never scrolls to recover.
  */
 .setmenu {
   position: absolute;
@@ -67,18 +32,7 @@
   display: none;
 }
 
-/*
- * The caption over every block. Above the control rather than beside it: a
- * caption to the left would have to hold a column open for the longest word,
- * and squeeze the segments into what is left.
- *
- * `.cap` is restated per box across the page rather than shared as one bare
- * rule, because the color depends on the surface underneath. Here
- * `--ds-text-faint` measures 3.62:1 dark and 3.14:1 light against `--ds-panel`,
- * the surface `.setmenu` paints under these captions, short of WCAG 1.4.3's
- * 4.5:1 in both; `--ds-text-muted` is the nearest step up that clears it,
- * 6.70:1 dark and 5.90:1 light.
- */
+/* Not shared as one global rule: the muted shade needed for contrast depends on the surface underneath. */
 .setblock .cap {
   display: block;
   margin-bottom: 7px;
@@ -89,16 +43,6 @@
   color: var(--ds-text-muted);
 }
 
-/*
- * The line under a block that explains it: the About block's copyright notice,
- * and the `<summary>` of the seed block's disclosure, which
- * `features/manage-seed` marks with this class rather than restating its type.
- *
- * `--ds-text-muted` for the reason `.setblock .cap` above gives and against the
- * same `--ds-panel`: `--ds-text-faint`'s 3.62:1 dark and 3.14:1 light is short
- * of WCAG 1.4.3's 4.5:1, and 6.70:1 and 5.90:1 clear it. A license notice is
- * exactly the small print a reader has to be able to read.
- */
 .sethint {
   margin: 7px 0 0;
   font-size: 12px;
@@ -106,19 +50,6 @@
   color: var(--ds-text-muted);
 }
 
-/*
- * The segmented switch: a tray of buttons with exactly one of them pressed.
- * `features/switch-theme` draws the words version (`.seg.seg-text`, the three
- * named themes), `features/switch-layout` the icons version (`.seg.seg-fill`,
- * the four layout modes), and both hand this stylesheet the classes below
- * without knowing anything else about the popover.
- *
- * Filed here rather than with the bar's own rules (`widgets/app-bar`): the base
- * rule is drawn bar-sized (a 30x26 button, no `flex`), but nothing in the bar
- * row is a segment. Both users are `.setblock`s inside this popover, which is
- * exactly what `.seg-fill` and `.seg-text` exist to widen them for. Lift it up
- * to the bar's own rules the day something in that row grows one.
- */
 .seg {
   display: flex;
   gap: 2px;
@@ -128,12 +59,7 @@
   background: var(--ds-bg);
 }
 
-/*
- * `--ds-text-muted`, not `--ds-text-faint`: measured against `--ds-bg`, the
- * tray's own fill, faint reads 3.87:1 dark and 2.78:1 light, and the theme
- * switch's buttons are words, of which WCAG 1.4.3 asks 4.5:1. `--ds-text-muted`
- * clears it at 7.17:1 and 5.22:1.
- */
+/* `--ds-text-muted`, not `--ds-text-faint`: the fainter step misses contrast against `--ds-bg` here. */
 .seg button {
   display: grid;
   place-items: center;
@@ -149,16 +75,8 @@
 }
 
 /*
- * The one that is on. Color is not its only cue (WCAG 1.4.1): the fill and the
- * inset ring are the other two, and a ring survives a forced repaint that a
- * foreground color on its own would not.
- *
- * `--ds-accent-hi` rather than plain `--ds-accent`. The pressed label sits on
- * `--ds-accent-soft` over the tray's `--ds-bg`, where the base accent reads
- * 6.65:1 dark but only 3.59:1 light -- the light palette's accent is tuned
- * against the near-white page, and 14% of it laid over that page is very nearly
- * the page again. `--ds-accent-hi` is the step tuned for that end, and it clears
- * 1.4.3 in both themes: 8.49:1 dark, 4.79:1 light.
+ * Fill and ring, not color alone, mark the active segment (WCAG 1.4.1).
+ * `--ds-accent-hi`, not `--ds-accent`: the plain accent misses contrast in the light theme here.
  */
 .seg button[aria-pressed="true"] {
   background: var(--ds-accent-soft);
@@ -166,12 +84,7 @@
   box-shadow: inset 0 0 0 1px var(--ds-accent-line);
 }
 
-/*
- * Both spreads fill the popover's column. The icons version only stops being
- * 30px wide; the words version needs the padding and the smaller face as well,
- * because a theme's name runs to three words in Russian, in the room one glyph
- * had.
- */
+/* The words version also needs padding and a smaller face: a theme name runs to three words in Russian. */
 .seg-fill button {
   width: auto;
   flex: 1;
@@ -185,17 +98,7 @@
   white-space: nowrap;
 }
 
-/*
- * The language `<select>`, filed here for the reason `.seg` above is: its one
- * user is this popover's language block, which `.setblock .langpick` below then
- * widens to the full column.
- *
- * Every declaration is load-bearing, which a `<select>` is unusual in making
- * true. Left alone the control is drawn in the platform's own chrome -- a
- * bordered box with a grayed label inside it -- and not this panel's. Stating
- * the box's background, border and color is what puts it back into that
- * palette, its drop-down arrow included: the arrow is painted in `currentColor`.
- */
+/* Every declaration matters: unset, this reverts to the platform's own `<select>` chrome, arrow included. */
 .langpick {
   height: 30px;
   padding: 0 6px;
@@ -210,31 +113,11 @@
   width: 100%;
 }
 
-/*
- * `widgets/app-bar` leaves a wrapper around the seed block so it has
- * something to redraw into when a run's seed changes, and
- * `seedPanelTemplate` renders nothing at all for a learning-track level,
- * which has no pass/fail run to name a seed for. An empty flex item is still
- * a flex item: without this, those levels' popovers carry `.setmenu`'s 14px
- * gap twice over between the language block and the hotkeys row, for a block
- * that is not there.
- */
+/* Hides the empty seed-block wrapper on learning-track levels, which would otherwise still claim the column's gap. */
 .setmenu > [data-set-block="seed"]:empty {
   display: none;
 }
 
-/*
- * The row that opens the hotkeys window, filed here with the popover that draws
- * it rather than with the window, which has a stylesheet of its own next door
- * (`features/hotkeys-help`): the row belongs to the menu it sits in, and the
- * list of keys is a window rather than a block here because it takes a third of
- * the popover's height.
- *
- * The chevron is the only thing separating a row like this from a setting: it
- * promises there is more behind it. `margin-left: auto` on the glyph is what
- * puts it at the far edge, so the row reads icon, name, then a gap, then the
- * chevron; without it all three sit together at the left.
- */
 .setrow {
   display: flex;
   width: 100%;
@@ -253,25 +136,14 @@
   color: var(--ds-text);
 }
 
-/*
- * The leading glyph takes the accent on hover and the chevron does not: a
- * chevron is a direction, not the meaning of the row, and an accent one argues
- * with the name beside it. `.chev` is the second class
- * `spriteIconMarkup("right", "chev")` writes.
- */
+/* Chevron excluded: it's a direction, not the row's meaning, so it doesn't take the accent on hover. */
 .setrow:hover .ds-icon:not(.chev) {
   color: var(--ds-accent);
 }
 
 /*
- * The one place in this popover where the contrast bar is WCAG 1.4.11 rather
- * than 1.4.3: a chevron is a graphical object, held to 3:1 rather than 4.5:1.
- * `--ds-text-faint` clears that against `.setrow`'s resting `--ds-panel`
- * (3.62:1 dark, 3.14:1 light) but not against the `--ds-raised` it is hovered
- * onto, where the same pair reads 3.34:1 and 2.96:1 -- light misses.
- * `--ds-text-muted` holds at 6.70:1 and 5.90:1 resting, 6.19:1 and 5.56:1
- * hovered, and is still a step quieter than the row's own text once that text
- * brightens to `--ds-text`.
+ * `margin-left: auto` pushes the chevron to the row's far edge, apart from the icon and name.
+ * `--ds-text-muted`, not `--ds-text-faint`: the fainter step misses contrast once hovered.
  */
 .setrow .chev {
   width: 14px;
@@ -281,25 +153,8 @@
 }
 
 /*
- * The About block's two source links: a glyph, whose repository it is, and the
- * address itself under it. No underline, because two underlined links one above
- * the other turn the block into a picket fence, and the glyph plus the hover
- * state already say these are links. The address is shown in full rather than
- * hidden behind the name, because it is a thing people sometimes copy out by
- * hand rather than click -- which is also why `.setlink small` is the popover's
- * second monospace face, after the seed's.
- *
- * `font-weight: normal` and the `text-decoration: none` on the hover state both
- * undo the document rules above, which give every `<a>` on the page
- * `font-weight: bold` and an underline on hover. The base rule's
- * `text-decoration: none` cannot do the second one alone: `a:hover` outweighs a
- * bare `.setlink`, and only `.setlink:hover` outweighs it back.
- *
- * The `--ds-text-faint` glyph is a graphical object (WCAG 1.4.11, 3:1), reading
- * 3.62:1 dark and 3.14:1 light against `--ds-panel`. It never has to survive
- * the hover it would fail on -- faint on `--ds-raised` is 2.96:1 light --
- * because `.setlink:hover .ds-icon` takes the accent before that surface
- * appears.
+ * `font-weight: normal` and the hover `text-decoration: none` override this page's global `<a>`
+ * rules (bold, underline on hover) — `a:hover` alone would still outrank a bare `.setlink`.
  */
 .setlink {
   display: flex;

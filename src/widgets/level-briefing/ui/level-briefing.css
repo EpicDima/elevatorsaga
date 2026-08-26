@@ -1,58 +1,11 @@
 /*
- * The Skyscraper block's briefing card: a level's name, and the paragraph
- * saying what idea it is built on.
- *
- * Two rules, and what is missing from them is the point of this comment.
- *
- * There is no surface here -- no padding, no border, no radius, no background.
- * That is not an omission and restating it would be a defect. The card a reader
- * sees is painted on `.tutorial`, the element in `index.html` that this widget
- * and `widgets/tutorial-panel` are both drawn into, by that widget's stylesheet;
- * the surface is on the region rather than on the panel inside it because the
- * region is the box the layout sizes and the one box the two widgets share. So a
- * briefing arrives already inside a 14px, hairlined, `--ds-r-lg` card on
- * `--ds-panel`, and every declaration of that here would draw a second card
- * inside the first: a doubled border with 28px between the prose and the edge of
- * it.
- *
- * There is no rule for `.briefingpanel` either, for a smaller reason.
- * `.tutorialpanel` exists to set `color`, because four `<summary>` elements are
- * neither a `p` nor a heading and so fall through the document rules that repair
- * everything else. This card is an `<h2>` and a `<p>`, both of which those rules
- * already paint `--ds-text`. The class is still on the section, as the hook the
- * markup is identified by, but it has nothing to ask of the stylesheet.
- *
- * What is left is the type, and both rules below are the lesson card's own,
- * declaration for declaration bar the one noted at `.briefingtext`. That is
- * deliberate -- the two cards share a surface and must not read as two different
- * games -- and it is duplication rather than sharing: the numbers also live in
- * `.tutorialtitle` and `.tutorialgoal`, and nothing but this comment holds the
- * copies together.
- *
- * The smaller stylesheet was to add `.briefingtitle` and `.briefingtext` to
- * those two rules and delete this file. It was considered and rejected. A
- * widget's type would then be declared in a sibling widget's stylesheet, so
- * deleting `widgets/tutorial-panel` some day would silently take this card's
- * type with it, and reading this slice would no longer tell you how it looks --
- * both of which the slice boundary exists to prevent. Ten declarations is the
- * cheaper end of that trade, and it is the end that stays true when one of the
- * two cards is changed on purpose: the lesson panel is free to re-style itself
- * without dragging a block of levels it knows nothing about along with it.
- *
- * What is NOT acceptable is the copies drifting unnoticed, and that is what
- * `level-briefing.css.test.ts` is for -- it holds this file to having no surface
- * of its own, so the failure mode this comment warns about fails a test rather
- * than shipping.
+ * The Skyscraper block's briefing card. Deliberately no surface (padding,
+ * border, background) here: `.tutorial` in `tutorial-panel.css` already paints
+ * that card, shared with `widgets/tutorial-panel`. `level-briefing.css.test.ts`
+ * enforces that this file stays surface-free.
  */
 
-/*
- * The level's own name, matching the lesson card's `.tutorialtitle`. The weight
- * has to be stated because the document rules set every heading below `h1` to
- * `normal`, and a 16px heading at the weight of the prose under it is not a
- * heading. The margin has to be stated for the same kind of reason: those rules
- * give a heading `0.4em` above it, which inside a card that already pads itself
- * is a title hanging off its own top edge.
- */
+/* Matches the lesson card's `.tutorialtitle`; weight and margin override the document's heading defaults. */
 .briefingtitle {
   margin: 0 0 5px;
   font-size: 16px;
@@ -60,23 +13,9 @@
 }
 
 /*
- * The briefing itself, matching the lesson card's `.tutorialgoal`: one size
- * below the page's own and muted, which is what makes the level's name above it
- * the first thing read. `--ds-text-muted` measures 6.70:1 dark and 5.90:1 light
- * on the card's `--ds-panel`, past the 4.5:1 of WCAG 1.4.3.
- *
- * The measure stays, for the reason the lesson's prose has one: a line this long
- * is read by losing your place in it. It was written when the card stood beside
- * the building at 384px, where 45 characters a line never reached the ceiling
- * and it was a promise about a layout rather than a limit on anything; the card
- * stands above the building at 640px now, which is 610px of content and about
- * 74 characters, so the ceiling is what these lines are really set to.
- *
- * The one place this parts company with `.tutorialgoal` is the block-end margin,
- * which is `0` here and 11px there. There, the goal has three hints under it and
- * the margin is the gap before them. Here the paragraph is the last thing in the
- * card, so the same 11px would be dead space -- 25px below the prose against the
- * 14px above the title, a card visibly sitting off-center in its own padding.
+ * Matches the lesson card's `.tutorialgoal`, except `margin` is `0`: this
+ * paragraph is the last thing in the card, so `.tutorialgoal`'s 11px gap
+ * (for the hints beneath it) would be dead space here.
  */
 .briefingtext {
   margin: 0;

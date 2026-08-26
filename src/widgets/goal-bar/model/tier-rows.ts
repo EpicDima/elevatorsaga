@@ -1,21 +1,7 @@
 /**
- * The tier popover's own rows — bronze, and silver/gold when a level has them.
- *
- * A row's held/lost state is read off
- * {@link "#entities/level-tier/index.ts"!evaluateLevelTier}'s one verdict
- * rather than re-derived from the requirements here. Deriving bronze/silver/
- * gold pass-fail a second time would be exactly the "parallel table that could
- * drift" `#game/level-tiers.ts`'s own doc comment on {@link TierPredicate}
- * warns against.
- *
- * A row's checkmark or cross is gated on the run being over, not on a live
- * pass/fail reading: a run "passing" a silver requirement on its first tick,
- * before anything has happened, would light silver green for a reason that has
- * nothing to do with the player's own effort. {@link buildTierRows}'s `verdict`
- * parameter is `null` for exactly as long as
- * {@link "#entities/level/index.ts"!LevelCondition.evaluate} itself says so
- * (still undecided), and every row reads `"pending"` for that whole stretch
- * regardless of where the run's own figures currently sit.
+ * The tier popover's own rows: bronze, plus silver/gold when a level has them.
+ * A row reads `"pending"` until the run ends, never a live pass/fail, so
+ * meeting a requirement in the first tick can't light it green early.
  */
 
 import {
@@ -36,11 +22,9 @@ export interface TierRequirementRow {
   /** How full this line's own bar is, from `requirementProgress`. */
   readonly progress: number;
   /**
-   * Whether this line should read as broken. While the run is still live,
-   * only an at-most requirement already past its bar counts — an at-least one
-   * not yet reached is simply not there yet, not a failure: ten of a hundred
-   * passengers delivered is the middle of a run, not a loss. Once the run has
-   * ended, any unmet requirement counts, in either direction.
+   * Whether this line reads as broken. While the run is live, only an
+   * at-most requirement past its bar counts; an at-least one not yet
+   * reached is mid-run, not a failure. Ended, any unmet requirement counts.
    */
   readonly miss: boolean;
 }
@@ -77,26 +61,10 @@ function tierRank(tier: LevelTier): number {
 }
 
 /**
- * Builds the popover's rows for one level: always bronze, plus
- * silver/gold when the level has them (see
- * {@link "#entities/level-tier/index.ts"!evaluateLevelTier}'s own
- * doc comment on a `tiers === undefined` level — bronze is the only tier
- * such a level has). Empty when the level has nothing to meter at all — the
- * sandbox tile's own `requireSandbox` condition never resolves and carries
- * `requirements: []`, so there are no rewards to draw.
- *
- * @param level - The level being played.
- * @param world - The run's current statistics.
- * @param verdict - The same tri-state
- * {@link "#entities/level/index.ts"!LevelCondition.evaluate} itself
- * returns: `null` while still undecided, `true`/`false` once the run has
- * ended. Taken as a parameter rather than recomputed here for the same
- * reason {@link evaluateLevelTier} takes its own `won` as a parameter —
- * a caller may fold in run-driving policy this module has no business
- * knowing about (an instant run's own timeout, for one), and there must be
- * only one place that decides a run is over.
- * @returns One row per tier this level has anything to say about, bronze
- * first.
+ * Builds the popover's rows for one level, bronze first, plus silver/gold
+ * when present, or empty for a level with nothing to meter (the sandbox
+ * tile). `verdict` is `null` while undecided; taken as a parameter rather
+ * than recomputed, since only one caller may decide a run is over.
  */
 export function buildTierRows(
   level: Level,

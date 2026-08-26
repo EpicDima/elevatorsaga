@@ -42,9 +42,8 @@ describe("positionCardOverTile", () => {
   });
 
   it("gives a card wider than the strip the leading margin rather than a negative one", () => {
-    // The pane can be dragged narrower than the card is wide, and a clamp
-    // written as a bare upper bound would then push the card off the near edge
-    // to keep it off the far one.
+    // A pane dragged narrower than the card is wide would push the card off the near edge
+    // to keep it off the far one, if the clamp were written as a bare upper bound.
     const narrow = rect(0, 780, 200, 120);
     const position = positionCardOverTile(rect(100, 800, 100, 60), narrow, 240, 100);
     expect(position.x).toBe(6);

@@ -1,19 +1,5 @@
-/*
- * The two-pane workspace and the splitter between them: the grid, the four
- * layout modes `html[data-layout]` selects between, the game pane's own column
- * of fixed rows, and the stage area inside it.
- *
- * `widgets/workspace-layout` owns the geometry here; every widget mounted into
- * one of these boxes states its own paint and leaves its position to this file.
- */
+/* Two-pane workspace, the four `data-layout` modes, and the game pane's fixed-row column. */
 
-/*
- * The workspace's two panes and the splitter between them. There is no
- * code-below-the-building mode: both the building and the program are tall, and
- * a horizontal split cuts into whichever one is on the bottom.
- * `widgets/workspace-layout` builds the elements these rules style and writes
- * `--split-x`/`data-layout` onto `<html>`.
- */
 .workspace {
   display: grid;
   flex: 1;
@@ -64,101 +50,16 @@ html[data-layout="game"] .splitter {
   background: var(--ds-code-bg);
 }
 
-/*
- * The game pane's column, stated here rather than left to the flex defaults.
- * The three children `src/main.ts` appends are a goal bar of a fixed height,
- * `.stagearea` (below) taking everything left over, and the figures strip
- * docked under it.
- *
- * The learning track's panel is a row of `.stagearea`, not a fourth row of this
- * column: above the building, in the same box and the same scroll, so a lesson
- * long enough to need one gets a scroll rather than a stage that keeps
- * shrinking under it.
- *
- * Only the two fixed rows need a declaration: `.stagearea` carries
- * `flex: 1 1 auto; min-block-size: 0` in its own rule below, and repeating it
- * here would be the same fact in two places. What has to be said is that its
- * two neighbors do *not* absorb the leftover room: the browser's own
- * `flex: 0 1 auto` would let the goal bar and the figures be squeezed instead
- * of the building, which is the one box on this page with somewhere to put a
- * shortfall -- `.stage` scrolls.
- *
- * This is also what bounds the building: the pane is a height-bounded column
- * all the way up from `body.app` (`app/styles/document.css`), so "everything
- * the other two leave" is a real number and the stage grows and shrinks with
- * the window.
- */
+/* Fixed rows; `.stagearea` (below) takes the leftover height so these two aren't squeezed instead. */
 .pane-game > .level,
 .pane-game > .statscontainer {
   flex: 0 0 auto;
 }
 
 /*
- * The middle row of that column, and the one box on this page that scrolls
- * between two things rather than inside one: whichever card the level has
- * earned -- the learning track's lesson (`widgets/tutorial-panel`) or a
- * Skyscraper level's briefing (`widgets/level-briefing`), both drawn into the
- * same `.tutorial` region -- above the house it is about, in one scroll with
- * it. On the nineteen levels, the sandbox and the demo the region is empty and
- * hidden, and this box holds `.world` alone, exactly as the pane held it
- * before.
- *
- * It is deliberately not `.stagerow` itself, and the difference is the whole
- * of the design. `widgets/building-stage` builds `.stagewrap > .stage >
- * .stagerow > .building` inside `.innerworld`, and `.innerworld` is emptied
- * and rebuilt on every redraw of the world: a restart, a change of level, a
- * change of language. A panel parented into `.stagerow` would be thrown away
- * by the restart button the app bar offers while the player is halfway
- * through a level, and the two orderings that would have to hold to put it
- * back are not ones this page can promise -- the panel is drawn before
- * `presentBuildingStage`, and an instant run skips `presentBuildingStage`
- * altogether, so on a crunch there would be no `.stagerow` to re-mount into
- * at all. This box is above all of that: nothing empties it, so nothing has
- * to remember to restore it.
- *
- * A column, the lesson above the house rather than beside it. Beside it a card
- * gets 384px against everything left over, and 384px is where a card stops
- * being a lesson: the answers run to 68 characters of monospace -- 490px at the
- * 12px `.tutorialsolution code` sets, against the 310px that leaves them -- so
- * each one is read through a `<pre>` scrolled sideways, in a column of prose 45
- * characters wide, and the Russian of every line of it is half again as long as
- * the English. Stacked, the card is 640px (below) and both the prose and the
- * answers fit inside it.
- *
- * Both on screen together while the lesson is the size a lesson usually is --
- * the house shrinks to the room the card leaves rather than standing a
- * screenful tall under it (see `.stagearea > .world` below) -- and one scroll
- * over both boxes once a player opens enough hints to want one, so they get
- * back to the building the same way they got to the step. One scroll, not two:
- * a card carrying a ceiling and an `overflow` of its own would put a lesson
- * longer than the stage inside a box inside a pane that does not scroll, two
- * scrollbars a few pixels apart with the wheel answering whichever one the
- * pointer happened to be over.
- *
- * A column at every width, and no threshold anywhere: a layout that changes
- * shape at a width changes shape on a window that is merely a little small, on
- * a splitter dragged toward the editor, or in a browser zoomed to 125%, and
- * what was asked for is one shape.
- *
- * `overflow: hidden auto`, and not `auto`. The inline axis belongs to `.stage`,
- * which scrolls a building wider than the pane inside itself without taking the
- * card along with it, and nothing in this box can be too wide on its own
- * account -- the card measures itself against the pane and the house is clipped
- * by `.world`. Writing the axis down is not optional either: a pair with
- * `visible` on one axis and anything else on the other is not honored, the
- * `visible` computing to `auto`, so leaving the inline axis unsaid asks for a
- * second scrollbar under the building rather than for none.
- *
- * `background-color`, because this box shows through above and below the card,
- * and everywhere else on this pane that surface is the `--ds-bg` both `.world`
- * and `.stage` paint.
- *
- * No `gap`: the 18px between the card and the house is `.stage`'s own
- * `padding-block` (`widgets/building-stage`), which is there on every route
- * whether there is a card above it or not, and a gap here would be 18px more of
- * it on the eight routes that have one. No `align-items` either -- the default
- * stretch is what makes `.world` as wide as the pane, and the card states its
- * own width rather than taking one from the line.
+ * Above `.stage`, not part of it: `.stagerow` inside `.stage` is emptied and rebuilt on every
+ * redraw, which would destroy a mounted lesson panel. `overflow: hidden auto` (not `auto`) is
+ * required — a `visible`/other-axis pair silently reopens a second scrollbar.
  */
 .stagearea {
   display: flex;
@@ -170,42 +71,9 @@ html[data-layout="game"] .splitter {
 }
 
 /*
- * The card as an item of that column: 640px at its widest, centered over the
- * building, and never nearer than 16px to either edge of the pane -- the inset
- * `.stage` gives the building through its own `padding-inline`, so the card and
- * the house stand on one set of margins.
- *
- * 640px is the width of the widest thing a card can hold, not a fraction of
- * anything. The longest line in any of the eight answers is 68 characters
- * (level 7, which level 8 shows again), set in the 12px monospace
- * `.tutorialsolution code` asks for, where a character is about 7.2px: 490px of
- * code inside 22px of that block's own padding, 22px of `.tutorialsolution`'s
- * margins, the card's own 14px on each side and its hairline comes to 564px --
- * so 640 clears the widest answer on the track by 76px, and clears the 72ch
- * ceiling that block states, which computes to 518px of the same characters.
- * Wider than this is a card with nothing in its right-hand third: a lesson is
- * prose, which has a measure of its own (`.tutorialgoal` in
- * `widgets/tutorial-panel`), and a code block, which has that ceiling, and
- * there is no third kind of thing in it.
- *
- * `inline-size` and not `max-inline-size`, which is how a centered card is
- * usually written. Auto margins on the cross axis of a flex line stop the item
- * stretching, and an item that neither stretches nor states a size is sized by
- * its own content: the card would be as wide as its widest line, so a step
- * whose prose is short would draw a narrower frame than the step before it, and
- * opening a hint would widen the card under the cursor. A stated width is the
- * same width on every step of every lesson.
- *
- * `flex: 0 0 auto` because this column overflows on purpose. A flex item left
- * on the browser's own `flex: 0 1 auto` is shrunk when the line is over-full,
- * and what would stop this one is its automatic minimum -- the content's own
- * height, which for a column of wrapping prose is very nearly nothing. The card
- * has to be scrolled to rather than squeezed, and the shrink factor is what
- * says which.
- *
- * Nothing here states a block-end margin. The 18px between the card and the
- * house is `.stage`'s own `padding-block`; the 18px above the card is this
- * box's, because above it there is no stage to do the padding.
+ * 640px fits the widest code block with margin to spare; `inline-size`, not `max-inline-size`,
+ * keeps the card a constant width rather than resizing to whatever prose is on screen.
+ * `flex: 0 0 auto` stops an overfull line from squeezing it instead of scrolling.
  */
 .stagearea > .tutorial {
   flex: 0 0 auto;
@@ -215,50 +83,9 @@ html[data-layout="game"] .splitter {
 }
 
 /*
- * The building's side of the column: a whole screenful where there is one to
- * spare, and otherwise the room the card above it has left.
- *
- * `block-size: 100%` is the basis and `flex-shrink: 1` is what bends it, and
- * the pair is the whole rule. On a route with no card the line is not over-full
- * -- `.tutorial:empty` is out of the flow (`widgets/tutorial-panel`) -- so
- * nothing shrinks and the house is the screenful it always was. On a route with
- * one the line is over-full by the card, so the house gives back exactly that
- * much and the column comes out level: the card and the building are on screen
- * together, and this box does not scroll at all.
- *
- * Which is the point, and it is the ground that pays for it. The house draws
- * itself bottom-up, every car parks at the lobby, and `showGround` in
- * `widgets/building-stage` scrolls `.stage` there on open -- so a screenful of
- * house standing below a 273px card put the lobby 273px under the fold with a
- * roof in the window and not one car in sight. Nothing was broken to make that
- * happen; a screenful is simply one screen too tall to sit under anything. The
- * overflow belongs inside `.stage`, which was written to take it and to open at
- * the ground, and giving the house only the room there is hands it back.
- *
- * A shrinkable basis is not a content-derived one, so none of this is circular:
- * the card's height is its own prose and the house never feeds into it. The
- * circularity to keep out is on the inline axis, where `.world` once ran on
- * `flex: 1 1 auto` with a basis read off its own content -- and this box's
- * content is a building. Level 18's is 1030px, which made a 1062px `.world`
- * inside a 794px pane, 268px of it clipped away with nothing to scroll, because
- * `.stage` cannot scroll what it was never narrower than.
- *
- * `min-block-size` is a floor against collapse and not a target. Two floors at
- * `MIN_FLOOR` is 96px, and a house shorter than that is not a house. It binds
- * only when the card is taller than the pane less 96px, which no lesson is
- * closed -- the eight run 253 to 280px -- and every lesson is with its
- * disclosures open, where they reach 961 to 1616px. That case is the old
- * arithmetic exactly: the house sits at its floor and the column scrolls the
- * difference, which is what a player who has just asked to read four hints
- * wants it to do.
- *
- * Nothing states an inline size here and nothing needs to: the column's default
- * `align-items: stretch` makes this box the width of the pane, and `.stage`
- * inside it scrolls whatever will not fit -- the state its own `overflow: auto`
- * and `ResizeObserver` are written for, where the shafts compress and the
- * stage scrolls the rest. That `overflow` is also what keeps the spill inside
- * the stage. Measured without it on a 380px pane, level 7's house drew 229px of
- * itself across the splitter and over the editor.
+ * `block-size: 100%` (basis) plus `flex-shrink: 1` gives a card above exactly the room it
+ * needs, leaving the house full height with no card at all; `min-block-size` is a collapse
+ * floor (two floors' worth), not a target.
  */
 .stagearea > .world {
   flex: 0 1 auto;

@@ -1,30 +1,6 @@
 /**
- * The app bar's level switcher: a current-level button that opens a popover of
- * every level, plus a step button either side of it. Sits on
- * `#widgets/level-switcher/model/level-menu.ts`'s {@link buildLevelMenu} for
- * what to draw.
- *
- * Follows `run-controls.ts`'s template-plus-presenter shape, not
- * `app-bar.ts`'s injected-labels one: the row there redraws buttons that never
- * change which ones they are, where this one's tiles gain, lose and swap
- * `current`/`cleared`/`tier` on every run that ends — so
- * {@link presentLevelSwitcher}'s `update()` reruns `buildLevelMenu` and every
- * `t()` call in it, the same as a language change would need anyway.
- *
- * Every tile is a real `<a href>`, because every level is open; one tag covers
- * every tile in every block.
- *
- * The grid is rebuilt from scratch on every `update()`, unlike
- * `run-controls.ts`'s buttons, which are only ever relabeled. A tile's `href`,
- * name, tier and current-ness all move together, and the set itself grows when
- * a block does, so rebuilding stays the honest read.
- *
- * Mounted from `src/pages/game/index.ts`. A tile's tier is carried both as a
- * bare `data-tier` attribute on the tile itself, for styling, and as
- * `entities/level-tier`'s own {@link tierBadgeMarkup} badge, for the stars a
- * player actually reads — every numbered tile gets one, dim stars included at
- * zero earned. Those stars are `aria-hidden`, being icons, so a tile that
- * holds a medal names it in {@link tileAccessibleName} instead.
+ * App bar's level switcher: a current-level trigger that opens a popover grid
+ * of every level, plus a step button either side of it.
  */
 
 import {
@@ -41,30 +17,8 @@ import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderFragment } from "#shared/ui/markup.ts";
 
 /**
- * The switcher's inert skeleton: a step button either side of the trigger,
- * and an empty popover for {@link LevelSwitcherPresenter.update} to fill.
- *
- * Ships with no text at all, the same choice `runButtonsTemplate` makes and
- * for the same reason — see this module's own comment.
- *
- * The two chevrons are the one exception, and they are not text. A step button
- * is a glyph and an `aria-label` with nothing else in it, so drawing the glyph
- * here rather than in `update()` costs nothing to redraw — the label is what
- * changes with the language, and the presenter already sets that.
- *
- * The root's class is `task`, not `level`, and that is load-bearing.
- * `level-switcher.css` puts `position: relative` on `.task` for `.taskmenu`'s
- * `position: absolute` to measure its `top`/`left` from, and `display: flex` on
- * it to lay the trigger and its two chevrons out as a row. Renaming the root
- * costs both: the chevrons stack into a column that the app bar clips away, and
- * the popover falls back to the initial containing block and opens a full page
- * below the fold, where clicking the trigger looks like it does nothing at all.
- * `level` is also spoken for twice over — the goal bar's own mount in
- * `index.html` and every floor `floorTemplate` draws. `level-switcher.test.ts`
- * pins the root, and `e2e/level-switcher.spec.ts` pins the popover's position
- * on screen.
- *
- * @returns The switcher markup, ready for `presentLevelSwitcher`.
+ * Inert skeleton: step buttons, trigger, and an empty popover for `update()` to fill.
+ * The root's class must stay `task` — `level-switcher.css` positions `.taskmenu` relative to it.
  */
 export function levelSwitcherTemplate(): string {
   return markup`<div class="task"><button type="button" class="task-prev">${raw(spriteIconMarkup("left"))}</button><button type="button" class="task-open" aria-haspopup="true" aria-expanded="false"><b class="task-name"></b></button><button type="button" class="task-next">${raw(spriteIconMarkup("right"))}</button><div class="taskmenu" hidden><div class="taskblocks"></div></div></div>`;
@@ -72,37 +26,17 @@ export function levelSwitcherTemplate(): string {
 
 /** What the switcher needs in order to draw and redraw itself. */
 export interface LevelSwitcherOptions {
-  /**
-   * Builds a fresh {@link LevelMenuInput}, read anew by every `update()` —
-   * the tier a level earned, which levels are cleared and what is
-   * currently selected all move between one run and the next.
-   */
+  /** Builds a fresh {@link LevelMenuInput}; called anew on every `update()`. */
   readonly getInput: () => LevelMenuInput;
 }
 
 /** The drawn switcher. */
 export interface LevelSwitcherPresenter {
-  /**
-   * Rebuilds the tile grid from a fresh {@link LevelMenuInput}, relabels the
-   * trigger and the two step buttons, and points the step buttons at the
-   * nearest open tile either side of the current one.
-   *
-   * Called after anything that could have moved any of that: a level
-   * cleared, a tutorial level cleared, a run started elsewhere, a language
-   * change — the same list `RunControlsPresenter.update`'s own comment
-   * gives, once for this row instead of that one.
-   */
+  /** Rebuilds the tile grid and relabels the trigger and step buttons. */
   update(): void;
 }
 
-/**
- * Finds the tile a player is told is "current" in whichever block holds it.
- *
- * @param blocks - The menu to search.
- * @returns The current tile, or `undefined` if the selection names nothing
- * in this menu — `buildLevelMenu`'s own documented case for a selection
- * outside the level list.
- */
+/** Finds the tile marked current in the menu, or `undefined` if none is. */
 function currentTile(blocks: readonly LevelMenuBlock[]): LevelMenuTile | undefined {
   for (const block of blocks) {
     const found = block.tiles.find((tile) => tile.current);
@@ -114,21 +48,9 @@ function currentTile(blocks: readonly LevelMenuBlock[]): LevelMenuTile | undefin
 }
 
 /**
- * Where a step button goes: the neighboring tile in the current tile's own
- * block.
- *
- * Scoped to one block on purpose — stepping from the last tutorial level
- * straight into level one would cross two different kinds of level in
- * one press, which is not what either step button's arrow promises.
- *
- * A loop rather than index arithmetic: nothing is skipped, so it stops on the
- * first tile it reaches, and the bounds check it already does is what answers
- * the end of a block.
- *
- * @param blocks - The menu to step within.
+ * Neighboring tile's href within the current tile's own block — scoped to one
+ * block so stepping never crosses into a different kind of level.
  * @param step - `-1` for the previous tile, `1` for the next.
- * @returns The neighbor's `href`, or `undefined` if there is none — nothing
- * is current, or the current tile is its block's first or last.
  */
 function stepHref(blocks: readonly LevelMenuBlock[], step: -1 | 1): string | undefined {
   const block = blocks.find((candidate) => candidate.tiles.some((tile) => tile.current));
@@ -145,15 +67,7 @@ function stepHref(blocks: readonly LevelMenuBlock[], step: -1 | 1): string | und
   return undefined;
 }
 
-/**
- * The text a tile shows in the grid — a bare number wherever a tile has one,
- * because the tiles are a dense grid of small squares and a word on each would
- * not fit one. Everything the number leaves out is in
- * {@link tileAccessibleName}.
- *
- * @param tile - Tile to draw.
- * @returns Its visible text.
- */
+/** Visible tile text: a bare number, since the grid tiles are small squares. */
 function tileText(tile: LevelMenuTile): string {
   switch (tile.kind) {
     case "tutorial": {
@@ -172,18 +86,8 @@ function tileText(tile: LevelMenuTile): string {
 }
 
 /**
- * The name assistive technology reads for a tile — what {@link tileText}
- * shows plus whatever it left out: which level this is, and what the tile's
- * own record of progress says.
- *
- * That record is a flag on the learning track and a medal in the two numbered
- * blocks, so each has its own pair of messages, chosen on the tile's state.
- * Only a medal actually earned is named: a tile with no tier keeps the plain
- * name, because the badge's three empty stars are a set of slots rather than
- * anything to read out.
- *
- * @param tile - Tile to name.
- * @returns Its accessible name.
+ * Accessible name for a tile: level identity plus progress state.
+ * Only an earned tier is named — an unearned badge is empty slots, not a fact to announce.
  */
 function tileAccessibleName(tile: LevelMenuTile): string {
   switch (tile.kind) {
@@ -215,23 +119,8 @@ function tileAccessibleName(tile: LevelMenuTile): string {
 }
 
 /**
- * The name the trigger shows for the level being played: what the level is
- * called, and nothing else.
- *
- * Deliberately not {@link tileAccessibleName}: that name is written for a tile
- * in a grid, where ", completed" is the tile's whole point, and the trigger is
- * 118px wide. Those names overflow it — measured in Chromium, «Учебный
- * уровень 1» wants 136px of the 96px inside the button, so the whole learning
- * track reads «Учебный уро...» in Russian, and a cleared level truncates in
- * English too.
- *
- * Widening the button is the other way out and is not taken: the row it sits in
- * is already tight at 1040px, and a control that resizes as you step through
- * levels is its own kind of wrong. The tile in the menu still says whether it
- * is cleared, which is where a player looks for that.
- *
- * @param tile - The current tile.
- * @returns Its plain name.
+ * Trigger label: just the level's name, deliberately not {@link tileAccessibleName} —
+ * the trigger is too narrow for that longer text to fit without truncating.
  */
 function tileTriggerName(tile: LevelMenuTile): string {
   switch (tile.kind) {
@@ -250,26 +139,12 @@ function tileTriggerName(tile: LevelMenuTile): string {
   }
 }
 
-/**
- * The tile markup: a real `<a href>`, always.
- *
- * `aria-current` marks whichever tile
- * {@link "../model/level-menu.ts"!LevelMenuInput}'s `selection` names, whoever
- * chose it and by whatever route.
- *
- * @param tile - Tile to draw.
- * @returns The tile's markup.
- */
+/** Tile markup: a real `<a href>`, with `aria-current` on the selected tile. */
 function tileTemplate(tile: LevelMenuTile): string {
   const text = tileText(tile);
   const name = tileAccessibleName(tile);
   const current = tile.current ? raw(' aria-current="page"') : raw("");
-  // The two blocks of numbered levels are the medalled ones, and the badge is
-  // drawn for every tile of both — empty stars for a level never cleared, so
-  // the row reads as a set of slots to fill rather than as marks appearing out
-  // of nowhere. Asked once, because the answer decides three separate things
-  // below and asking it three times invites the `data-tier` attribute and the
-  // badge to disagree about `undefined`.
+  // Computed once so `data-tier` and the badge below can't disagree about `undefined`.
   const medalled = tile.kind === "level" || tile.kind === "skyscraper";
   const earned = medalled ? tile.tier : undefined;
   const done = earned !== undefined || (tile.kind === "tutorial" && tile.cleared);
@@ -285,24 +160,7 @@ function tileTemplate(tile: LevelMenuTile): string {
   return markup`<a class="${classes}" href="${tile.href}" aria-label="${name}"${current}${tier}>${text}${badge}</a>`;
 }
 
-/**
- * A block's caption. The levels block reuses `game.level.nav.label` rather
- * than carry a second "Levels" a translator would have to keep in step with
- * it, and this file is that key's only reader left.
- *
- * The other three have strings of their own. The Skyscraper block's levels are
- * described in the catalog level by level, and no message there names the
- * block as a whole.
- *
- * The last has a string of its own too, and does not reuse the sandbox tile's:
- * captioning a block with the name of the single tile in it says the same
- * word twice and promises the block will only ever hold that one thing. It
- * says "Other" instead — what is left once the lessons and the two blocks of
- * numbered levels are accounted for.
- *
- * @param id - Block to caption.
- * @returns Its caption.
- */
+/** Caption for a block; the levels block reuses `game.level.nav.label` instead of its own key. */
 function blockCaption(id: LevelMenuBlock["id"]): string {
   switch (id) {
     case "tutorial": {
@@ -320,28 +178,12 @@ function blockCaption(id: LevelMenuBlock["id"]): string {
   }
 }
 
-/**
- * One block's markup: its caption and its grid of tiles.
- *
- * @param block - Block to draw.
- * @returns The block's markup.
- */
 function blockTemplate(block: LevelMenuBlock): string {
   const tiles = block.tiles.map((tile) => tileTemplate(tile)).join("");
   return markup`<div class="taskblock"><span class="cap">${blockCaption(block.id)}</span><div class="taskmenu-grid">${raw(tiles)}</div></div>`;
 }
 
-/**
- * Draws the switcher and wires it up.
- *
- * Called once, from wherever mounts this widget, and never again — every
- * redraw after the first goes through the returned presenter's `update()`.
- *
- * @param parent - The element {@link levelSwitcherTemplate}'s markup was
- * written into.
- * @param options - Where to read the menu from.
- * @returns The presenter, already drawn.
- */
+/** Draws the switcher and wires it up; call once — later redraws go through the returned presenter. */
 export function presentLevelSwitcher(
   parent: HTMLElement,
   options: LevelSwitcherOptions,
@@ -375,11 +217,7 @@ export function presentLevelSwitcher(
       const blocks = buildLevelMenu(options.getInput());
       latestBlocks = blocks;
 
-      // The grid is rebuilt from scratch below, which would otherwise drop
-      // keyboard focus to <body> out from under a player tabbing through it.
-      // The tile that replaces the one that was focused is the one in the same
-      // position, so position is what is restored rather than the deleted node
-      // itself.
+      // Rebuilding the grid below would drop focus to <body>; restore it by position.
       const focusedTileIndex = queryAll(".tasklink", taskBlocks).findIndex(
         (tile) => tile === document.activeElement,
       );

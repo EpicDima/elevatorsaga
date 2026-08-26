@@ -1,39 +1,13 @@
-/*
- * The bar across the top of the game page: its row, the brand mark and name,
- * and `.barspace`, the empty flex item the bar is composed around.
- *
- * `.barspace` is filed here rather than with the level switcher because it is
- * the seam `src/main.ts` inserts around and not part of the switcher: whatever
- * goes in before it is pushed left with the brand, whatever comes after stays
- * right with the settings buttons. Nothing else in this directory matches the
- * element, so where it is declared cannot change what it does.
- */
+/* The bar across the top of the game page: its row, the brand mark and name, and `.barspace`, the empty flex item the bar is composed around. */
 
-/*
- * The brand mark.
- *
- * The size is stated because an inline SVG with a `viewBox` and no
- * `width`/`height` attribute has no intrinsic size of its own, only its
- * viewBox's 1:1 ratio to fill whatever box it is given -- and `.header`'s
- * `flex-direction: column` stretches its block-level children to the row's own
- * width by default, so an unsized mark grows square to match it, well past a
- * thousand pixels a side at a 1280px viewport, pushing everything below it far
- * enough down the document to leave the page unusable.
- */
+/* Width and height are stated because an inline SVG with a `viewBox` and no size attributes has no intrinsic size, and would otherwise stretch to fill its flex column. */
 .brand-mark {
   width: 22px;
   height: 22px;
   color: var(--ds-accent);
 }
 
-/*
- * The bar's own row and the brand group inside it. The level switcher that
- * shares the row is `widgets/level-switcher`.
- *
- * Geometry only, with no `background` or `border-bottom`: a surface painted
- * behind the bar only reads as one against a framed page, and the page this
- * bar sits on carries no frame.
- */
+/* Geometry only, no `background` or `border-bottom`: a painted surface only reads as a bar against a framed page, and this page carries no frame. */
 .appbar {
   display: flex;
   flex-direction: row;
@@ -44,13 +18,7 @@
   padding: 0 12px;
 }
 
-/*
- * `.levelswitcher` sits out of this: its `.taskmenu` popover, positioned out
- * of flow by `.task`'s own rule (`widgets/level-switcher`), opens to its full
- * height regardless -- padding, border and all -- and a fixed height here would
- * clip the row's box around it. `.setmenu` needs no such carve-out: it is
- * absolutely positioned already.
- */
+/* `.levelswitcher` is excluded: its popover opens out of flow to its own full height, and a fixed height here would clip it. */
 .appbar > :not(.levelswitcher) {
   height: var(--ds-ctl-h);
 }
@@ -63,15 +31,7 @@
   border-right: 1px solid var(--ds-line);
 }
 
-/*
- * The brand name is the page's `<h1>`: this bar replaces the header
- * `index.html` ships, and a document with no heading at all is not a trade
- * worth making for one element name. `margin: 0` is the whole cost of that:
- * the user agent gives an `<h1>` 0.67em above and below, and inside `.brand`'s
- * flex line -- where margins do not collapse -- 14px of text plus 18.8px of
- * margin does not fit the row's `--ds-ctl-h`. The size and weight below
- * override the rest of what the user agent has to say about an `<h1>`.
- */
+/* The brand name is the page's `<h1>`; `margin: 0` clears the user agent's default margin, which would otherwise not fit the row's height. */
 .brand-name {
   margin: 0;
   font-size: 14px;
@@ -80,18 +40,7 @@
   white-space: nowrap;
 }
 
-/*
- * The gap between the bar's two groups, and the first rule of the right-hand
- * group.
- *
- * An empty element rather than `margin-left: auto` on the button after it,
- * which would do the same thing today and stop doing it the moment anything
- * is appended past that button. It is also the seam `src/main.ts` composes
- * the bar around: whatever is inserted before it is pushed left with the
- * brand and the level switcher, whatever comes after it stays right with the
- * two settings buttons, and the run controls join the row without any of the
- * three having to know about each other.
- */
+/* An empty spacer rather than `margin-left: auto` on the next button, so a later insertion after that button still pushes right correctly. */
 .barspace {
   flex: 1;
 }

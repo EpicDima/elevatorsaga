@@ -1,20 +1,7 @@
 /*
  * The level switcher in the app bar: the trigger and its two step arrows, the
- * popover, and the tiles inside it in each of their states -- cleared,
- * current, and the free-play tile that closes the list.
- *
- * See `level-switcher.ts` for the markup these rules target, and
- * `tier-badge.css` for the star badge a tile carries; the `.tasklink .star`
- * rules here are this widget's own overrides of it.
- *
- * `.task`, the root, is what makes the widget work: its `position: relative` is
- * what `.taskmenu`'s `position: absolute` measures `top`/`left` from, and its
- * `display: flex` is what lays the trigger and its two chevrons out as a row.
- * `level-switcher.test.ts` pins that class against a rename.
- *
- * The two step buttons carry their own classes, `.task-prev`/`.task-next`,
- * rather than being told apart by position among siblings, and the trigger's
- * label is `.task-name` rather than a bare tag selector.
+ * popover, and the tiles inside it. `.task`'s `position: relative` is what
+ * `.taskmenu`'s `position: absolute` measures from.
  */
 .task {
   position: relative;
@@ -24,12 +11,7 @@
   gap: 2px;
 }
 
-/*
- * The divider between the switcher and whatever `.appbar` draws next to it --
- * the same rule, and the same height, as `.brand`'s own `border-right`
- * (`widgets/app-bar`), so the bar reads as one row of equally tall dividers
- * rather than two different ones.
- */
+/* Matches `.brand`'s own `border-right` height, so the bar's dividers read as one row. */
 .task::after {
   content: "";
   width: 1px;
@@ -60,13 +42,7 @@
   cursor: default;
 }
 
-/*
- * Width fixed, because a label that grows and shrinks between "Level 5" and
- * "Level 17" on every switch would drag the step button and the run controls
- * beside it sideways with it. 118px fits the longest level name with room to
- * spare; `.task-name`'s own `text-overflow: ellipsis` below covers a language
- * whose longest does not fit.
- */
+/* Fixed width so the label doesn't drag neighboring controls sideways as it changes; `.task-name`'s ellipsis covers any overflow. */
 .task-open {
   display: flex;
   align-items: center;
@@ -91,25 +67,10 @@
 }
 
 /*
- * The popover is as tall as its blocks of tiles make it -- 729px with every
- * block drawn, and the same in both languages, since the tiles are a fixed grid
- * and only the captions are words. Nothing scrolls the page to reach the rest of
- * it: `body.app` is `overflow: hidden` (`app/styles/document.css`). So at the
- * 1040x600 minimum that same file states, an uncapped popover ends 179px below
- * the window, putting the last Skyscraper tile and the whole "Other" block out
- * of reach of mouse, keyboard and wheel alike; at 900x700 it overhangs by 79px.
- *
- * The ceiling is measured from this popover's own top edge, not from the whole
- * viewport. It opens `(--ds-bar-h + --ds-ctl-h) / 2 + 8px` down the page -- the
- * 32px trigger centered in the 52px bar, plus the 8px gap `top` states above --
- * which is 50px, and 16px is left under it for the shadow. That is 534px of
- * tiles at a 600px window, and a ceiling written in plain `vh` would be those
- * 50px too tall.
- *
- * `hidden auto` rather than `auto`: an `overflow` stated on one axis leaves the
- * other computing to `auto` as well, and the grid inside is `1fr` columns that
- * merely narrow around a scrollbar -- so a lone `overflow-y` would hang a
- * horizontal scrollbar on a menu that never overflows sideways.
+ * `max-height` is capped below the trigger's own top edge, since nothing else
+ * scrolls the page to reach an overflowing popover. `hidden auto`, not `auto`:
+ * stating only one axis would leave the other computing to `auto` too and hang
+ * a needless horizontal scrollbar on a grid that only narrows around one.
  */
 .taskmenu {
   position: absolute;
@@ -145,14 +106,7 @@
   margin-bottom: 0;
 }
 
-/*
- * The caption over each block of tiles. `.cap` is scoped to `.taskblock` rather
- * than written as one bare rule shared across the page, because the color
- * depends on the surface underneath. Here `--ds-text-faint` measures 3.62:1
- * dark and 3.14:1 light against `--ds-panel`, the surface `.taskmenu` paints
- * under these captions, short of WCAG 1.4.3's 4.5:1 in both; `--ds-text-muted`
- * is the nearest step up that clears it, 6.70:1 dark and 5.90:1 light.
- */
+/* `--ds-text-muted` here, not `--ds-text-faint`, to clear the 4.5:1 contrast floor against `--ds-panel`. */
 .taskblock .cap {
   display: block;
   font-size: 10.5px;
@@ -191,12 +145,7 @@
   height: 10px;
 }
 
-/*
- * `--tier-tint` stays unprefixed, unlike the `--ds-*` properties around it: it
- * is not a design token declared on `:root`, only a scratch value the rules
- * below pass to each other, scoped to one tile the same way a local variable
- * would be.
- */
+/* A scratch value passed between these rules, not a `--ds-*` design token. */
 .tasklink[data-tier="bronze"] {
   --tier-tint: var(--ds-tier-bronze);
 }

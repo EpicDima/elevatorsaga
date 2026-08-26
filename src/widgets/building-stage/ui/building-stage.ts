@@ -1,87 +1,7 @@
 /**
  * The building: the floor-number column, the shafts, and the stage they stand
- * on, drawn at whatever size the pane gives them.
- *
- * Composes `entities/floor`, `entities/elevator` and `entities/passenger` with
- * the geometry in `../lib` and the card placement in `smart-position.ts`.
- *
- * ## The building tree, inside the page's existing wrappers
- *
- * `.stagewrap > .stage > .stagerow > .building > (.levels, .tracks)` is built
- * here, inside the element the page hands this widget. The three wrappers
- * around it — `.world`, `.worldtrack`, `.innerworld` — are `index.html`'s, not
- * this widget's, and this widget cannot edit that file; `building-stage.css`
- * makes them layout-neutral instead, a flex chain that passes the pane's
- * height straight through. Two of the three earn their keep even so, which is
- * why they are neutralized rather than ignored: `.worldtrack` holds the run
- * verdict's oversized overlay and the statistics panel — both siblings of this
- * widget's mount point, both owned elsewhere — and `.world` carries the region
- * role, the name, and the paler focus ring every control inside the building
- * inherits. `.innerworld` is the one that is only a box, and the one a later
- * cleanup can delete without anything here changing.
- *
- * The floor numbers stand in a column of their own, `.levels`, whose measured
- * `offsetWidth` is the width fed to the geometry. The shafts live in `.tracks`
- * beside it — which is also the coordinate space every car and passenger is
- * positioned in, since `worldX = 0` is the corridor's left edge and the column
- * is not part of the world the simulation moves things through.
- *
- * ## Shaft placement is arithmetic, not flexbox
- *
- * Shafts land on the coordinates the simulation actually uses: a passenger
- * spawns at `x = 105..145`, walks to `elevator.worldX`, and rides in a seat at
- * `worldX + 2 + 10 * slot`. So `.shafts` is a positioned layer and each
- * `.shaft` is placed at its own elevator's real `worldX * scaleX`, wide enough
- * for its real `width * scaleX` — `layoutBuilding()`'s capacity-driven
- * `shaftWidths` are left unread for the reason `shaft-scale.ts`'s comment
- * gives. The seam between two shafts is drawn out of the 20 world units the
- * engine leaves between two cars.
- *
- * ## Geometry recompute
- *
- * `recomputeGeometry` measures the stage — `.stage`'s own `clientWidth` /
- * `clientHeight`, the box that scrolls, not the pane around it, so a scrollbar
- * is subtracted from the width the building is fitted into — lays out every
- * floor, shaft and car, and writes the resulting scale into one mutable
- * {@link StageScale} cell shared by reference with every entity view. Floors
- * and cars are resized directly through their own `setGeometry`; cars and
- * passengers pick the new scale up on their *own* next `new_display_state`,
- * which this function forces immediately via `updateDisplayPosition(true)`
- * rather than waiting for the simulation's next tick — otherwise a resize
- * while the game is paused, or between two ticks, would leave every car and
- * passenger at its old pixel position until something next moved.
- *
- * Called once at mount, and from a `ResizeObserver` on the mount point in a
- * real browser. `ResizeObserver` does not exist in the jsdom this module's own
- * tests run under, so it is only ever constructed when the global exists —
- * tests drive geometry entirely through the returned
- * {@link BuildingStagePresenter.recomputeGeometry}, the same escape hatch a
- * real caller would use to force a recompute outside a resize.
- *
- * ## Hover cards
- *
- * A card's text is computed once, when it is shown — not kept fresh while
- * it stays open — the same trade `goal-bar.ts`'s `drawTierRows` already
- * makes for its own popover ("costs nothing while closed, guaranteed fresh
- * the instant it opens"). Its *position* is recomputed on every scroll,
- * because the stage under it moves — but never because a car did. A card
- * opened beside a cabin stays where that cabin was; text towed up ten floors
- * is text nobody can read, and the words would be the old ones anyway.
- *
- * One card element is shared between every floor and every car, shown and
- * repositioned on `pointerenter`/`focus` and hidden on `pointerleave`/`blur`
- * — `pointerenter`/`pointerleave` do not bubble, so each anchor carries its
- * own pair, but `Escape` is handled once, on the document, for as long as a
- * card is up: a card a player hovered into leaves focus wherever it already
- * was, so a handler bound inside the stage would answer only the cards opened
- * by tabbing to them. Dismissing on `Escape` without moving focus is the
- * WAI-ARIA tooltip pattern's own contract (WCAG 1.4.13): the card closes, the
- * floor or car underneath it stays exactly as focused as it was.
- *
- * The card hangs on `.stagewrap`, outside the scrolling `.stage` and outside
- * `.building`: the building clips its own overflow (otherwise cars would draw
- * through its rounded corners), so a card parented anywhere inside it would be
- * cut off at the very edge it is trying to point at.
+ * on, drawn and geometry-fitted at whatever size the pane gives them, with a
+ * shared hover card for floors and cars.
  */
 
 import {
@@ -129,14 +49,8 @@ export interface BuildingStagePresenter {
 let nextCardId = 0;
 
 /**
- * How many animation frames after mount the stage may still scroll itself to the
- * lobby — see the retry loop at the end of {@link presentBuildingStage}.
- *
- * Three, because the one thing being waited out is a single reparenting that
- * `src/main.ts` performs synchronously during the page's own bootstrap: one
- * frame is what it actually takes, and the other two are for a browser that
- * splits the work differently. Long enough to be robust, short enough that a
- * player cannot have scrolled anywhere by hand yet.
+ * Frames after mount the stage may still auto-scroll to the lobby, to outlast
+ * `src/main.ts`'s synchronous reparenting of `.world`, which resets the scroll.
  */
 const GROUND_SETTLE_FRAMES = 3;
 
@@ -184,14 +98,7 @@ interface ShownCard {
   readonly placement: "beside" | "above";
 }
 
-/**
- * Builds and drives the building stage.
- *
- * @param parent - The element the widget's markup is written into.
- * @param world - The run being drawn.
- * @returns The presenter, already built, drawn once, and observing `parent`
- * for resizes when `ResizeObserver` exists.
- */
+/** Builds and drives the building stage, observing `parent` for resizes when `ResizeObserver` exists. */
 export function presentBuildingStage(parent: HTMLElement, world: World): BuildingStagePresenter {
   parent.innerHTML = buildingStageTemplate();
   const stageWrap = requireElement(".stagewrap", parent);
@@ -216,18 +123,9 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
   let shown: ShownCard | null = null;
 
   /**
-   * Dismisses the card on Escape, from wherever in the document it was pressed.
-   *
-   * A card opened by hovering leaves focus where it was, which is `<body>` on a
-   * page nobody has tabbed into yet, so a `keydown` bound anywhere inside the
-   * stage never sees the Escape meant for it — and dismissing a hover card
-   * without moving the pointer is the whole of what WCAG 1.4.13 asks for.
-   *
-   * Bound while a card is up and unbound with it, rather than left on the
-   * document for the widget's lifetime the way `shared/ui/disclosure` leaves
-   * its own: this widget is built again from scratch on every redraw of the
-   * world — a restart, a change of level, a change of language — and a listener
-   * per redraw would be a listener per redraw for ever.
+   * Dismisses the card on Escape (WCAG 1.4.13), bound on the document since a
+   * hover-opened card leaves focus wherever it already was. Bound only while a
+   * card is up, and unbound with it, since this widget rebuilds on every redraw.
    */
   function dismissOnEscape(event: KeyboardEvent): void {
     if (event.key === "Escape") {
@@ -264,18 +162,8 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
 
   /**
    * Shows the card for `target`, placed against `anchor`, filled with `text`.
-   *
-   * The two elements are not always the same one: a floor's card is owned by
-   * the floor's own row, which is where the keyboard reaches it and where a
-   * screen reader reads it from, but it is *placed* against the strip of
-   * corridor that floor's passengers stand in — the row itself is a narrow box
-   * off in the floor-number column, and a card pinned to it would point at the
-   * numbers rather than at the queue it describes.
-   *
-   * @param target - The element that owns the card for assistive technology.
-   * @param anchor - The element the card is positioned against.
-   * @param placement - `"beside"` for a car's shaft, `"above"` for a floor's queue.
-   * @param text - The card's title and body lines.
+   * The two elements differ for a floor: the row owns the card for assistive
+   * technology, but the card is placed against the queue's own strip of corridor.
    */
   function showCard(
     target: HTMLElement,
@@ -297,28 +185,21 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     card.hidden = false;
     target.setAttribute("aria-describedby", card.id);
     shown = { describedBy: target, anchor, placement };
-    // Adding a listener a second time with the same callback and phase does
-    // nothing, so moving from one anchor to the next needs no guard here.
+    // Same callback and phase, so re-adding for a new anchor doesn't double-bind.
     card.ownerDocument.addEventListener("keydown", dismissOnEscape);
     placeCard();
   }
 
   /**
-   * Lights the stage's own edge shadows, and makes the stage keyboard-scrollable
-   * exactly while there is something to scroll to.
-   *
-   * A scrollable region a keyboard cannot reach is WCAG 2.1.1, but so is a tab
-   * stop that goes nowhere — a twenty-floor building gets one, a three-floor
-   * building that fits entirely on screen does not.
+   * Lights the stage's edge shadows and makes it keyboard-scrollable (WCAG
+   * 2.1.1) exactly while there's something to scroll to — a tab stop that
+   * goes nowhere is also a violation.
    */
   function updateStageEdges(): void {
     const room = stage.scrollHeight - stage.clientHeight;
     setClass(stageWrap, "is-cut-top", stage.scrollTop > 4);
     setClass(stageWrap, "is-cut-bottom", room > 4 && stage.scrollTop < room - 4);
-    // Sideways counts too, and it is not the same question: a wide building
-    // whose floors all fit on screen still has a shaft off the right-hand edge,
-    // and a keyboard has to be able to get to it. The edge shadows above shade
-    // the vertical overflow only.
+    // Horizontal overflow also needs a tab stop; the shadows above shade vertical only.
     const roomX = stage.scrollWidth - stage.clientWidth;
     if (room > 4 || roomX > 4) {
       stage.tabIndex = 0;
@@ -332,24 +213,13 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     return stage.scrollTop >= stage.scrollHeight - stage.clientHeight - 1;
   }
 
-  /**
-   * Whether the opening scroll to the lobby is finished with — either it landed,
-   * or the window in which this widget is still allowed to move the view closed.
-   */
+  /** Whether the opening auto-scroll to the lobby has landed, or its window has closed. */
   let groundShown = false;
 
   /**
-   * Whether the view is parked at the lobby, as of the last geometry pass or the
-   * last scroll.
-   *
-   * A different question from {@link groundShown}, which is about the opening
-   * scroll alone. Every geometry pass re-lays the floors out under a scroll
-   * position that does not move with them, so a stage that was showing the
-   * ground comes out of a window one drag of the splitter shorter showing the
-   * middle of the building — and the lobby is where every car is parked, so what
-   * a resize takes away is the elevators. Re-pinned at the end of a pass while
-   * this holds, and a player who has scrolled up to watch the top floor turns it
-   * false and keeps their view.
+   * Whether the view is parked at the lobby as of the last geometry pass or
+   * scroll. Re-pinned to the ground at the end of each pass while this holds,
+   * so a resize doesn't leave the view stranded mid-building.
    */
   let atGround = true;
 
@@ -360,25 +230,9 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
   });
 
   /**
-   * Scrolls the stage down to the lobby.
-   *
-   * Opening a level shows the ground and not the roof: the lobby is where a run
-   * starts, where the queue is, and where every car is parked.
-   *
-   * The retrying around that is here for a reason nothing at this end of the
-   * page suggests. `src/main.ts` builds the workspace shell *after* the app has
-   * mounted and drawn its first building, and moves the already-running regions
-   * into it — `.world` among them — with `append`. Reparenting a subtree keeps
-   * every element and listener alive, which is why it is done that way, but it
-   * rebuilds the layout boxes, and a rebuilt scroll container starts at the top.
-   * So the assignment below reports success (the value reads straight back) and
-   * is undone a frame later, leaving a tall building looking at its roof.
-   *
-   * Hence: try again on every geometry pass, and stop for good once a pass finds
-   * the stage already scrolled to the bottom, because from that point the scroll
-   * position is the player's. Which is not the same as saying the view is then
-   * left alone for good — see {@link atGround}, which puts a view that never
-   * left the lobby back there after a pass has moved the floors under it.
+   * Scrolls the stage down to the lobby, retried on every geometry pass until
+   * one lands: `src/main.ts` reparents `.world` into the workspace shell after
+   * mount, which resets the scroll a frame after this first runs.
    */
   function showGround(): void {
     if (groundShown) {
@@ -386,8 +240,6 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     }
     const room = stage.scrollHeight - stage.clientHeight;
     if (room <= 0) {
-      // The whole building is on screen: the ground is already in view, and
-      // there is nothing here to latch on either.
       return;
     }
     if (stage.scrollTop >= room) {
@@ -397,9 +249,8 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     stage.scrollTop = stage.scrollHeight;
   }
 
-  // Floor lines are appended top-down, so the `:nth-child(odd)` zebra in the
-  // stylesheet starts at the roof; the array stays in level order like
-  // everything else here. Before the rows, because a row lights its own band.
+  // Appended top-down for the stylesheet's `:nth-child(odd)` zebra; the array
+  // itself stays in level order.
   const floorlineEls: HTMLElement[] = new Array<HTMLElement>(world.floors.length);
   for (let row = 0; row < world.floors.length; row += 1) {
     const line = document.createElement("i");
@@ -408,21 +259,16 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     floorlineEls[world.floors.length - 1 - row] = line;
   }
 
-  // A building whose passengers name the floor they want gets a panel of the
-  // journeys standing on each floor where the others get two call lamps, and
-  // the column has to be wider to hold one. Nothing downstream has to be told:
-  // `recomputeGeometry` measures `levels.offsetWidth` and lays the shafts out
-  // beside whatever it finds.
+  // A destination-dispatch building needs a wider floor-number column for the
+  // journey panel; recomputeGeometry measures levels.offsetWidth accordingly.
   setClass(
     levels,
     "has-destinations",
     world.floors.some((floor) => floor.destinationDispatch),
   );
 
-  // Floors go in bottom-up, level 0 first: `relabelWorld` in
-  // `src/pages/game/index.ts` reads them back in DOM order and takes that
-  // order for the floor number. The column reverses itself in CSS so the
-  // ground floor still draws at the bottom of the building.
+  // Appended level 0 first; `relabelWorld` in `src/pages/game/index.ts` reads
+  // DOM order back as floor number. CSS reverses the column visually.
   const floorViews: FloorView[] = [];
   const queueEls: HTMLElement[] = [];
   for (const floor of world.floors) {
@@ -430,11 +276,7 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     view.element.tabIndex = 0;
     const queue = document.createElement("div");
     queue.className = "queue";
-    // A floor is two boxes in two layers that never touch — its row over in the
-    // number column, and the band drawn across the building beside it — so what
-    // a car gets from `.shaft:hover .car` alone has to be switched on from
-    // here. Both light together, which is the whole of what the mark says: this
-    // number and this stretch of building are the same floor.
+    // Row and floor band are separate elements that never touch, so both are lit together here.
     const light = (lit: boolean): void => {
       setClass(view.element, "is-hot", lit);
       const line = floorlineEls[floor.level];
@@ -442,13 +284,6 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
         setClass(line, "is-hot", lit);
       }
     };
-    // Against whatever was pointed at, and placed the way that box has room to
-    // be placed. The row and the corridor are a column apart, so a card pinned
-    // to whichever of them the pointer is not on comes up across the building
-    // from the question. Above the corridor, because a queue fills its whole
-    // width and there is no room beside it; beside the row, because a card
-    // hung over a row in the number column has nothing under it but the pane's
-    // own margin and would sit outside the building it is describing.
     const show = (anchor: HTMLElement, placement: "beside" | "above"): void => {
       light(true);
       showCard(view.element, anchor, placement, floorCardText(floorSnapshot(world, floor)));
@@ -464,9 +299,6 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     };
     view.element.addEventListener("focus", showAtRow);
     view.element.addEventListener("blur", hide);
-    // Pointing at a floor means pointing at the corridor the queue stands in as
-    // much as at its number over in the column: the passengers are the thing a
-    // player is asking about, and they are all the way over here.
     queue.addEventListener("pointerenter", () => {
       show(queue, "above");
     });
@@ -483,19 +315,8 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
   for (const [index, elevator] of world.elevators.entries()) {
     const view = createElevatorView(elevator, index, scale);
     view.element.tabIndex = 0;
-    // Placed against the cabin, not against the shaft it runs in. A shaft is
-    // the whole height of the building, so a card centered on one comes up in
-    // the middle of the house — floors away from the car it is describing, and
-    // clamped against the top edge of the pane as soon as the building is
-    // taller than the pane. The shaft is still what takes the pointer and what
-    // owns the card, for the reason `.shaft:hover .car` gives: hitting a moving
-    // cabin is target practice.
-    //
-    // Only where the cabin was when the card opened, though: the card does not
-    // ride it afterwards. Text that slides up ten floors is text nobody can
-    // read, and the card is a still frame in any case — its lines are computed
-    // once, at this moment, and a card that kept its position honest while its
-    // words went stale would be the worse half of both.
+    // Placed against the cabin, not the (building-height) shaft, but the
+    // card's position is a snapshot: it doesn't follow the car afterward.
     const car = requireElement(".car", view.element);
     const show = (): void => {
       showCard(view.element, car, "beside", elevatorCardText(elevatorSnapshot(elevator, index)));
@@ -518,28 +339,14 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     people.append(view.element);
   }
 
-  // Everyone already in the building, and only then everyone who arrives
-  // later. For a world mounted before it has ticked -- which is every animated
-  // run -- the first loop finds nothing and the subscription does all the
-  // work. It is the other case this is here for: `src/pages/game/index.ts`
-  // draws the building a headless crunch has just finished running, and that
-  // world is full of people who were carried, boarded and left standing while
-  // nothing was mounted to hear a single `new_user`. Without this the final
-  // state would show its floors and its cars in an empty building.
-  //
-  // `world.users` is exactly the passengers still in play: a delivered one is
-  // spliced out of it by `World.update`, so nobody is drawn twice and no ghost
-  // is drawn at all.
+  // Draws everyone already in the building (needed when mounting a world a
+  // headless crunch already ran) before subscribing for arrivals.
   for (const user of world.users) {
     addPassenger(user);
   }
   world.on("new_user", addPassenger);
 
-  /**
-   * Re-lays-out the building for the stage's current size.
-   *
-   * @see {@link BuildingStagePresenter.recomputeGeometry}
-   */
+  /** Re-lays-out the building for the stage's current size. */
   function recomputeGeometry(): void {
     const stageWidth = stage.clientWidth;
     const stageHeight = stage.clientHeight;
@@ -553,11 +360,8 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
       capacities: world.elevators.map((elevator) => elevator.maxUsers),
     });
 
-    // Everything sized off a floor reads these two rather than being written
-    // one element at a time: the floor number's own type size, the rider
-    // figures, the cabin. `data-density` is the switch for the handful of
-    // things that cannot simply scale (see `.car` in `entities/elevator`'s own
-    // stylesheet).
+    // Read by CSS for floor-number size, rider figures and the cabin;
+    // `data-density` covers what can't simply scale.
     building.dataset["density"] = layout.density;
     building.style.setProperty("--ds-floor-h", `${String(layout.shortestFloor)}px`);
     building.style.setProperty("--ds-car-h", `${String(layout.carHeight)}px`);
@@ -593,17 +397,13 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
       floorCount: world.floors.length,
       floorHeight: world.floorHeight,
     });
-    // Read by the rider figures, which are one seat wide: a seat is ten world
-    // units, and how many pixels that is only this pass knows.
+    // Read by the rider figures, one seat (10 world units) wide, to convert to pixels.
     building.style.setProperty("--ds-scale-x", String(scaleX));
 
-    // Each shaft is its car's own box grown by one pad on either side, and the
-    // pad is subtracted back out in CSS, so the *car* still lands exactly on
-    // `round(worldX * scaleX)` — the coordinate its riders are drawn at.
+    // Each shaft is its car's box grown by one pad per side; CSS subtracts the
+    // pad back out so the car lands exactly on `round(worldX * scaleX)`.
     const padPx = shaftPadPx(scaleX);
-    // The middle of each floor's band, not the bottom of the mark that goes
-    // there: the mark centers itself on this with a half-height transform, so
-    // nothing out here has to know how tall a mark is drawn.
+    // Middle of each floor's band; the mark centers itself here with a half-height transform.
     const markBottomsPx = layout.floorBottoms.map(
       (bottom, level) => bottom + (layout.floorHeights[level] ?? 0) / 2,
     );
@@ -620,12 +420,8 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
       });
     }
 
-    // The corridor runs from the building's own left edge to the first shaft,
-    // and the world is as wide as the last car's right edge — both in the same
-    // coordinate space every passenger walks through, scaled once. The queue
-    // stops one pad short of the first car, because that pad is the shaft's
-    // wall: a queue drawn under it would take the pointer events the order
-    // marks inside it need.
+    // Queue stops one pad short of the first car; that pad is the shaft's wall
+    // and would otherwise steal the queue's pointer events.
     const lastElevator = shaftElevators.at(-1);
     const worldSpan = lastElevator === undefined ? 0 : lastElevator.worldX + lastElevator.width;
     const firstElevator = shaftElevators.at(0);
@@ -652,23 +448,16 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     if (atGround) {
       stage.scrollTop = stage.scrollHeight;
     }
-    // Read back rather than assumed: a pass can put the view at the bottom
-    // without anyone scrolling — a building that has just shrunk to fit leaves
-    // whoever was at the roof standing on the ground as well.
+    // Read back rather than assumed: shrinking to fit can land the view at the
+    // bottom without anyone scrolling.
     atGround = isAtGround();
     updateStageEdges();
   }
 
   recomputeGeometry();
 
-  // The other half of {@link showGround}: a few frames in which it is retried
-  // whether or not anything resized, so that the shell's reparenting of
-  // `.world` — which happens after this mount and resets the scroll to the top
-  // — is followed by an attempt that survives it. A `ResizeObserver` pass
-  // usually lands in that window too, but only because the move happens to
-  // change the pane's width, and a scroll position is not something to leave
-  // resting on a coincidence. The window is small and then it is shut: after it,
-  // the view belongs to whoever is looking at it.
+  // Retries showGround for a few frames regardless of resizes, to outlast the
+  // shell's post-mount reparenting of `.world`.
   if (typeof requestAnimationFrame === "function") {
     let framesLeft = GROUND_SETTLE_FRAMES;
     const settleGround = (): void => {

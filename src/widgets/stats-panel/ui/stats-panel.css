@@ -1,55 +1,10 @@
-/*
- * The strip of figures across the foot of the game pane: the two rows of tiles,
- * their captions, values and sparklines, and the disclosure that opens the
- * secondary row.
- *
- * `.statscontainer` is the strip's mount: the full width of the game pane,
- * below the building. `index.html` ships it as a sibling of `.world` and
- * `src/main.ts` appends it to `.pane-game` last, so all its rule has to say is
- * that it is the row it looks like -- a flex item that takes its own content's
- * height and no more (`.pane-game`'s own column rule in
- * `widgets/workspace-layout` states the `flex: 0 0 auto` alongside the goal
- * bar's) -- plus the container the tile grids measure themselves against.
- *
- * That container query is the panel's own, not the viewport's: the grids below
- * have to answer to how wide this strip is, because the splitter can take two
- * thirds of the pane away without the window changing at all. Nothing else on
- * this page opens a container named `panel`.
- *
- * The `z-index` is the one thing here that is not about width. The card
- * explaining a figure (`.statcard`, below) is drawn above the strip and across
- * the building, and the building is drawn in absolutely positioned layers --
- * shafts, cabins, passengers -- which a browser paints after every in-flow box
- * on the page, this strip included. So the strip has to be lifted into the same
- * tier as the building's own hover card, 30, where being the later of the two
- * in the markup settles it. Nothing else in the pane overlaps the strip at all:
- * it is a row of a column, and only the card ever leaves it.
- *
- * No `padding`, `font`, `line-height` or `color` on the mount:
- * `widgets/stats-panel` draws its own box (`.statspanel`, below), and a parent
- * padding or color here would either double up against that box's own or bleed
- * into content the mount does not own.
- */
+/* z-index: 30 matches the building's own hover-card tier, so this strip paints above it. */
 .statscontainer {
   position: relative;
   z-index: 30;
   container: panel / inline-size;
 }
 
-/*
- * The widget's own box, chrome and all: one hairline along the top and the
- * panel surface behind the tiles, which is all a docked strip needs to separate
- * itself from the stage above it. No radius, so nothing here needs clipping.
- *
- * `color: var(--ds-text)` because `<body>` paints everything `white` and only
- * `p` and the headings are repaired document-wide, so `.tile-val`'s own
- * `<span>` would fall back to that -- invisible against the light theme's
- * near-white `--ds-panel`.
- *
- * `position: relative` is what `.statcard` at the foot of this file is placed
- * against. Nothing here clips, which is the other half of that: the card is
- * drawn above the strip, outside it.
- */
 .statspanel {
   position: relative;
   border-block-start: 1px solid var(--ds-line);
@@ -57,17 +12,7 @@
   color: var(--ds-text);
 }
 
-/*
- * Four across for the figures a player watches while the run is going, three
- * across for the rest, behind the disclosure -- three columns divide the
- * secondary set into full rows, with no hole where a further figure would have
- * gone.
- *
- * The gaps are the grid's own 1px `gap` over a `--ds-line` background rather
- * than a border on each tile: one declaration instead of a `border-inline-end`
- * per tile and a rule unsetting it on whichever tile ends a row, at four
- * columns or at two.
- */
+/* The 1px gap over a --ds-line background doubles as the border between tiles. */
 .tiles-primary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -83,21 +28,7 @@
   border-top: 1px solid var(--ds-line);
 }
 
-/*
- * The strip is as wide as the game pane, which is 520px or less whenever the
- * splitter is dragged toward the editor. At that edge the arithmetic is the
- * argument for folding to two columns. Three columns across a 520px strip leave
- * a secondary caption 141px, and Russian's longest -- "Сред. ожидание кабины"
- * -- wants 170; four columns leave a primary caption 98px, which every caption
- * the game has overruns in both languages bar "Перевезено/с" and "Avg load".
- * Two columns leave 228px, and nothing in either language is cut at all.
- *
- * The last secondary tile spans both columns because the set is odd at two
- * columns: a tile that fills its row reads as the row the figures ran out on,
- * where a tile with a hole beside it reads as a layout that broke. Inside this
- * branch and not above it -- at three columns the rows come out full and there
- * is no straggler to rescue.
- */
+/* 520px: below this, three or four columns clip long captions like Russian's longest. */
 @container panel (max-width: 520px) {
   .tiles-primary,
   .tiles-secondary {
@@ -114,13 +45,7 @@
   background: var(--ds-panel);
 }
 
-/*
- * Every tile is a tab stop, because the card explaining its figure opens on
- * focus as well as on hover (`widgets/stats-panel`). The ring is drawn inside
- * the tile rather than around it: the grids above are flush, one hairline of
- * `gap` apart, so the document's own `outline-offset: 2px` would put a tile's
- * ring across the two beside it and the one below.
- */
+/* Ring drawn inward: tiles are flush against each other, with no room for an outward ring. */
 .statspanel .tile:focus-visible {
   outline-offset: -2px;
 }
@@ -129,36 +54,12 @@
   padding: 7px 16px 8px;
 }
 
-/*
- * The secondary tiles with no history to chart (`elapsedTime`, `moveCount`,
- * `stopCount` -- `widgets/stats-panel`'s own `TILES`, the ones with no
- * `sparkKey`) get the spark's own vertical room folded into their bottom
- * padding instead, so a row missing its chart is not a row shorter than its
- * neighbors. `tileMarkup` is what marks them with the `no-spark` class.
- */
+/* 20px replaces the missing spark's own height, so a chartless tile isn't shorter than its row. */
 .tiles-secondary .tile.no-spark {
   padding-bottom: 20px;
 }
 
-/*
- * `.cap` is scoped per box across the page rather than shared as one bare rule,
- * because the color depends on the surface underneath. Here `--ds-text-faint`
- * measures 3.62:1 dark and 3.14:1 light against `--ds-panel`, short of WCAG
- * 1.4.3's 4.5:1 in both; `--ds-text-muted` is the nearest step up that clears
- * it, 6.70:1 dark and 5.90:1 light. `line-height` is explicit because nothing
- * upstream of this box sets one, and without it a caption takes whatever the
- * UA's default is and the strip's height moves with it. `display: block`
- * because `tileMarkup` draws a caption as a `<span>`, which stacks under
- * nothing left inline.
- *
- * Scoped to a tile, and not to the whole panel, because the disclosure's own
- * label is a `<span class="cap">` too (`statsPanelTemplate`) and is not a tile
- * caption: it is sentence case at 12.5px on its `<summary>`. Panel-wide, this
- * rule would override that with 10.5px of spaced upper case -- and with a
- * `color` specific enough (0,2,0) that `.more > summary:hover`'s own (0,1,1)
- * could not repaint it, leaving the row lit up under the pointer everywhere
- * except on the words the pointer was over.
- */
+/* Scoped to .tile, not the whole panel: the disclosure's own .cap label needs different styling. */
 .statspanel .tile .cap {
   display: block;
   font-size: 10.5px;
@@ -169,20 +70,6 @@
   color: var(--ds-text-muted);
 }
 
-/*
- * Truncated on both grids, because a caption on two lines pushes its own figure
- * half a line below its neighbors' and a row of figures is read across. The
- * captions are also kept short enough that one line is enough: at the 1040x600
- * floor the strip is 645px, a primary tile 160px, 128px of it inside the
- * padding, and the longest caption in either language is "Max delivery time" at
- * 121px.
- *
- * What is left for this rule to do is the narrower strips the splitter can make
- * below that floor: under about 615px a four-column tile drops past English's
- * 121px, and the container query above does not fold the grid in two until
- * 520px. Nothing is lost to a screen reader when it fires; `text-overflow`
- * clips the drawing, not the text node.
- */
 .tiles-primary .cap,
 .tiles-secondary .cap {
   overflow: hidden;
@@ -190,12 +77,6 @@
   text-overflow: ellipsis;
 }
 
-/*
- * `.tile-val` picks up `.num`'s tabular figures already
- * (`shared/styles/utilities.css`), so what is left here is size.
- * `display: block` for the reason `.cap` above states one: `tileMarkup` draws
- * this as a `<span>` too.
- */
 .tile-val {
   display: block;
   font-size: 19px;
@@ -206,16 +87,7 @@
   font-size: 15px;
 }
 
-/*
- * The unit, set apart from the digits: a size down and a shade back, so that a
- * shelf of tiles reads as a shelf of numbers. `stats-panel.ts`'s own
- * `buildTile` is what puts the unit in a `<small>` of its own.
- *
- * `--ds-text-faint` measures 3.62:1 dark / 3.14:1 light against this box's
- * `--ds-panel` background -- under WCAG 1.4.3's 4.5:1, and this is text and not
- * decoration: "%" against "s" is the whole difference between 23 percent full
- * and 23 seconds late. `--ds-text-muted` clears it, 6.70:1 dark / 5.90:1 light.
- */
+/* --ds-text-muted, not --ds-text-faint: the unit is text, not decoration, so it needs 4.5:1 contrast. */
 .tile-val small {
   font-size: 12px;
   color: var(--ds-text-muted);
@@ -239,13 +111,6 @@
   height: 12px;
 }
 
-/*
- * The "All figures" disclosure: the row is a flex line, the UA's own marker is
- * dismissed on both spellings of the property, and the chevron that replaces it
- * turns a quarter-turn when the shelf opens. `statsPanelTemplate` is what draws
- * that chevron, so dropping the UA's triangle leaves the row something to say
- * it opens.
- */
 .more {
   border-top: 1px solid var(--ds-line);
 }
@@ -261,6 +126,7 @@
   cursor: pointer;
 }
 
+/* list-style: none alone doesn't hide Safari's marker; this property does. */
 .more > summary::-webkit-details-marker {
   display: none;
 }
@@ -269,14 +135,7 @@
   color: var(--ds-text);
 }
 
-/*
- * The chevron inherits the summary's own color rather than taking a fainter one
- * of its own: this row is a couple of words and the chevron, where a second,
- * fainter gray would read as two unrelated things on one line.
- * `--ds-text-muted` measures 6.70:1 dark and 5.90:1 light against `--ds-panel`,
- * past 1.4.11's 3:1 for a graphic either way, and the hover state takes it up
- * to full `--ds-text` along with the words beside it.
- */
+/* Inherits the summary's own color instead of a separate one, so label and icon read as one. */
 .more > summary .chev {
   width: 13px;
   height: 13px;
@@ -287,32 +146,7 @@
   transform: rotate(90deg);
 }
 
-/*
- * The card explaining one figure: one element, moved to whichever tile is being
- * pointed at or focused (`widgets/stats-panel` places it). The same box as the
- * building's own `.carcard` in `widgets/building-stage`, a caption in bold over
- * a sentence in muted gray, because they are the same thing said about two
- * halves of the same pane and a second style for the second one would read as a
- * second kind of thing.
- *
- * `inline-size` and not `max-inline-size`: a card sized by its own longest line
- * would be a different width on every figure, and the widths would swing --
- * "Stops" is explained in nine words and "Avg delivery time" in thirty. 240px
- * is inside the 1040px floor's narrowest useful pane and holds the longest of
- * the thirteen in six lines.
- *
- * No `pointer-events: none`, unlike `.carcard`. That card is placed beside a
- * shaft the pointer is standing in, so a card that could take the pointer would
- * swallow its own closing `pointerleave`; this one stands on top of its tile
- * with no gap, so a pointer moving up to read it moves onto it, and the widget
- * keeps it open for exactly that (WCAG 1.4.13, "hoverable").
- *
- * Nothing states a `z-index` here and nothing can: `.statscontainer` opens a
- * container query, which makes it a stacking context, so a number on this box
- * would order it against the tiles beside it and against nothing else. The
- * strip's own `z-index` at the top of this file is what puts the card over the
- * building.
- */
+/* Fixed inline-size, not max-inline-size, keeps one width across every figure's card. */
 .statcard {
   position: absolute;
   inset-block-start: 0;

@@ -1,30 +1,8 @@
 /**
  * The editor pane's chrome: the code slot switcher, the tools beside it, the
  * error banner above the editor, and the mount point for the editor itself.
- *
- * The `.codebar` row (slots plus `.codetools`), the `.errorline` banner and the
- * `.editor` mount point, drawn into `.code` from `src/main.ts`.
- *
- * Three things about what this pane draws:
- *
- * - The slot switcher is not drawn here at all. `presentCodeSlots`
- *   (`#features/manage-code-slots`) draws it; this pane only supplies the
- *   `.slots[role=group]` container it fills.
- * - `.codetools`' "Reset code" and "Undo reset" sit beside the editor rather
- *   than with `#features/run-simulation`'s run controls, because a control
- *   about the editor belongs beside the editor and not beside the run.
- * - The error banner's goto is a real `<button>`, not an `<a href="#">` — the
- *   same reason `speedStepperTemplate`'s own doc comment gives for the run
- *   controls: the hash belongs to the router (see `src/main.ts`'s `.skip-link`
- *   handler), and a real navigation to it would throw away
- *   `level=`/`timescale=` and restart the player on the first level. It calls
- *   {@link EditorPaneOptions.onGotoLine} with the line
- *   `src/ui/error-location.ts`'s `locateCodeError` found.
- *
- * The `.editor` mount point is built and handed its `CodeEditor` view by
- * `src/main.ts`, in that order: this pane's mount has to exist before
- * `codeMirrorView` can be built over it, and `CodeEditor` before the run/reset
- * callbacks that close over it can be written.
+ * The error banner's goto is a real `<button>`, not a link, since a hash
+ * navigation would drop `level=`/`timescale=` and restart the player.
  */
 
 import { presentCodeSlots, type CodeSlot } from "#features/manage-code-slots/index.ts";
@@ -37,19 +15,9 @@ import { markup, raw } from "#shared/ui/markup.ts";
 import { locateCodeError } from "../../../ui/error-location.ts";
 
 /**
- * The pane's static skeleton: the slots container, the two codetools
- * buttons, the error banner and the editor mount point, all empty — every
- * word is written by {@link presentEditorPane}, the same reason
- * `runButtonsTemplate` and `speedStepperTemplate` ship blank.
- *
- * Each codetools button is a glyph plus a `.lbl` span, the same shape
- * `widgets/app-bar`'s `.ghost` buttons take: the label is a span of its own
- * rather than a text node beside the `<svg>` so that a stylesheet can reach it
- * — hiding the word and leaving the glyph on a narrow viewport — and so that
- * {@link presentEditorPane} can rewrite the word on a language change without
- * touching the icon next to it.
- *
- * @returns The pane's markup, ready to mount.
+ * The pane's static skeleton, all text empty; {@link presentEditorPane} fills it in.
+ * Each codetools button keeps its label in a `.lbl` span, separate from the icon,
+ * so a stylesheet can hide the word alone and a language change can rewrite it alone.
  */
 export function editorPaneTemplate(): string {
   return markup`<div class="codebar"><div class="slots" role="group" aria-label="${t("editor.slot.tablist.label")}"></div><div class="codetools"><button type="button" class="resetcode ghost">${raw(spriteIconMarkup("undo"))}<span class="lbl"></span></button><button type="button" class="undoreset ghost" hidden>${raw(spriteIconMarkup("redo"))}<span class="lbl"></span></button></div></div><div class="errorline" aria-live="polite" hidden>${raw(spriteIconMarkup("warn"))}<span class="errorline-text"><span class="errorline-label">${t("game.codeStatus")}</span> <code class="errormessage"></code></span><button type="button" class="goto" hidden></button></div><div class="editor"></div>`;
@@ -61,62 +29,32 @@ export interface EditorPaneOptions {
   readonly currentSlot: () => CodeSlot;
   /** Called when a slot button is pressed. */
   readonly onSelectSlot: (slot: CodeSlot) => void;
-  /**
-   * Whether there is a reset "Undo reset" could take back.
-   *
-   * Not "whether there is a program in the backup slot": see
-   * `src/ui/editor.ts`'s `CodeEditor.canUndoReset`, where the difference is
-   * the difference between a button that recovers work and one that destroys
-   * it.
-   */
+  /** Whether there is a reset "Undo reset" could take back. */
   readonly canUndoReset: () => boolean;
   /** Called when "Reset code" is pressed. */
   readonly onResetCode: () => void;
   /** Called when "Undo reset" is pressed. */
   readonly onUndoReset: () => void;
-  /**
-   * Called when the error banner's goto link is pressed, with the 1-based
-   * line {@link EditorPanePresenter.showError}'s last call located.
-   */
+  /** Called when the error banner's goto link is pressed, with the 1-based line found. */
   readonly onGotoLine: (line: number) => void;
 }
 
 /** The rendered editor pane. */
 export interface EditorPanePresenter {
-  /**
-   * Relabels the codetools buttons, the slot switcher, and "Undo reset"'s
-   * visibility.
-   *
-   * Called after anything that could have moved any of it: a reset, a slot
-   * switch, an edit, or a language change.
-   */
+  /** Relabels the codetools buttons, the slot switcher, and "Undo reset"'s visibility. */
   update(): void;
 
-  /**
-   * Draws the "there is an error in your program" banner, and points the
-   * goto link at the line `error` came from, if `src/ui/error-location.ts`'s
-   * `locateCodeError` can find one in `code`.
-   *
-   * @param error - Whatever the player's code threw.
-   * @param code - The program that was running when it threw.
-   */
+  /** Draws the error banner and points the goto link at the line `error` came from in `code`, if any. */
   showError(error: unknown, code: string): void;
 
   /** Hides the error banner. */
   clearError(): void;
 
-  /** Where a later caller mounts the real editor; see the module comment. */
+  /** Where a later caller mounts the real editor. */
   readonly editorMount: HTMLElement;
 }
 
-/**
- * Draws the editor pane and wires it up.
- *
- * @param parent - The element {@link editorPaneTemplate}'s markup is written
- * into — `.code`.
- * @param options - The state to report on and the callbacks for its controls.
- * @returns The presenter, already drawn.
- */
+/** Draws the editor pane and wires it up. */
 export function presentEditorPane(
   parent: HTMLElement,
   options: EditorPaneOptions,
@@ -146,11 +84,8 @@ export function presentEditorPane(
     options.onUndoReset();
   });
 
-  // The line the goto link currently points at, if any -- read by its click
-  // listener, written by every `showError`. Kept outside the DOM rather than
-  // parsed back out of the button's own text on click, the same reason
-  // `#runningCode` exists on `CodeEditor`: the number is data the pane
-  // already has, not something to recover from what it last rendered.
+  // The line the goto link currently points at, kept as data rather than
+  // parsed back out of the button's own text on click.
   let gotoLine: number | undefined;
 
   goto.addEventListener("click", () => {
@@ -162,13 +97,9 @@ export function presentEditorPane(
   const presenter: EditorPanePresenter = {
     update(): void {
       codeSlots.update();
-      // The word goes in the `.lbl` span, not on the button: writing
-      // `textContent` on the button itself would take the glyph beside it out
-      // with the old text.
       resetCodeLabel.textContent = t("game.button.resetCode");
       undoResetLabel.textContent = t("game.button.undoResetCode");
-      // What the label has no room to say -- which of the two programs comes
-      // back. A description rather than the accessible name, which stays the
+      // A `title` description, not the accessible name, which must stay the
       // visible label (WCAG 2.5.3).
       resetCode.title = t("game.button.resetCodeTitle");
       undoReset.title = t("game.button.undoResetCodeTitle");
@@ -178,10 +109,6 @@ export function presentEditorPane(
 
     showError(error, code): void {
       errorLine.hidden = false;
-      // The headline of the failure, never its frames -- `describeError`'s own
-      // comment says why, and the line below is the other half of that
-      // bargain: the one thing in the stack that is about the player's program
-      // is read out of it here and drawn as the link at the end of the row.
       errorMessage.textContent = describeError(error);
       const location = locateCodeError(error, code);
       gotoLine = location?.line;

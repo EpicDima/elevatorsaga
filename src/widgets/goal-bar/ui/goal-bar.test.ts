@@ -20,11 +20,7 @@ const BRONZE_ONLY_LEVEL: Level = {
   condition: requireUserCountWithinTime(5, 30),
 };
 
-/**
- * A level with silver/gold on top of its bronze bar, mirroring
- * `tier-rows.test.ts`'s own `LEVEL` fixture so the two suites agree on
- * what "held"/"lost" mean for the same numbers.
- */
+/** A level with silver/gold on top of its bronze bar. */
 const TIERED_LEVEL: Level = {
   options: {},
   condition: requireUserCountWithinTime(10, 60),
@@ -48,14 +44,7 @@ function fixtureWorld(): World {
   return createWorld({ floorCount: 3, elevatorCount: 1 });
 }
 
-/**
- * Mounts a goal bar for a level and world, ready for a test to inspect.
- *
- * @param level - The level to present.
- * @param world - The run whose figures the bar reads.
- * @param getVerdict - The tri-state verdict to hand the bar; undecided by default.
- * @returns The mounted parent.
- */
+/** Mounts a goal bar for a level and world, ready for a test to inspect. */
 function setUp(
   level: Level,
   world: World,
@@ -168,10 +157,8 @@ describe("presentGoalBar", () => {
   });
 
   it("draws no tick on a bronze meter whose figure no tier measures", () => {
-    // Not the transportedCounter case above, which is skipped outright: this is
-    // a meter on a field silver and gold simply say nothing about, so there is
-    // no threshold of theirs to draw on its bar. The elapsed-time meter beside
-    // it, which they do measure, still gets both ticks.
+    // Unlike the skipped transportedCounter case above, this field has no
+    // silver/gold requirement at all, so there's no threshold to draw.
     const level: Level = {
       options: {},
       condition: requireUserCountWithinTimeWithMaxWaitTime(10, 60, 5),
@@ -218,9 +205,7 @@ describe("presentGoalBar", () => {
   });
 
   it("meters a figure outside the four the formats table names, in whole numbers and no unit", () => {
-    // The four are the fields today's conditions actually put a bronze bar on.
-    // A level that measures a fifth still has to draw a meter for it rather
-    // than a row of `undefined`s, which is what the fallback format is for.
+    // A field outside the known four still needs a meter, not a row of `undefined`s.
     const level: Level = {
       options: {},
       condition: {
@@ -335,8 +320,7 @@ describe("presentGoalBar", () => {
     tierOpen.click(); // opens, populating the rows
     tierOpen.click(); // closes
 
-    // Changed with no `stats_display_changed` tick fired: a stale popover
-    // would still show this requirement as missed the next time it opens.
+    // No `stats_display_changed` tick fired here: a stale popover would still show this as missed.
     world.avgLoadFactorOnMove = 0.9;
 
     tierOpen.click(); // opens again

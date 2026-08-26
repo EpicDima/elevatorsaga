@@ -1,56 +1,14 @@
 /*
  * The bar above the building: what the level asks for, how the run is doing
  * against it, and the tier popover that breaks that down.
- *
- * The meters, their thresholds and the three-tier table are all here;
- * `goal-bar.ts` sets the state classes these rules select on.
  */
 
-/*
- * The bar was a fixed 40px, which was exactly the title line it held. It now
- * has a second line under the first -- the row of level links -- and that
- * row has to be allowed to grow: on a phone twenty entries wrap onto three
- * lines, and a fixed height would leave them lying over the building.
- *
- * Two stacked blocks, and nothing more, which is the third layout this bar has
- * had. It was `float: left` on the title and `float: right` on the start button
- * and the speed, and a float lays the *first* box out furthest from the content
- * edge: the start button was written before the speed controls precisely so that
- * it would be drawn to the right of them. Tab therefore walked the bar
- * right-to-left, against the way it reads (WCAG 2.4.3, Focus Order). A wrapping
- * flex row put the same boxes back in the same places with the document saying
- * what it meant, and carried a basis on the title (below) that decided, uniformly
- * for every level, the window width at which the controls dropped to a line
- * of their own.
- *
- * All of that machinery was about keeping two kinds of thing on one line. The
- * controls are not in this bar any more -- see `.controls` -- so there is one
- * thing left on each of its lines, and a flex row with one item to a line is a
- * block. `justify-content`, `align-items`, the column gap and the title's basis
- * went with them; every one of them was measured, and every one of them was
- * measuring where the start button went.
- *
- * `min-block-size` stays. The bar is directly above the run controls and the
- * building, and a level whose requirement is one short line would otherwise
- * move everything under it up by the difference.
- */
+/* Keeps a one-line requirement from shrinking the bar and shifting everything below it. */
 .level {
   min-block-size: 40px;
 }
 
-/*
- * The goal bar and its tier popover. `.stars`/`.star` live next door in
- * `entities/level-tier`, whose `tierBadgeMarkup` draws the same markup here as
- * it does in a level tile's own badge.
- *
- * `color: var(--ds-text)` is stated because `.goalbar` sits directly on
- * `<body>`, and everything under it that is not a `<p>` or a heading --
- * `.meter-val`'s own `<b>`, `.tierrow-head`'s own `<b>` -- would otherwise fall
- * back to `<body>`'s own `color: white`, invisible on this bar's light
- * `--ds-panel` background. `.cap`/`.tierneed`/`.tierstate`/`.tierneed .now`
- * each already carry their own explicit color and are unaffected; this only
- * reaches the descendants that had none.
- */
+/* `color` is set explicitly since `<body>`'s own white would otherwise show through on `<b>` elements here. */
 .goalbar {
   display: flex;
   gap: 18px;
@@ -77,14 +35,7 @@
   margin-bottom: 3px;
 }
 
-/*
- * Scoped to `.meter-head` rather than written as a bare `.cap`, which is how
- * every caption on the page is written: a shared rule would repaint the ones
- * standing on other backgrounds. `--ds-text-faint` measures 3.62:1 dark /
- * 3.14:1 light against this caption's `--ds-panel` background
- * (`getComputedStyle`) -- short of WCAG 1.4.3's 4.5:1 in both -- so
- * `--ds-text-muted`, which clears it at 6.70:1 and 5.90:1.
- */
+/* `--ds-text-muted` here, not `--ds-text-faint`, to clear WCAG 1.4.3's 4.5:1 contrast floor. */
 .meter-head .cap {
   overflow: hidden;
   white-space: nowrap;
@@ -127,10 +78,7 @@
   }
 }
 
-/*
- * The silver/gold tick a bronze meter's own bar draws where that tier's own
- * requirement sits -- `goal-bar.ts`'s own `meterTicks`.
- */
+/* The silver/gold tick a bronze meter's bar draws where that tier's requirement sits. */
 .tick {
   position: absolute;
   top: -3px;
@@ -145,13 +93,7 @@
   background: var(--ds-tier-gold);
 }
 
-/*
- * `data-kind` carries the raw `LevelWorldStats` field name the meter reads,
- * and `goal-bar.ts`'s own comment on `METER_FORMAT` names the only three
- * at-most fields a bronze condition ever reaches. `transportedCounter`, the
- * one at-least field, needs no rule here: it is exactly what `.meter-fill`'s
- * own base color, `--ds-accent`, already means.
- */
+/* The at-most fields; `transportedCounter` needs no override since `--ds-accent` already fits it. */
 .meter[data-kind="elapsedTime"] .meter-fill,
 .meter[data-kind="maxWaitTime"] .meter-fill,
 .meter[data-kind="moveCount"] .meter-fill {
@@ -182,11 +124,7 @@
   color: var(--ds-text-muted);
 }
 
-/*
- * An icon, not text: WCAG 1.4.11's 3:1 floor applies here, not 1.4.3's
- * 4.5:1, and `--ds-text-faint` clears that against this block's own
- * `--ds-panel` background in both themes (3.62:1 dark / 3.14:1 light).
- */
+/* An icon, not text, so the 3:1 floor of WCAG 1.4.11 applies rather than 1.4.3's 4.5:1. */
 .goalfree .ds-icon {
   width: 14px;
   height: 14px;
@@ -282,12 +220,7 @@
   font-weight: 650;
 }
 
-/*
- * Held/lost, not just its own icon: `goal-bar.ts`'s `drawTierRows` sets these
- * from `TierRow.state` precisely so this badge does not rely on its
- * check/dash/cross glyph alone to say which -- color says the same thing a
- * second way.
- */
+/* Color backs up the check/dash/cross glyph, so state isn't conveyed by shape alone. */
 .tierstate {
   display: grid;
   place-items: center;
@@ -329,11 +262,7 @@
   margin-top: 6px;
 }
 
-/*
- * Text, not an icon, so `--ds-text-faint` fails the same 4.5:1 floor here that
- * it does at `.meter-head .cap` above, on the same `--ds-panel` background.
- * `--ds-text-muted` is the answer there too.
- */
+/* Text, not an icon, so `--ds-text-muted` is needed to clear the 4.5:1 floor. */
 .tierneed .now {
   flex: 0 0 auto;
   font-family: var(--ds-font-mono);

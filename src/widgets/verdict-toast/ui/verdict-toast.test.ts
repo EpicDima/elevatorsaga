@@ -18,11 +18,7 @@ function parse(html: string): HTMLElement {
   return element;
 }
 
-/**
- * The path an element's glyph draws, which is what tells one icon of the sprite
- * family from another: `spriteIconMarkup` inlines its shapes rather than
- * referencing a symbol, so there is no `#i-check` in the output to match on.
- */
+/** The path an element's glyph draws, since `spriteIconMarkup` inlines shapes rather than referencing a symbol. */
 function glyphOf(element: Element | null): string {
   const path = element?.querySelector("path")?.getAttribute("d");
   if (path === null || path === undefined) {
@@ -70,9 +66,7 @@ describe("presentVerdictToast", () => {
   });
 
   it("empties the container when the card is dismissed", () => {
-    // Emptied rather than hidden: the live region is the container, and it has
-    // to be back in the state `index.html` ships it in for the next verdict
-    // arriving in it to be a change worth announcing.
+    // Emptied, not hidden, so the next verdict is a change the live region announces.
     const parent = container();
     presentVerdictToast(parent, baseData());
     parent.querySelector<HTMLElement>(".verdict-close")?.click();
@@ -80,11 +74,9 @@ describe("presentVerdictToast", () => {
   });
 
   it("hands the keyboard back to the region around the card", () => {
-    // Removing the button that was just pressed drops focus to <body>, which
-    // lands a keyboard player back at the top of the page. `.world` is the
-    // nearest box around the card that can take focus, so that is the refuge
-    // -- at -1, the way `index.html` declares it, so this stands or falls with
-    // a refuge that is reachable programmatically and not by Tab.
+    // Removing the just-pressed button drops focus to <body>; the nearest
+    // focusable ancestor is the refuge instead, at `tabIndex = -1` so it's
+    // reachable programmatically but not by Tab.
     const world = document.createElement("div");
     world.tabIndex = -1;
     const parent = container();
@@ -102,8 +94,7 @@ describe("presentVerdictToast", () => {
   });
 
   it("survives a container with nowhere to put the focus", () => {
-    // The card is dismissible in a detached fragment too -- there is no focus
-    // to rescue there, and looking for a refuge must not be what breaks it.
+    // No refuge to find in a detached fragment; looking for one must not throw.
     const parent = container();
     presentVerdictToast(parent, baseData());
     expect(() => {
@@ -124,10 +115,7 @@ describe("verdictToastTemplate", () => {
   });
 
   it("marks a win with a check and a loss with a cross", () => {
-    // Both halves are asserted, because either one alone is half a verdict:
-    // `.is-fail` is what recolors the badge, so a card that swapped the glyph
-    // without the class would draw a cross on a green disc, and one that
-    // swapped the class without the glyph a check on a red one.
+    // Both halves are asserted: the glyph and `.is-fail`'s color can drift independently.
     const won = parse(verdictToastTemplate(baseData()));
     expect(won.className).toBe("verdict");
     expect(glyphOf(won.querySelector(".verdict-mark"))).toBe(
@@ -155,10 +143,7 @@ describe("verdictToastTemplate", () => {
   });
 
   it("names the medal beside the badge, for the readers icons do not reach", () => {
-    // The stars are sprite icons and every one of them is `aria-hidden`, so
-    // without this the whole card announces "Success! Level completed" however
-    // the run was rated. The name goes in the headline with the badge, and off
-    // the page: a sighted player is already reading the stars.
+    // The stars are `aria-hidden` sprite icons; without this a screen reader never learns the tier.
     const element = parse(verdictToastTemplate(baseData({ tier: "silver" })));
 
     const name = element.querySelector("h3 > .visually-hidden");
@@ -168,15 +153,11 @@ describe("verdictToastTemplate", () => {
   it("draws no badge at all when there is no tier", () => {
     const html = verdictToastTemplate(baseData());
     expect(html).not.toContain("stars");
-    // And no name either: there is no medal to name, and "Level stars:" with
-    // nothing after it is worse than silence.
     expect(html).not.toContain("visually-hidden");
   });
 
   it("writes the hint as the trusted markup it is", () => {
-    // The hint arrives carrying the span the game paints figures in, so it is
-    // interpolated rather than escaped -- a hint rendered as text would show
-    // its own markup to the player.
+    // Interpolated, not escaped, since the hint carries the game's own markup around figures.
     const element = parse(
       verdictToastTemplate(
         baseData({ hint: "For gold: <span class='emphasis-color'>21.0</span> seconds" }),
@@ -194,9 +175,6 @@ describe("verdictToastTemplate", () => {
   });
 
   it("offers a close button on every card, next link or no", () => {
-    // The card is dismissible whatever the outcome, and dismissing it is all
-    // the button promises -- restarting the run is the bar's own control, and
-    // offering it twice would be one promise too many.
     for (const url of ["", "#level=4"]) {
       const element = parse(verdictToastTemplate(baseData({ url })));
       const close = element.querySelector(".acts .verdict-close");

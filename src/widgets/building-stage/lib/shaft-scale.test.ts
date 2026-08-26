@@ -10,10 +10,8 @@ describe("computeShaftScale", () => {
   });
 
   it("never shrinks a car that is already narrower than MIN_CAR, however little room there is", () => {
-    // free = max(120, 300-32-84-44) = 140, naturalWidth = 240+20 = 260, so the
-    // ratio asks for 0.538. But a capacity-2 car is 20 world units wide, below
-    // MIN_CAR (30) at full size already, and shrinking it further would be the
-    // one thing this floor exists to refuse: min(1, 30/20) clamps to 1.
+    // free/naturalWidth = 140/260 = 0.538, but a capacity-2 car is already 20 world units
+    // wide, below MIN_CAR (30); min(1, 30/20) clamps the floor to 1 so it isn't shrunk further.
     const scale = computeShaftScale({
       stageWidth: 300,
       levelsWidth: 84,
@@ -26,11 +24,8 @@ describe("computeShaftScale", () => {
   });
 
   it("draws a building with room to spare half again the size the engine states it at", () => {
-    // free = max(120, 800-32-84-44) = 640, naturalWidth = 260+40 = 300, so the
-    // ratio asks for 2.13 and MAX_ZOOM is what answers. This is the default
-    // window on most of the shipped levels: a capacity-4 car is 40 world units,
-    // and 40px of car under 80px of floor is what the ceiling of 1 drew --
-    // while a third of the pane stood empty beside it.
+    // free/naturalWidth = 640/300 = 2.13, so MAX_ZOOM caps it rather than growing the
+    // building past the pane's own room to spare.
     const scale = computeShaftScale({
       stageWidth: 800,
       levelsWidth: 84,
@@ -43,12 +38,8 @@ describe("computeShaftScale", () => {
   });
 
   it("grows a building only as far as its own pane, when the pane stops first", () => {
-    // free = max(120, 520-32-84-44) = 360 against the same 300 of building, so
-    // the ratio is 1.2 and it binds below the ceiling. The whole point of
-    // clamping rather than simply drawing every building half again as large:
-    // growing past the pane would hand a level a sideways scrollbar in exchange
-    // for a wider car, which is a worse trade than the narrow car it started
-    // with.
+    // free/naturalWidth = 360/300 = 1.2, binding below MAX_ZOOM: growing past the pane
+    // would trade a wider car for a sideways scrollbar, which is the worse deal.
     const scale = computeShaftScale({
       stageWidth: 520,
       levelsWidth: 84,
@@ -61,14 +52,8 @@ describe("computeShaftScale", () => {
   });
 
   it("still shrinks the capacity-4 cars most levels use", () => {
-    // The regression this floor was rewritten for. A capacity-4 car is 40 world
-    // units wide, and the floor used to be `layout-building.ts`'s MIN_SHAFT of
-    // 46 — a floor *above* the car's own width, so 46/40 = 1.15 pinned the low
-    // bound to 1 and the fit never engaged on any of the levels that use
-    // capacity 4, which is most of them. min(1, 30/40) = 0.75 lets it.
-    //
-    // free = max(120, 400-32-84-44) = 240, naturalWidth = 260+40 = 300, so the
-    // ratio is 0.8 and it is the ratio that binds.
+    // min(1, 30/40) = 0.75 leaves room for the ratio to bind: free/naturalWidth =
+    // 240/300 = 0.8, below 1 rather than pinned there by too-high a floor.
     const scale = computeShaftScale({
       stageWidth: 400,
       levelsWidth: 84,
@@ -96,10 +81,8 @@ describe("computeShaftScale", () => {
   });
 
   it("floors scaleX at minShaftScale when the free/naturalWidth ratio would shrink cars past MIN_CAR", () => {
-    // free floors at 120 (300-32-84-44 = 140, so 140 here).
-    // naturalWidth = 400+80 = 480. value = 140/480 = 0.2917.
-    // minShaftScale = 30/80 = 0.375, which binds instead: below it a car is
-    // narrower than a car should ever be drawn, and the stage scrolls sideways.
+    // free/naturalWidth = 140/480 = 0.2917, but minShaftScale = 30/80 = 0.375 binds
+    // instead: below it a car would be narrower than MIN_CAR allows.
     const scale = computeShaftScale({
       stageWidth: 300,
       levelsWidth: 84,
@@ -146,19 +129,15 @@ describe("shaftPadPx", () => {
   });
 
   it("never rounds away to nothing", () => {
-    // The strip the order marks sit in is inside this pad. At the smallest scale
-    // the fit can reach, 8 * scaleX rounds to 1px or to 0 — which would leave the
-    // marks with nowhere to be drawn.
+    // At the smallest scale, 8 * scaleX rounds to 1px or 0, which would leave the order
+    // marks that sit inside this pad with nowhere to be drawn.
     expect(shaftPadPx(0.1)).toBe(2);
     expect(shaftPadPx(0)).toBe(2);
   });
 
   it("leaves a visible seam between two neighboring shafts at every scale it floors", () => {
-    // Two cars are 20 world units apart, and each takes its pad out of that gap.
-    // The floor MIN_CAR puts on scaleX for the widest car in the game (capacity
-    // 8, so 30/80) is 0.375, and even there the seam survives. MAX_ZOOM is the
-    // other end of the same range: the pad grows with the building, so a wall
-    // that ate its whole gap would draw the whole rank as one wide shaft.
+    // Two cars are 20 world units apart, and each takes its pad from that gap; checked
+    // across the whole range, from MIN_CAR's floor on scaleX (30/80 = 0.375) to MAX_ZOOM.
     for (const scaleX of [0.375, 0.5, 0.75, 1, MAX_ZOOM]) {
       expect(20 * scaleX - 2 * shaftPadPx(scaleX)).toBeGreaterThan(0);
     }

@@ -41,11 +41,7 @@ describe("editorPaneTemplate", () => {
   });
 
   it("puts a warning glyph in the error banner and keeps its wording in one item", () => {
-    // The banner is a three-item flex row -- glyph, text, "go to" link -- and
-    // not a four-item one: the label and the message are wrapped together so
-    // that the 9px gap falls between the three parts rather than inside the
-    // sentence, and so that a long message wraps under its own label instead
-    // of under the icon.
+    // Label and message wrap together as one flex item, not two, so a long message wraps under its own label.
     const parent = document.createElement("div");
     parent.innerHTML = editorPaneTemplate();
 
@@ -100,10 +96,7 @@ describe("presentEditorPane", () => {
   });
 
   it("draws a glyph beside each codetools label without writing over it", () => {
-    // The label lives in its own span precisely so that relabeling a button
-    // cannot take its icon with it -- which is what `textContent =` on the
-    // button would do. Both are checked after an update, not only on the
-    // first draw, because the first draw is not where that goes wrong.
+    // The label lives in its own span so relabeling can't take the icon with it, which `textContent =` on the button would do.
     const parent = document.createElement("div");
     const presenter = presentEditorPane(parent, baseOptions({ canUndoReset: () => true }));
 
@@ -199,11 +192,8 @@ describe("presentEditorPane", () => {
     });
 
     it("puts the failure's headline in the banner and none of the stack", () => {
-      // The banner is one row high and holds one sentence. What the frames
-      // underneath the headline have to say about the player's own program is
-      // said by the goto link beside it, from the same stack; what is left in
-      // them is bundle URLs, which would triple the height of the banner to
-      // tell the player nothing they can act on.
+      // Just the headline: the frames underneath are bundle URLs the player
+      // can't act on, and the goto link covers what they're useful for.
       const parent = document.createElement("div");
       const presenter = presentEditorPane(parent, baseOptions());
       const code = "{\n  init: function (elevators) { elevators[0].goToFlor(2); }\n}";
@@ -220,8 +210,6 @@ describe("presentEditorPane", () => {
       expect(message.textContent).toBe("TypeError: elevator.goToFlor is not a function");
       expect(message.textContent).not.toContain("\n");
       expect(message.textContent).not.toContain("http");
-      // The line the frames did have to offer, kept -- in the link beside the
-      // message.
       expect(requireElement(".goto", parent).textContent).toBe("Line 2 →");
     });
 
@@ -296,9 +284,7 @@ describe("presentEditorPane", () => {
       presenter.showError(error, code);
       const goto = requireElement(".goto", parent);
       presenter.clearError();
-      // The banner is hidden, not removed, so its now-unreachable goto button
-      // could still be clicked programmatically -- this makes sure that
-      // doesn't fire a stale line.
+      // The banner is hidden, not removed, so the goto button can still be clicked programmatically.
       goto.click();
 
       expect(onGotoLine).not.toHaveBeenCalled();

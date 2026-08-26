@@ -1,24 +1,12 @@
 /**
- * The app bar's brand: its mark and the game's name.
- *
- * `src/main.ts` mounts this over the `<header>` `index.html` ships, so the bar
- * built here is the live page's own banner and the brand name is its `<h1>`.
- * The alternative — leaving `index.html`'s `<h1>` in place and nesting the
- * brand inside it — puts a heading-shaped box with the user agent's own
- * margins into a fixed-height flex row.
- *
- * Only the brand. The `.task` level switcher beside it is
- * `widgets/level-switcher`, the trailing toolbar is `settings-menu.ts`, and
- * `src/main.ts` composes the three into one row.
+ * The app bar's brand: its mark and the game's name. Only the brand; the
+ * level switcher and settings toolbar beside it are composed in separately.
  */
 
 /** SVG namespace, needed because the brand mark is built with `createElementNS`. */
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-/** The text read out for the brand; supplied by the caller so this module
- * stays free of any one locale, the same reason
- * `widgets/workspace-layout`'s `WorkspaceLayoutLabels` takes its text this
- * way. */
+/** The text read out for the brand, supplied by the caller so this module stays free of any one locale. */
 export interface AppBarLabels {
   /** The game's name, shown next to the mark and read as the page's heading — `page.brand` today. */
   readonly brandName: string;
@@ -32,15 +20,7 @@ export interface AppBarElements {
   readonly brand: HTMLElement;
 }
 
-/**
- * Builds the app bar's brand, detached from any document.
- *
- * @param document - The document to create the elements in, so a caller can
- * build into a document other than the global one — see
- * `buildWorkspaceLayoutSkeleton`'s parameter of the same name for why.
- * @param labels - The localized brand text.
- * @returns The bar and the brand group inside it.
- */
+/** Builds the app bar's brand, detached from any document. */
 export function buildAppBarSkeleton(document: Document, labels: AppBarLabels): AppBarElements {
   const mark = document.createElementNS(SVG_NS, "svg");
   mark.setAttribute("class", "brand-mark");

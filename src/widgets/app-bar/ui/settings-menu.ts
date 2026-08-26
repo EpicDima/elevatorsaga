@@ -1,75 +1,6 @@
 /**
- * The app bar's trailing toolbar: the docs opener and the `.setwrap` settings
- * popover beside it, sitting next to the brand `app-bar.ts` builds and the
- * `.task` level switcher `widgets/level-switcher` builds.
- *
- * `presentAppBarSettings` is mounted live from `src/main.ts`, composed with
- * `app-bar.ts`'s brand and `level-switcher.ts`'s `.task` into the one app bar
- * row the workspace shell draws.
- *
- * ## What this composes
- *
- * The popover is where `features/switch-theme`, `features/switch-layout`,
- * `features/switch-language` and `features/manage-seed` all end up mounted —
- * this module's whole job is gluing those four independently-built-and-tested
- * slices, plus two openers and a static block, into one `.setmenu`:
- *
- * - Theme and layout are DOM-skeleton-and-presenter pairs
- *   ({@link import("#features/switch-theme/index.ts").buildThemeSwitchSkeleton}/
- *   `presentThemeSwitch`, the layout equivalents), so this module builds their
- *   elements with the caller's own `document` and appends them into the
- *   `.setblock` placeholders {@link appBarSettingsTemplate} leaves for them
- *   — the same "template leaves an empty slot, the presenter fills it" shape
- *   `presentLevelSwitcher` uses for `.taskblocks`.
- * - Language is `presentLanguagePicker`, which fills a `<select>` this
- *   module's own template already drew empty. It is the game's only language
- *   control.
- * - Seed is `seedPanelTemplate`, inserted with `raw()` straight into
- *   {@link appBarSettingsTemplate}'s returned markup, inside a
- *   `[data-set-block="seed"]` wrapper the presenter half below re-renders
- *   into whenever a later run's seed differs from this one, the same
- *   fill-a-placeholder shape the theme and layout blocks use. Its own
- *   `presentSeedPanel` is then wired *onto that wrapper* rather than onto the
- *   markup inside it, because the markup inside it is what
- *   {@link AppBarSettingsController.setSeed} throws away.
- *
- * ## The two openers
- *
- * `docsOpen` and the popover's own `keysOpen` row both carry an
- * `aria-haspopup="dialog"` and an injected click callback
- * ({@link AppBarSettingsOptions.onOpenDocs}/`onOpenHotkeys`) rather than any
- * dialog-opening logic of their own, which keeps this widget ignorant of the
- * two modals it opens. `keysOpen`'s handler closes the settings popover before
- * calling `onOpenHotkeys`: a dialog opening behind a popover that is still open
- * would leave two layers on screen at once. `docsOpen` needs no such close — it
- * sits beside `.setwrap`, not inside it, so there is no popover under it to
- * close.
- *
- * ## Classes, not ids
- *
- * `.docsopen`, `.setopen`, `.keysopen` and `.langpick` are classes because a
- * caller — a test, or `widgets/app-bar` itself — can build this widget more
- * than once, and an id can only name one element per document.
- *
- * ## The About block
- *
- * Entirely static: two real `<a class="setlink">` links to this fork and to
- * the game this is forked from, `target="_blank" rel="noreferrer"` on both,
- * and a copyright line. The two URLs and the domain text under each link are
- * plain constants rather than catalog keys: an address is not a translator's
- * business, and `game.appBar.aboutCopyright.html`'s "Elevator Saga © 2015
- * Magnus Wolffelt, © 2026 EpicDima, MIT." is deliberately the same string in
- * both locales — a license notice names what it names regardless of the
- * reader's language.
- *
- * One word of that line is a link: "MIT" points at `licenses.txt`, the notice
- * file `vite.config.ts` writes into `dist/`. MIT and OFL both ask for their
- * notices to travel with the software, and a page whose whole height is a
- * workspace has no footer to put that route in, so the copyright line carries
- * it. A third `.setlink` row would have been the obvious place and is
- * deliberately not taken: it would change the block's shape, and the license
- * name in a line that already says "MIT" is the same destination for none of
- * the space.
+ * App bar's trailing toolbar: the docs opener and the settings popover, gluing together
+ * the theme, layout, language, and seed features plus a static About block.
  */
 
 import { presentSeedPanel, seedPanelTemplate } from "#features/manage-seed/index.ts";
@@ -95,14 +26,8 @@ const ORIGINAL_URL = "https://github.com/magwo/elevatorsaga";
 const ORIGINAL_DOMAIN = "github.com/magwo/elevatorsaga";
 
 /**
- * The toolbar's inert markup: `docsOpen`, the settings trigger, and every
- * `.setblock` the popover holds — the theme, layout and language blocks
- * empty and waiting for {@link presentAppBarSettings}, the seed block
- * already whole because {@link seedPanelTemplate} needs no presenting.
- *
- * @param seed - The run in progress' seed, passed straight through to
- * {@link seedPanelTemplate} — `null` renders no seed block at all.
- * @returns The toolbar's markup, ready for {@link presentAppBarSettings}.
+ * Toolbar's inert markup — theme/layout/language blocks empty, ready for {@link presentAppBarSettings}.
+ * @param seed - `null` renders no seed block at all.
  */
 export function appBarSettingsTemplate(seed: SeedLinkData | null): string {
   const docsLabel = t("game.appBar.docsOpenLabel");
@@ -121,10 +46,7 @@ export function appBarSettingsTemplate(seed: SeedLinkData | null): string {
 
 /** What {@link presentAppBarSettings} needs in order to drive the toolbar it fills in. */
 export interface AppBarSettingsOptions {
-  /**
-   * The element the resolved theme is written to, as `root.dataset.theme` —
-   * passed straight through to `presentThemeSwitch`.
-   */
+  /** Where the resolved theme is written, as `root.dataset.theme`. */
   readonly root: HTMLElement;
   /** Where the theme and the language are each remembered between visits. */
   readonly storage: Storage;
@@ -138,13 +60,7 @@ export interface AppBarSettingsOptions {
   readonly redrawLanguage: () => void;
   /** The run in progress' seed, or `null` — must match whatever {@link appBarSettingsTemplate} was called with. */
   readonly seed: SeedLinkData | null;
-  /**
-   * Called with a seed the player chose in the seed row — typed into its field
-   * or drawn by its dice — already checked against `#shared/lib/seed.ts`.
-   *
-   * Passed straight through to `presentSeedPanel`; this widget has no more idea
-   * what playing a seed involves than it has what a layout mode does.
-   */
+  /** Called with a player-chosen seed already validated against `#shared/lib/seed.ts`. */
   readonly onSeed: (seed: string) => void;
   /** Called when `docsOpen` is pressed. */
   readonly onOpenDocs: () => void;
@@ -158,38 +74,18 @@ export interface AppBarSettingsController {
   notifySystemThemeChange(): void;
   /** Marks a layout mode as the pressed one, without calling {@link AppBarSettingsOptions.onSelectLayout} — see `LayoutSwitchController.setActiveMode`. */
   setActiveLayoutMode(mode: LayoutModeId): void;
-  /**
-   * Redraws the seed block for the run now in progress, or clears it for
-   * `null` — the popover's own equivalent of {@link setActiveLayoutMode},
-   * for the one block {@link appBarSettingsTemplate} otherwise only ever
-   * draws once, at mount, from whatever run was current then.
-   */
+  /** Redraws the seed block for the run in progress, or clears it for `null`. */
   setSeed(seed: SeedLinkData | null): void;
   /**
-   * Re-derives every `t()`-sourced label this toolbar drew — its own
-   * captions plus the theme and layout switches' — for a caller redrawing
-   * after a language change. {@link appBarSettingsTemplate} and the theme
-   * and layout skeletons all bake their text in once, at construction; this
-   * is what keeps it current instead, the same role `RunControlsPresenter.update`
-   * plays for the run controls. Which theme is applied, which layout mode is
-   * pressed, and whether the popover is open are all untouched — this
-   * touches only text.
+   * Re-derives every `t()`-sourced label this toolbar drew, for a language change.
+   * Touches only text — applied theme, pressed layout mode, and popover open state are untouched.
    */
   update(): void;
 }
 
 /**
- * Fills in the theme, layout and language blocks, wires the settings
- * popover open and closed, and wires both openers.
- *
- * Called once, against a `parent` already holding {@link appBarSettingsTemplate}'s
- * markup — the same division of labor `presentLevelSwitcher` keeps from
- * `levelSwitcherTemplate`.
- *
- * @param parent - The element the template's markup was written into.
- * @param options - Everything the four composed slices and the two openers need.
- * @returns The controller for keeping the theme and layout blocks in step
- * with state that changed elsewhere.
+ * Fills in the theme, layout and language blocks, and wires the popover and both openers.
+ * Call once, against a `parent` already holding {@link appBarSettingsTemplate}'s markup.
  */
 export function presentAppBarSettings(
   parent: HTMLElement,
@@ -218,10 +114,7 @@ export function presentAppBarSettings(
   const setLinks = aboutBlock.querySelectorAll("a.setlink");
   const [forkLinkEl, originalLinkEl] = setLinks;
   if (forkLinkEl === undefined || originalLinkEl === undefined) {
-    // Unreachable against `appBarSettingsTemplate`'s own markup, which always
-    // draws exactly two `a.setlink`s — guarded the same way `.langpick`'s
-    // type is guarded below, for a caller that hands this presenter some
-    // other markup instead.
+    // Unreachable against this module's own markup; guarded for a caller that hands in something else.
     throw new TypeError("Expected two a.setlink elements in the about block");
   }
   const forkLabelEl = requireElement("b", forkLinkEl);
@@ -230,9 +123,7 @@ export function presentAppBarSettings(
 
   const languageSelect = requireElement(".langpick", parent);
   if (!(languageSelect instanceof HTMLSelectElement)) {
-    // Unreachable against `appBarSettingsTemplate`'s own markup, which always
-    // draws `.langpick` as a `<select>`; guarded all the same, for a caller
-    // that hands this presenter some other markup instead.
+    // Unreachable against this module's own markup; guarded for a caller that hands in something else.
     throw new TypeError("Expected .langpick to be a <select>");
   }
 
@@ -299,17 +190,8 @@ export function presentAppBarSettings(
       layout.setActiveMode(mode);
     },
     setSeed(seed: SeedLinkData | null): void {
-      // The one rebuild in this popover that can happen under the player's own
-      // hands: the seed row is what changes a run's seed, so the control that
-      // asked for the change is usually still focused when the new row replaces
-      // it. Without this, choosing a seed drops focus to <body> -- which for a
-      // keyboard player means the popover is still open and nothing in it is
-      // reachable except by tabbing in from the top of the page again.
-      //
-      // Restored by selector rather than by node, since every node here is
-      // about to be discarded, and only for a control this block actually owns:
-      // an element focused elsewhere in the document is none of this method's
-      // business.
+      // Restores focus by selector: rebuilding the block would otherwise drop it to
+      // <body>, stranding a keyboard player behind a still-open popover.
       const focused = seedBlock.ownerDocument.activeElement;
       const owned =
         focused instanceof HTMLElement && seedBlock.contains(focused)
@@ -346,9 +228,7 @@ export function presentAppBarSettings(
       aboutCaptionEl.textContent = t("game.appBar.aboutCaption");
       forkLabelEl.textContent = t("game.appBar.aboutForkLabel");
       originalLabelEl.textContent = t("game.appBar.aboutOriginalLabel");
-      // `innerHTML`, not `textContent`: the line carries the `licenses.txt`
-      // link, and the `.html` suffix is this codebase's own mark for a
-      // catalog value that is trusted markup rather than text.
+      // `innerHTML`, not `textContent`: the `.html` key suffix marks this as trusted markup.
       copyrightEl.innerHTML = t("game.appBar.aboutCopyright.html");
 
       theme.relabel(themeLabels());

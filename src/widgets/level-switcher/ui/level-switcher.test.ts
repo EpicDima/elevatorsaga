@@ -22,16 +22,7 @@ function fixtureLevels(count: number): readonly Level[] {
   }));
 }
 
-/**
- * Stand-in Skyscraper levels, built rather than imported for the reason
- * `level-menu.test.ts`'s own copy of this helper gives: the shipped block holds
- * one level today, and a grid of one tile cannot say which tile a tier lit or
- * which one the selection marked. Only `id` is read, and it is spelled the way
- * the shipped entries are.
- *
- * @param count - How many levels the block should hold.
- * @returns That many levels, `sky-1` upwards.
- */
+/** Stand-in Skyscraper levels; only `id` is read, spelled as the shipped entries are. */
 function fixtureSkyscraperLevels(count: number): readonly SkyscraperLevel[] {
   return Array.from({ length: count }, (_unused, index) => ({
     id: `sky-${String(index + 1)}`,
@@ -76,14 +67,7 @@ function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
   };
 }
 
-/**
- * Builds a mounted `.task` shell and options a test can point at a fresh
- * {@link LevelMenuInput} before calling `presenter.update()`.
- *
- * @param overrides - Fields to replace on the base fixture input.
- * @returns The mounted parent and the options {@link presentLevelSwitcher}
- * reads from.
- */
+/** Builds a mounted `.task` shell and options for `presentLevelSwitcher`. */
 function setUp(overrides: Partial<LevelMenuInput> = {}): {
   parent: HTMLElement;
   options: LevelSwitcherOptions;
@@ -109,14 +93,8 @@ describe("levelSwitcherTemplate", () => {
     expect(requireElement(".taskblocks", parent).children).toHaveLength(0);
   });
 
-  /*
-   * A step button is styled and sized, takes focus, carries an `aria-label` and
-   * navigates whether or not it draws anything, so an empty one looks like a
-   * blank 32px gap where a chevron belongs either side of the level's name.
-   * Asserted by the path each sprite is made of rather than by the `ds-icon`
-   * class both share, which cannot tell a chevron pointing the right way from
-   * one pointing back at the button beside it.
-   */
+  // Asserts on each icon's path data, not the shared `ds-icon` class, which can't
+  // tell a chevron pointing one way from one pointing the other.
   it("draws a chevron in each step button, pointing the way it steps", () => {
     const parent = document.createElement("div");
     parent.innerHTML = levelSwitcherTemplate();
@@ -128,30 +106,15 @@ describe("levelSwitcherTemplate", () => {
     expect(drawn(".task-next")).toBe(SPRITE_ICONS.right.shapes[0].attrs.d);
   });
 
-  /*
-   * Renaming the root away from `task` without the stylesheet following costs
-   * the widget its layout, and no other assertion here would notice: every one
-   * of them reaches for a child by class, and a rename of the root leaves every
-   * child's name alone. `display: flex` goes, and the trigger and its two
-   * chevrons stack into a column the app bar clips; `position: relative` goes
-   * with it, and `.taskmenu`'s `position: absolute` measures
-   * `top: calc(100% + 8px)` from the initial containing block instead, opening
-   * the popover a page below the fold. On screen that is a switcher with no
-   * arrows whose button does nothing at all.
-   *
-   * Read out of the stylesheet rather than hard-coded on both sides, since a
-   * literal `"task"` written twice in this file would agree with itself just as
-   * happily while the rules that actually lay the widget out named something
-   * else.
-   */
+  // Reads the class name out of the stylesheet rather than hard-coding it on
+  // both sides, so a root rename that the stylesheet doesn't follow is caught.
   it("roots the widget in the class its own stylesheet positions the popover from", () => {
     const parent = document.createElement("div");
     parent.innerHTML = levelSwitcherTemplate();
     const root = parent.firstElementChild;
 
-    // Read off disk rather than imported: vitest stubs a CSS import out to
-    // an empty string, `?raw` and all, which would make the pattern below
-    // match nothing and the assertion pass for the wrong reason.
+    // Read off disk: vitest stubs a CSS import to an empty string, which would
+    // make the pattern below match nothing and pass for the wrong reason.
     const stylesheet = readFileSync(
       join(process.cwd(), "src/widgets/level-switcher/ui/level-switcher.css"),
       "utf8",
@@ -185,11 +148,6 @@ describe("presentLevelSwitcher", () => {
     presentLevelSwitcher(parent, options);
 
     const captions = [...parent.querySelectorAll(".taskblock .cap")].map((el) => el.textContent);
-    // The Skyscraper block is captioned with a string of its own rather than
-    // borrowing one, since nothing in the catalog names the block as a whole.
-    // The last block is captioned "Other" while the one tile inside it is
-    // captioned "Sandbox" — see `blockCaption` for why they are not the same
-    // word.
     expect(captions).toEqual(["Learning track", "Levels", "Skyscraper", "Other"]);
     const [, , , otherBlock] = parent.querySelectorAll(".taskblock");
     expect(otherBlock?.querySelector(".tasklink")?.textContent).toBe("Sandbox");
@@ -204,9 +162,8 @@ describe("presentLevelSwitcher", () => {
     const [, levelBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    // Nothing on record, and still five anchors: the row is a table of
-    // contents, not a gate. A `<button disabled>` here would be a regression
-    // back to progression locking.
+    // Every tile is a real link even with nothing on record; the row is a table
+    // of contents, not a progression gate.
     expect(tiles.map((tile) => tile.tagName)).toEqual(["A", "A", "A", "A", "A"]);
     expect(tiles.map((tile) => tile.getAttribute("href"))).toEqual([
       "#level=1",
@@ -228,9 +185,6 @@ describe("presentLevelSwitcher", () => {
     const [, levelBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    // A badge on every tile, lit only where a tier is on record: the stars are
-    // what the row says instead of a lock, so an unplayed level shows three
-    // dim ones rather than nothing at all.
     expect(tiles.map((tile) => tile.querySelectorAll(".stars").length)).toEqual([1, 1, 1, 1, 1]);
     expect(tiles.map((tile) => tile.querySelectorAll(".stars .is-on").length)).toEqual([
       2, 0, 0, 0, 0,
@@ -243,8 +197,6 @@ describe("presentLevelSwitcher", () => {
     const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    // The visible text is the number alone, as a numbered level's is; the
-    // accessible name is where the block it belongs to is said.
     expect(tiles.map((tile) => tile.textContent)).toEqual(["1", "2", "3"]);
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
       "Skyscraper level 1",
@@ -268,16 +220,11 @@ describe("presentLevelSwitcher", () => {
     const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    // `data-tier` is on the tile only where a tier was actually earned, which
-    // is what tells the two apart: the badge itself is drawn for every tile of
-    // a medalled block, dim stars and all, so its presence says nothing. Both
-    // are read from the one `earned` the template now works out once -- they
-    // used to be asked separately, and that is how they came to disagree about
-    // `undefined`.
+    // `data-tier` is set only where a tier was earned; the badge itself is drawn
+    // for every tile of a medalled block, dim stars and all.
     expect(tiles.map((tile) => tile.getAttribute("data-tier"))).toEqual(["silver", null]);
     expect(tiles.map((tile) => tile.querySelectorAll(".stars").length)).toEqual([1, 1]);
     expect(tiles.map((tile) => tile.querySelectorAll(".stars .is-on").length)).toEqual([2, 0]);
-    // And the third thing that one answer decides: the tile reads as done.
     expect(tiles.map((tile) => tile.classList.contains("is-done"))).toEqual([true, false]);
   });
 
@@ -296,11 +243,8 @@ describe("presentLevelSwitcher", () => {
   });
 
   it("keeps the trigger to the level's plain name, whatever the tile calls it", () => {
-    // Four kinds of tile, one rule: the trigger names the level and leaves
-    // its state to the tile. The lesson is the case that forced it -- 118px of
-    // button against «Учебный уровень 1», which wants 136px -- and the other
-    // three are here so that a later change cannot quietly reintroduce a state
-    // suffix through them.
+    // The trigger names the level and leaves state to the tile, across all
+    // four selection kinds.
     const cleared = tutorialLevels[0];
     const lesson = setUp({
       selection: { kind: "tutorial", index: 0 },
@@ -320,9 +264,6 @@ describe("presentLevelSwitcher", () => {
     presentLevelSwitcher(level.parent, level.options);
     expect(requireElement(".task-name", level.parent).textContent).toBe("Level 4");
 
-    // Not the tile's "Skyscraper level 2" either, and for the same measured
-    // reason: the block's own name alone fills the button by the time it
-    // reaches ten levels.
     const skyscraper = setUp({
       skyscraperLevels: fixtureSkyscraperLevels(3),
       bestSkyscraperTiers: new Map<string, LevelTier>([["sky-2", "gold"]]),
@@ -359,12 +300,8 @@ describe("presentLevelSwitcher", () => {
     const [, levelBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    // The stars beside the number are `aria-hidden`, so without this the medal
-    // is invisible to a screen reader and the menu says nothing about progress
-    // at all. All three tiers are named, because the name is what the shared
-    // `TIER_NAME_KEY` is read for, and the last tile is the unearned case: no
-    // tier, no medal in the name -- three dim stars are slots to fill, not a
-    // fourth thing to announce.
+    // The stars are `aria-hidden`, so the tier name in the label is the only
+    // way a screen reader learns about progress.
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
       "Level 1, Bronze",
       "Level 2, Silver",
@@ -382,9 +319,6 @@ describe("presentLevelSwitcher", () => {
     const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    // The block keeps its own noun in front of the number either way: a tile
-    // that earns a medal must not fall back to a numbered level's wording,
-    // which names a different level entirely.
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
       "Skyscraper level 1, Gold",
       "Skyscraper level 2",
@@ -446,8 +380,6 @@ describe("presentLevelSwitcher", () => {
     expect(taskNext.hasAttribute("disabled")).toBe(false);
     taskNext.click();
 
-    // The very next one, with nothing on record: stepping walks the block in
-    // order rather than hunting for the next reachable tile.
     expect(parent.ownerDocument.defaultView?.location.hash).toBe("#level=2");
   });
 
@@ -459,16 +391,12 @@ describe("presentLevelSwitcher", () => {
     presentLevelSwitcher(parent, options);
     const taskNext = requireElement(".task-next", parent);
 
-    // Last tile of the tutorial block: stepping "next" must not cross into
-    // the levels block.
     expect(taskNext.hasAttribute("disabled")).toBe(true);
   });
 
   it("navigates nowhere when an arrow is pressed with nothing to step to", () => {
-    // The arrows disable themselves at either end of a block, so this is not a
-    // click a player can make. It is still a click the handler has to survive:
-    // "disabled" is an attribute on the button and the listener is bound to the
-    // button regardless, so the two have to agree about the end of the block.
+    // Not a click a player can make (the button is disabled), but the handler
+    // still has to survive a dispatched one.
     const { parent, options } = setUp({
       levels: fixtureLevels(3),
       selection: { kind: "level", index: 0 },
@@ -483,12 +411,9 @@ describe("presentLevelSwitcher", () => {
   });
 
   it("names nothing and steps nowhere when the selection is outside the menu", () => {
-    // `buildLevelMenu`'s own documented case: a selection that matches no tile
-    // at all, which is what the router hands over for the moment between one
-    // level being torn down and the next being built. Every question the
-    // widget asks about "the current tile" has to answer "there isn't one"
-    // rather than pick the first tile or throw -- an empty trigger and two
-    // dead arrows, not a switcher that has quietly moved the player.
+    // A selection matching no tile is what the router hands over between one
+    // level tearing down and the next building; the widget must not fall back
+    // to picking the first tile or throwing.
     const { parent, options } = setUp({
       levels: fixtureLevels(4),
       selection: { kind: "level", index: 99 },
@@ -502,10 +427,6 @@ describe("presentLevelSwitcher", () => {
   });
 
   describe("focus", () => {
-    // `update()` rebuilds the grid from scratch, so the focused tile is a new
-    // node every time. Position is what gets restored, not node identity;
-    // `level-switcher.ts`'s module comment says why it rebuilds at all.
-
     it("keeps focus on the tile at the same position when the grid is rebuilt", () => {
       const { parent, options } = setUp();
       const presenter = presentLevelSwitcher(parent, options);
@@ -526,15 +447,13 @@ describe("presentLevelSwitcher", () => {
       document.body.append(parent);
       const presenter = presentLevelSwitcher(parent, { getInput: () => input });
       const flat = queryAll(".tasklink", parent);
-      // The sandbox tile: always last, and always open, so it is always a
-      // real, focusable link regardless of the level count.
+      // The sandbox tile is always last and always a real, focusable link.
       const sandboxTile = flat[flat.length - 1];
       sandboxTile?.focus();
       expect(document.activeElement).toBe(sandboxTile);
 
-      // Shrinking the level block from 6 tiles to 1 moves the sandbox
-      // tile several positions earlier, so nothing in the rebuilt grid
-      // stands where the focused tile did.
+      // Shrinking the level block moves the sandbox tile earlier, so nothing
+      // in the rebuilt grid stands where the focused tile did.
       input = baseInput({ levels: fixtureLevels(1) });
       presenter.update();
 

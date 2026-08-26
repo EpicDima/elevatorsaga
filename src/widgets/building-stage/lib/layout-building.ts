@@ -1,39 +1,13 @@
 /**
- * The building's responsive geometry: how tall each floor is, how wide each
- * shaft is, and whether a cabin is roomy enough to draw its riders as
- * figures rather than a bare count.
- *
- * The building is sized to whatever room the stage gives it, not the other way
- * round. A tall building (many floors, or floors weighted taller than others)
- * compresses its floors down to {@link MIN_FLOOR} before the stage is allowed
- * to scroll; a wide building (many high-capacity elevators) compresses its
- * shafts down to {@link MIN_SHAFT} the same way. Below either floor the stage
- * scrolls instead of compressing further.
- *
- * This module is the pure half — arithmetic only, no DOM reads or writes. The
- * half that measures the stage and paints the result is `ui/building-stage.ts`.
+ * Computes the building's responsive geometry: floor heights, shaft widths, and whether a
+ * cabin is roomy enough to draw riders as figures rather than a bare count. Pure arithmetic —
+ * the stage is sized down to {@link MIN_FLOOR} and {@link MIN_SHAFT} before it scrolls instead.
  */
 
-/**
- * The shortest a floor may be squeezed to before the stage scrolls instead.
- *
- * Forty-eight, not thirty-eight: at thirty-eight the two call lamps stopped
- * stacking and fell into a row, floor numbers landed wherever they fit, and
- * the building itself turned into a stack of stripes. Forty-four was enough
- * to put everything back in place, but the floor was still shorter than the
- * button standing on it. A twenty-floor building scrolls more as a result —
- * but a floor stays a floor.
- */
+/** The shortest a floor may be squeezed to, in pixels, before the stage scrolls instead. */
 export const MIN_FLOOR = 48;
 
-/**
- * The narrowest a shaft may be squeezed to before the stage scrolls sideways
- * instead of compressing further.
- *
- * Not "as small as it takes" — small enough that a cabin still has room for
- * a count like "7/10": past this point a stretched editor pane turned
- * elevators into matchsticks.
- */
+/** The narrowest a shaft may be squeezed to, in pixels, before a cabin has no room left for a count like "7/10". */
 export const MIN_SHAFT = 46;
 
 /** Below this, a floor is too short for its call lamps to stack; see {@link density}. */
@@ -51,21 +25,9 @@ interface BuildingLayoutInput {
   readonly stageHeight: number;
   /** The stage's available width in pixels (`stage.clientWidth`). */
   readonly stageWidth: number;
-  /**
-   * The floor-number column's measured width in pixels
-   * (`levels.offsetWidth`). `0` — an unmeasured or detached element — falls
-   * back to `84`, the width `.levels` is styled at where its floors take calls
-   * by direction. A destination-dispatch column is styled wider, so a building
-   * laid out from the fallback stands that much narrow until the next pass
-   * measures the column it really has.
-   */
+  /** The floor-number column's measured width in pixels; `0` falls back to `84`. */
   readonly levelsWidth: number;
-  /**
-   * Each floor's weight, bottom to top (`world.weights`, index 0 = the
-   * bottom floor). Every level in the game today weighs `1`, but the
-   * distribution below supports uneven weights (a taller lobby, say)
-   * without any change to this function.
-   */
+  /** Each floor's weight, bottom to top (index 0 = the bottom floor); a taller floor gets a larger share of height. */
   readonly floorWeights: readonly number[];
   /** Each elevator's rider capacity, in the same order as every other per-elevator field. */
   readonly capacities: readonly number[];
@@ -95,45 +57,25 @@ interface BuildingLayout {
   readonly buildingWidth: number;
   /** How much of the corridor a passenger walks before reaching a shaft, in pixels. */
   readonly queueRoom: number;
-  /**
-   * Whether each elevator's cabin is too narrow to draw its riders as
-   * figures and must show a bare count instead, in `capacities` order.
-   */
+  /** Whether each elevator's cabin is too narrow to draw riders as figures and shows a bare count instead. */
   readonly counted: readonly boolean[];
 }
 
-/**
- * Holds a value inside `[low, high]`.
- *
- * @param low - The lowest value to return.
- * @param value - The value to clamp.
- * @param high - The highest value to return.
- */
+/** Holds a value inside `[low, high]`. */
 function clamp(low: number, value: number, high: number): number {
   return Math.max(low, Math.min(high, value));
 }
 
-/**
- * Computes the building's geometry for the room it has been given.
- *
- * @param input - The stage's dimensions and the world's floor weights and
- * elevator capacities.
- * @returns The building's full geometry.
- */
+/** Computes the building's geometry for the room it has been given. */
 export function layoutBuilding(input: BuildingLayoutInput): BuildingLayout {
   const { stageHeight, stageWidth, floorWeights, capacities } = input;
   const levelsWidth = input.levelsWidth || 84;
 
-  // Floor heights: a step per unit of weight, distributed by cumulative sum
-  // and rounded once per floor as it is reached — not per floor in
-  // isolation. Twenty independent roundings-up would add ten stray pixels
-  // of building nobody asked for; rounding the running total instead keeps
-  // the total exact.
+  // Floor heights round the running cumulative sum, not each floor in isolation, so
+  // rounding error never accumulates into stray pixels of extra building height.
   const weightSum = floorWeights.reduce((total, weight) => total + weight, 0);
-  // The stage's own padding (18px top and bottom) and the building's border
-  // are subtracted from its height. Without these two pixels, a building
-  // computed to fit exactly still ended up two pixels taller than the
-  // stage, opening a vertical scrollbar with nothing to scroll.
+  // Subtracts the stage's own padding (18px top and bottom) plus its border, or a
+  // building sized to fit exactly still opens an empty vertical scrollbar.
   const room = Math.max(160, stageHeight - 36 - 2);
   const unit = clamp(MIN_FLOOR, room / weightSum, 96);
 
@@ -155,14 +97,9 @@ export function layoutBuilding(input: BuildingLayoutInput): BuildingLayout {
   const carHeight = Math.max(16, shortestFloor - 8);
   const density: BuildingDensity = shortestFloor >= DENSE_FLOOR_THRESHOLD ? "full" : "compact";
 
-  // Shaft widths: what each capacity asks for, scaled down together (never
-  // independently — the point is to keep their relative difference) until
-  // either they fit the corridor's free width or the narrowest one hits
-  // MIN_SHAFT, whichever binds first.
+  // Every shaft's wanted width is scaled down together, never independently, to keep
+  // their relative difference, until either they fit or the narrowest hits MIN_SHAFT.
   const gap = capacities.length > 5 ? 7 : 12;
-  // Capacity and its wanted width travel together from here on, so pairing
-  // them keeps every later step index-free — no array is ever read at a
-  // position borrowed from a different one.
   const cars = capacities.map((capacity) => ({
     capacity,
     wanted: clamp(34, 24 + capacity * 8, 116) + 7,
@@ -171,15 +108,12 @@ export function layoutBuilding(input: BuildingLayoutInput): BuildingLayout {
   const asked = cars.reduce((total, car) => total + car.wanted, 0) + gap * (cars.length - 1);
   const floorScale = Math.max(...cars.map((car) => MIN_SHAFT / car.wanted));
   const scale = clamp(Math.min(1, floorScale), free / asked, 1);
-  // A shaft gap of its own once shafts are actually being scaled down —
-  // narrower than the roomy default, so a compressed building still reads
-  // as separate shafts rather than one strip.
+  // Narrower once shafts are scaled down, so a compressed building still reads as
+  // separate shafts rather than one strip.
   const shaftGap = scale < 1 ? 5 : gap;
 
-  // Whether a cabin is roomy enough to draw its riders as figures. The
-  // order-lane on the left (7px) and the cabin's own edges eat into the
-  // shaft's width; what is left is room for figures, each as wide as the
-  // rider glyph scaled to the car's height.
+  // The order lane (7px) and the cabin's own edges eat into the shaft's width; what's
+  // left is room for rider figures, each scaled to the car's height.
   const riderWidth = Math.round(clamp(8, carHeight - 22, 16) * 0.55) + 1;
   const shafts = cars.map((car) => {
     const width = Math.round(car.wanted * scale);
@@ -192,8 +126,7 @@ export function layoutBuilding(input: BuildingLayoutInput): BuildingLayout {
   const shaftsWidth =
     shaftWidths.reduce((total, width) => total + width, 0) + shaftGap * (shaftWidths.length - 1);
   const buildingWidth = levelsWidth + CORRIDOR + shaftsWidth + 22;
-  // How far a passenger walks from the queue to a shaft — the corridor
-  // minus the margin the queue's own figures need.
+  // The corridor minus the margin the queue's own figures need.
   const queueRoom = Math.max(60, CORRIDOR - 18);
 
   return {

@@ -1,58 +1,8 @@
 /**
- * The stats panel: the run's live figures plus their sparkline history.
- *
- * Mounted from `src/pages/game/index.ts`.
- *
- * ## Tile grouping
- *
- * A short primary row of the figures a player watches while the run is going,
- * and the rest behind an "All figures" disclosure. Every figure but two comes
- * straight off {@link World}; {@link countWaitingNow} and
- * {@link countAboardNow} are derived here from public engine state
- * ({@link World.users}, {@link User.parent}, {@link User.done},
- * `Elevator.userSlots`) rather than added to `src/game`.
- *
- * `avgWaitTime`'s doc comment in `world.ts` spells out
- * `avgPickupTime + avgRideTime ≈ avgWaitTime`, so that tile reads `avgWaitTime`
- * directly with no combining logic needed.
- *
- * ## Judgment call: a native `<details>`, not `createDisclosure`
- *
- * `createDisclosure` (`#shared/ui/disclosure.ts`) closes its panel on an
- * outside click or Escape, which is right for a floating popover — the goal
- * bar's tier breakdown, the level switcher's menu — but wrong here: a reader
- * clicking anywhere on the page while reading the extra figures should not
- * have the section collapse under them.
- *
- * ## Where a figure gets explained
- *
- * Every tile has a sentence saying what its figure counts. A card rather than a
- * line of prose beside the number: the panel is a strip under the building with
- * 128px of width per caption. Eight of the thirteen say at a card's length what
- * `docs.play.statistics.html` says of the same figure at paragraph length; the
- * other five are explained here and nowhere else, the reference page never
- * having taken them up.
- *
- * One card element is shared by all thirteen, shown on `pointerenter`/`focus`
- * and hidden on `pointerleave`/`blur`/Escape — the same arrangement
- * `widgets/building-stage` uses over the house, and for the same reason a
- * `title` attribute is not it: a `title` is shown by the browser to a pointer
- * and to nothing else, so the sentence was unreachable from a keyboard (WCAG
- * 2.1.1) and undismissable once shown (1.4.13). The card is the whole caption
- * as well as the sentence, since the caption itself is truncated on a narrow
- * pane and the card is then where it can be read in full.
- *
- * A tile is a focusable `role="group"` named by its caption, so what a screen
- * reader reaches is a named thing with the sentence as its description, rather
- * than the bare `<div>` a `title` used to hang unannounced on.
- *
- * ## Live text vs. sparkline history
- *
- * `draw` updates every tile's live text on every `stats_display_changed`
- * tick, but only records a new sparkline sample through
- * {@link StatsHistory.push}, which throttles itself to once per 200ms of
- * real time — see `model/history.ts`'s own doc comment for why that is safe
- * to do unconditionally here.
+ * The stats panel: a primary row of live figures plus a disclosure with the rest, each with a
+ * hoverable/focusable card explaining what it counts.
+ * A native `<details>` rather than `createDisclosure`, since a reader clicking elsewhere on the
+ * page while reading the figures should not collapse the section.
  */
 
 import { positionCardOverTile } from "../lib/place-card.ts";
@@ -65,26 +15,13 @@ import { requireElement } from "#shared/lib/dom.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
-/**
- * How the "transported per second" figure is rounded.
- *
- * Significant digits rather than decimal places, because the rate crosses
- * orders of magnitude within a single run: a fixed two decimals would flatten
- * an early 0.008 to 0.01 and write a late 12.3 as 12.30, claiming a precision
- * the figure has not got.
- */
+/** Significant digits, not decimal places, since the rate spans orders of magnitude across a run. */
 const PER_SECOND_DIGITS: Intl.NumberFormatOptions = {
   minimumSignificantDigits: 3,
   maximumSignificantDigits: 3,
 };
 
-/**
- * A message key that takes no parameters — every tile caption here is a
- * plain label, never an interpolated sentence, so this rules out having to
- * pass a parameter object `t` would otherwise demand for a `MessageKey` this
- * broad. Copied from `widgets/goal-bar/ui/goal-bar.ts`'s own
- * `NoParamMessageKey`, which explains the underlying trick at more length.
- */
+/** Every tile caption is a plain label, so this excludes keys that require interpolation params. */
 type NoParamMessageKey = { [K in MessageKey]: MessageArgs<K> extends [] ? K : never }[MessageKey];
 
 /** The live figures one draw reads off the world, derived counts included. */
@@ -104,31 +41,12 @@ interface StatsSnapshot {
   readonly aboardNow: number;
 }
 
-/**
- * Passengers with nobody carrying them yet: not aboard an elevator (their
- * {@link User.parent | parent} is only ever an `Elevator` while boarded, and
- * `null` the rest of the time — never set to their waiting `Floor`) and not
- * already delivered.
- *
- * Matches `building-stage.ts`'s own `floorSnapshot` helper, which counts a
- * floor's waiting passengers with the same `parent === null && !done` test.
- *
- * @param world - The run to count.
- * @returns How many passengers are currently waiting, across every floor.
- */
+/** Waiting passengers: `parent` is null until boarded and never set to a waiting floor. */
 function countWaitingNow(world: World): number {
   return world.users.filter((user) => user.parent === null && !user.done).length;
 }
 
-/**
- * Passengers currently riding: every elevator's occupied slots, summed.
- *
- * Matches `building-stage.ts`'s own `elevatorSnapshot` helper, which counts
- * one car's riders the same way.
- *
- * @param world - The run to count.
- * @returns How many passengers are currently aboard some elevator.
- */
+/** Passengers currently riding: every elevator's occupied slots, summed. */
 function countAboardNow(world: World): number {
   let total = 0;
   for (const elevator of world.elevators) {
@@ -180,22 +98,18 @@ function sparkSamplesFrom(snapshot: StatsSnapshot): Record<StatsHistoryKey, numb
 interface TileConfig {
   /** Which snapshot field this tile draws. */
   readonly stat: keyof StatsSnapshot;
-  /** The tile's caption key. */
   readonly captionKey: NoParamMessageKey;
-  /** The card's key: one sentence saying what the figure counts. Required, so no tile can arrive unexplained. */
+  /** The card's key: one sentence saying what the figure counts. Required, so no tile is unexplained. */
   readonly titleKey: NoParamMessageKey;
-  /** Whether the tile sits in the four-tile primary row or behind the disclosure. */
+  /** Whether the tile sits in the primary row or behind the disclosure. */
   readonly group: "primary" | "secondary";
   /** Renders the raw snapshot value as display text, digits and unit apart. */
   readonly format: (value: number) => QuantityParts;
-  /** The history key this tile sparks, or `undefined` for a tile with no chart, which `tileMarkup` marks `no-spark`. */
+  /** The history key this tile sparks, or `undefined` for a tile with no chart. */
   readonly sparkKey?: StatsHistoryKey;
 }
 
-/**
- * The panel's full tile set — the primary row first, then everything behind the
- * disclosure, covering every field {@link StatsSnapshot} reads.
- */
+/** Every tile the panel draws, primary row first, then the disclosure. */
 const TILES: readonly TileConfig[] = [
   {
     stat: "avgWaitTime",
@@ -310,18 +224,10 @@ export interface StatsPanelPresenter {
 let nextCardId = 0;
 
 /**
- * Builds the panel's static skeleton — no tiles, no translated text baked in.
- *
- * The summary opens with a disclosure chevron, drawn through
- * {@link spriteIconMarkup} rather than as raw SVG or a `<use href>`, since this
- * page ships no sprite sheet to point at. It is `aria-hidden` and unnamed: the
- * `<summary>` beside it is the control, and the open/closed state a chevron
- * draws is already on the `<details>` element for a screen reader to read.
- *
- * The card comes last and empty. It is one element for all thirteen tiles, its
- * text written when it is shown, and it hangs on the panel rather than inside a
- * tile because it is drawn above the strip: a card parented on a tile would be
- * placed against a box a couple of dozen pixels tall.
+ * Builds the panel's static skeleton, with no tiles and no translated text baked in.
+ * The chevron is `aria-hidden`, since the `<summary>` beside it is the actual control.
+ * The card is a single empty element shared by every tile, parented on the panel so it can
+ * draw above the whole strip rather than clipped to one tile's box.
  */
 export function statsPanelTemplate(): string {
   const chevron = spriteIconMarkup("right", "chev");
@@ -329,14 +235,9 @@ export function statsPanelTemplate(): string {
 }
 
 /**
- * One tile's own markup: caption, value, and — for a sparked tile — its chart.
- *
- * `role="group"` and not a bare `<div>`, because {@link presentStatsPanel} makes
- * every tile a tab stop so its card can be reached from a keyboard, and a
- * focusable element with no role and no name is a stop a screen reader has
- * nothing to announce at. The name is written with the caption in
- * `redrawCaptions`, so a change of language repaints it along with everything
- * else the tile says.
+ * One tile's markup: caption, value, and a chart for a sparked tile.
+ * `role="group"` names the tile so a screen reader has something to announce when it is
+ * tabbed to, since it is also a focusable card trigger.
  */
 function tileMarkup(tile: TileConfig): string {
   const spark =
@@ -359,16 +260,9 @@ interface TileRefs {
 }
 
 /**
- * Parses one tile's markup and collects the refs {@link presentStatsPanel} needs.
- *
- * The value is two nodes, not one string: the digits, then the unit in a
- * `<small>` a size down and a shade back, so that a column of these reads as a
- * column of numbers. The digits go in a text node created here and patched in
- * place, which is what lets the `<small>` be built once with the tile rather
- * than reinserted on every tick of the run.
- *
- * @param tile - The tile's configuration.
- * @returns Its element and the parts of it that get patched.
+ * Parses one tile's markup and collects the refs a draw needs to patch it.
+ * The digits live in their own text node so the `<small>` unit beside them is built once,
+ * not reinserted on every tick.
  */
 function buildTile(tile: TileConfig): TileRefs {
   const rootEl = renderElement(tileMarkup(tile));
@@ -385,13 +279,7 @@ function buildTile(tile: TileConfig): TileRefs {
   };
 }
 
-/**
- * Builds and drives the stats panel.
- *
- * @param parent - The element the panel's markup is written into.
- * @param world - The run whose figures the panel reports.
- * @returns The presenter, already built and drawn once.
- */
+/** Builds and drives the stats panel; the returned presenter is already drawn once. */
 export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanelPresenter {
   parent.innerHTML = statsPanelTemplate();
   const root = requireElement(".statspanel", parent);
@@ -411,14 +299,9 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
   let shown: TileRefs | null = null;
 
   /**
-   * Dismisses the card on Escape, from wherever in the document it was pressed.
-   *
-   * On the document and not on the panel, because a card opened by pointing at
-   * a tile leaves focus where it already was — `<body>` on a page nobody has
-   * tabbed into — so a handler bound inside the strip would answer only the
-   * cards a player had tabbed to. Bound while a card is up and unbound with it:
-   * the panel is built again from scratch on every redraw of the world, and a
-   * listener left behind per redraw is a listener left behind for ever.
+   * Dismisses the card on Escape from anywhere in the document, since a card opened by
+   * pointing leaves focus wherever it already was, not necessarily inside the panel.
+   * Bound only while a card is up and removed with it, so a rebuild never leaks a listener.
    */
   function dismissOnEscape(event: KeyboardEvent): void {
     if (event.key === "Escape") {
@@ -436,12 +319,7 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
     card.hidden = true;
   }
 
-  /**
-   * Puts the card on its tile — on opening, and again after a language change
-   * has rewritten it into a taller or shorter sentence.
-   *
-   * @param ref - The tile the card is standing on.
-   */
+  /** Positions the card over its tile; called again after a language change resizes it. */
   function placeCard(ref: TileRefs): void {
     const position = positionCardOverTile(
       ref.rootEl.getBoundingClientRect(),
@@ -449,21 +327,13 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
       card.offsetWidth,
       card.offsetHeight,
     );
-    // Less the panel's own border, because the two are not measured from the
-    // same corner: `getBoundingClientRect` starts at the border box and an
-    // absolutely positioned child's `top` starts at the padding box inside it.
-    // The panel's hairline along the top is a pixel of exactly that difference,
-    // and it is the pixel that would sit between this card and its tile.
+    // Offset by the panel's border: getBoundingClientRect measures the border box, but an
+    // absolutely positioned child's top/left starts at the padding box inside it.
     card.style.left = `${String(position.x - root.clientLeft)}px`;
     card.style.top = `${String(position.y - root.clientTop)}px`;
   }
 
-  /**
-   * Shows the card for one tile: its caption in full, and the sentence saying
-   * what the figure counts.
-   *
-   * @param ref - The tile being explained.
-   */
+  /** Shows the card for one tile: its full caption and the sentence explaining its figure. */
   function showCard(ref: TileRefs): void {
     if (shown !== null && shown !== ref) {
       shown.rootEl.removeAttribute("aria-describedby");
@@ -473,8 +343,7 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
     card.hidden = false;
     ref.rootEl.setAttribute("aria-describedby", card.id);
     shown = ref;
-    // Adding a listener a second time with the same callback and phase does
-    // nothing, so moving from one tile to the next needs no guard here.
+    // Re-adding the same listener is a no-op, so switching tiles needs no guard.
     card.ownerDocument.addEventListener("keydown", dismissOnEscape);
     placeCard(ref);
   }
@@ -486,10 +355,8 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
       showCard(ref);
     });
     ref.rootEl.addEventListener("pointerleave", (event) => {
-      // Not when the pointer left for the card itself, which stands flush on
-      // the tile's top edge: reading a card by pointing at it is WCAG 1.4.13's
-      // "hoverable", and the card's own `pointerleave` below is what closes it
-      // when the pointer finally goes elsewhere.
+      // Ignore leaving toward the card itself, flush on the tile's edge, so a pointer can
+      // move onto it without closing it — WCAG 1.4.13 hoverable.
       if (event.relatedTarget instanceof Node && card.contains(event.relatedTarget)) {
         return;
       }
@@ -517,9 +384,7 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
     }
     moreSummaryCap.textContent = t("game.statsPanel.more");
     if (shown !== null) {
-      // A card standing open through a change of language is rewritten in the
-      // new one rather than dropped, and then placed again: the sentence it
-      // holds is what decides how tall it is.
+      // Keep an open card showing, re-rendered and repositioned for the new language.
       showCard(shown);
     }
   }

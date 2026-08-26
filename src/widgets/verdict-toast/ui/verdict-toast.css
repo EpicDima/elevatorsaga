@@ -1,49 +1,22 @@
 /*
- * The card a finished run puts up: the live region it is drawn into, the card's
- * own surface, its mark, headline and actions.
- *
- * A card standing at the foot of the stage, over the building, rather than a
- * full-bleed scrim across the whole track: the building underneath is the other
- * half of the verdict -- the queue still standing on floor 9 is the answer to
- * what went wrong, and a curtain drawn over it answers nothing.
+ * The card a finished run puts up, over the building rather than a full-bleed
+ * scrim: the queue still waiting on floor 9 is part of the verdict.
  */
 
 /*
- * The card is drawn into `.feedbackcontainer`, which stays exactly where
- * `index.html` has it -- a child of `.worldtrack` rather than of `.stagewrap`.
- * It has to: that element is the page's permanent `role="status"`, and
- * everything from `.stagewrap` down is emptied and rebuilt on every redraw of
- * the world, which is the one thing a live region cannot survive. Nothing is
- * given up by staying. Measured live at 1280x900 with `getBoundingClientRect`,
- * `.worldtrack` and `.stagewrap` are the same box to the pixel -- both
- * 793.59x699.48 at (0, 92) -- because `.innerworld` and `.stagewrap` are each
- * the only `flex: 1` child of their parent, so opening the container over that
- * box puts the card in the same pixels either parent would give it.
+ * Stays a child of `.worldtrack`, not `.stagewrap`, since `.stagewrap` is
+ * emptied and rebuilt on every redraw, which the page's permanent
+ * `role="status"` live region cannot survive.
  */
 .feedbackcontainer {
   position: absolute;
   inset: 0;
 
-  /*
-   * The container covers the whole stage and is empty for all but the last
-   * moment of a run, so a sheet that could take the pointer would swallow
-   * every hover and click the floors, the shafts and the cars live on. The
-   * card takes the pointer back for itself.
-   */
+  /* Covers the whole stage, so pointer events must pass through to the building underneath. */
   pointer-events: none;
 }
 
-/*
- * Width by content: a card stretched across the stage wrapped its headline
- * while half the row beside it was still empty. The 420px floor under that is
- * safe because the window cannot go under 1040px -- `body.app`'s own minimum,
- * held by `e2e/reflow.spec.ts` -- which leaves the stage well over 420px wide
- * even with the splitter dragged as far toward the editor as it goes.
- *
- * No `[hidden]` companions for this rule or the two below: `presentVerdictToast`
- * builds a card and empties the container to dismiss it, so there is never an
- * element here to hide.
- */
+/* 420px floor is safe since `body.app`'s minimum width keeps the stage wider than that. */
 .verdict {
   position: absolute;
   right: 0;
@@ -73,33 +46,13 @@
   }
 }
 
-/*
- * The card's arrival is decoration and nothing besides -- the mark, the
- * headline and the live region each say the whole of it without the movement
- * -- so it goes entirely.
- */
 @media (prefers-reduced-motion: reduce) {
   .verdict {
     animation: none;
   }
 }
 
-/*
- * A grid with a fixed basis rather than a flex item left to itself: flex would
- * press the circle into an oval the moment the headline beside it grew.
- *
- * The colors are `.tierstate`'s (`widgets/goal-bar`), the one other badge
- * in the app painting this same held/lost pair: --ds-ok on --ds-ok-soft, and
- * --ds-bad-ink rather than plain --ds-bad on --ds-bad-soft. The mark
- * is `aria-hidden` and stands beside a headline saying the same thing in
- * words, so WCAG asks 1.4.11's 3:1 of it at most, and both badges are soft --
- * 14% dark, 12% light -- so the ink is really read against the panel showing
- * through. Measured over that composite (`getComputedStyle`, the badge painted
- * on --ds-panel): the check 5.98:1 dark and 3.97:1 light, the cross 4.57:1 and
- * 5.08:1. --ds-bad is not far behind (4.30:1 light) and would pass too; the
- * ink step is taken anyway, both because `.tierstate` takes it and because a
- * cross has to hold its own beside a check that reads half again as clearly.
- */
+/* Fixed flex basis keeps the circle from being pressed into an oval when the headline grows. */
 .verdict-mark {
   display: grid;
   flex: 0 0 38px;
@@ -144,17 +97,7 @@
   font-size: 12.5px;
 }
 
-/*
- * Quieter than the verdict above it -- read if the player wants it, never
- * instead of it -- but by size alone. --ds-text-faint would measure 3.62:1 dark
- * and 3.14:1 light against the card's own --ds-panel (`getComputedStyle`),
- * short of WCAG 1.4.3's 4.5:1 in both; --ds-text-muted clears it at 6.70:1 and
- * 5.90:1, inherited from `.verdict p`.
- *
- * Written against `.verdict` rather than on its own: a bare `.verdict-more`
- * loses both of its declarations to `.verdict p` on specificity, and its hint
- * would render at the message's own size.
- */
+/* Scoped to `.verdict` since a bare `.verdict-more` loses to `.verdict p` on specificity. */
 .verdict .verdict-more {
   font-size: 12px;
 }

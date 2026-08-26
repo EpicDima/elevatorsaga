@@ -33,10 +33,9 @@ function fixtureWorld(): World {
 }
 
 /**
- * A world with a known-good figure in each of the eleven fields `readSnapshot`
- * takes straight off a world. The panel's other two tiles, `waitingNow` and
- * `aboardNow`, are counted from the floors and cars instead and so cannot be
- * set here; they are covered by their own cases.
+ * A world with a known-good figure in each field `readSnapshot` takes straight off a world.
+ * `waitingNow` and `aboardNow` are counted from floors and cars instead, so they can't be set
+ * here; they're covered by their own test cases.
  */
 function worldWithStats(): World {
   const world = fixtureWorld();
@@ -54,12 +53,7 @@ function worldWithStats(): World {
   return world;
 }
 
-/**
- * Mounts a stats panel for a world, ready for a test to inspect.
- *
- * @param world - The run whose figures the panel reads.
- * @returns The mounted parent.
- */
+/** Mounts a stats panel for a world, ready for a test to inspect. */
 function setUp(world: World): HTMLElement {
   const parent = document.createElement("div");
   document.body.append(parent);
@@ -158,9 +152,7 @@ describe("presentStatsPanel", () => {
       tile.dispatchEvent(new Event("pointerenter"));
       return cardText.textContent;
     });
-    // Not one tile left unexplained, and no explanation reused: a caption is
-    // short enough to be read backwards, and every one of them has its own way
-    // of being read backwards.
+    // Not one tile left unexplained, and no explanation reused across tiles.
     expect(sentences.filter((line) => line !== "")).toHaveLength(tiles.length);
     expect(new Set(sentences).size).toBe(tiles.length);
 
@@ -174,8 +166,7 @@ describe("presentStatsPanel", () => {
     expect(sentence("transportedPerSec")).toBe(
       "Everyone delivered so far, over the time the run has taken, so it is the whole run's average rather than the rate at this moment",
     );
-    // And the caption over it in full, which is the other half of what the card
-    // is for: the grids truncate a caption to one line.
+    // The card also carries the caption in full; the grids truncate it to one line.
     expect(requireElement(".statcard-title", parent).textContent).toBe("Transported/s");
   });
 
@@ -209,8 +200,7 @@ describe("presentStatsPanel", () => {
 
     expect(card.hidden).toBe(true);
     expect(tile.hasAttribute("aria-describedby")).toBe(false);
-    // The card goes, the figure keeps the focus: the WAI-ARIA tooltip pattern's
-    // own contract, and the reason Escape is not just another way to blur.
+    // The WAI-ARIA tooltip pattern's contract: Escape closes the card without moving focus.
     expect(document.activeElement).toBe(tile);
   });
 
@@ -226,10 +216,8 @@ describe("presentStatsPanel", () => {
     expect(card.hidden).toBe(true);
     expect(tile.hasAttribute("aria-describedby")).toBe(false);
 
-    // Both ways of putting a card down reach the same tile in one move -- a
-    // player who presses Escape and then tabs away sends an Escape and a blur
-    // at a card that is already down -- so the second one has to be a no-op
-    // rather than an attempt to unbind from a tile there no longer is.
+    // A player who presses Escape then tabs away sends both a keydown and a blur at an
+    // already-closed card, so the second dismissal must be a no-op.
     tile.dispatchEvent(new Event("blur"));
     expect(card.hidden).toBe(true);
   });
@@ -243,8 +231,7 @@ describe("presentStatsPanel", () => {
     expect(card.hidden).toBe(false);
     expect(document.activeElement).toBe(document.body);
 
-    // Every other key goes past it. The listener is on the document while a
-    // card is up, so it sees the whole page's typing -- including the editor's.
+    // The listener sits on the document while a card is up, so it sees every key, not just Escape.
     document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true }));
     expect(card.hidden).toBe(false);
 
@@ -295,9 +282,8 @@ describe("presentStatsPanel", () => {
   });
 
   it("gives each mounted panel a card of its own to point at", () => {
-    // The id is what `aria-describedby` names, and two panels on one document
-    // -- a redraw of the world before the old one is gone -- would otherwise
-    // point every tile at whichever card was parsed first.
+    // Two panels on one document (a redraw before the old one is gone) would otherwise
+    // point every tile's aria-describedby at whichever card was parsed first.
     const first = setUp(fixtureWorld());
     const second = setUp(fixtureWorld());
 
@@ -305,9 +291,8 @@ describe("presentStatsPanel", () => {
   });
 
   it("stops listening for Escape once the card is down", () => {
-    // The listener is on the document and this panel is built again from
-    // scratch on every redraw of the world, so one left behind per card shown
-    // is one left behind for good.
+    // The listener is on the document and this panel is rebuilt from scratch on every
+    // redraw, so one left behind per card shown is one left behind for good.
     const parent = setUp(fixtureWorld());
     const listening = vi.spyOn(document, "removeEventListener");
     const tile = tileOf(parent, "avgWaitTime");
@@ -339,10 +324,8 @@ describe("presentStatsPanel", () => {
   });
 
   it("sets the unit a size down, in its own <small>, leaving the digits alone", () => {
-    // The unit is smaller and quieter than the figure it belongs to, so it has
-    // to be an element of its own. The digits stay a bare text node next to it,
-    // which is also what lets a redraw touch them without disturbing the
-    // <small>.
+    // The digits stay a bare text node next to the <small>, which is what lets a redraw
+    // touch them without disturbing the unit element.
     const parent = setUp(worldWithStats());
     const val = (stat: string): HTMLElement =>
       requireElement(`.tile[data-stat="${stat}"] .tile-val`, parent);
@@ -353,8 +336,7 @@ describe("presentStatsPanel", () => {
     expect(requireElement("small", val("avgLoadFactorOnMove")).textContent).toBe("%");
     expect(val("avgLoadFactorOnMove").firstChild?.textContent).toBe("57");
 
-    // A figure with no unit keeps the element, empty: it is one tile among
-    // thirteen and the redraw path is the same for all of them.
+    // A figure with no unit keeps the <small>, empty, so the redraw path stays the same for every tile.
     expect(requireElement("small", val("moveCount")).textContent).toBe("");
     expect(val("moveCount").textContent).toBe("7");
   });
@@ -446,9 +428,8 @@ describe("presentStatsPanel", () => {
     tile.dispatchEvent(new Event("pointerenter"));
     presenter.update();
 
-    // A language change is the only thing that calls this, and dropping the
-    // card would leave a pointer resting on a figure with nothing to read
-    // until it moved off and back.
+    // Called on a language change; dropping the card would leave a pointer resting on a
+    // figure with nothing to read until it moved off and back.
     expect(card.hidden).toBe(false);
     expect(tile.getAttribute("aria-describedby")).toBe(card.id);
     expect(requireElement(".statcard-title", parent).textContent).toBe("Avg delivery time");

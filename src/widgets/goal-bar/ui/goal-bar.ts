@@ -1,26 +1,8 @@
 /**
- * The goal bar: the level's own meters plus the bronze/silver/gold tier
- * popover.
- *
- * Drawing is split in two rather than rebuilding everything on every tick:
- *
- * - `rebuild()` creates the DOM structure — one `<div class="meter">` per
- *   requirement (or the free-state block, for a level with none), with
- *   its caption, tick marks and unit already baked in — and saves the
- *   elements later ticks need to patch. Runs at construction and again on
- *   every {@link GoalBarPresenter.update}, i.e. on a language change: the
- *   captions and requirement sentences are translated prose, and a redraw
- *   that only patched numbers would leave them in whatever language the
- *   widget was built in.
- * - `draw()` patches only the live values a tick can change — current
- *   figures, bar widths, the `is-near`/`is-late`/`is-done` classes, the
- *   trigger's badge and title — without touching any translated text node.
- *   Wired to `world.on("stats_display_changed", draw)` once, the same
- *   contract `presentStatsPanel` uses.
- *
- * The tier popover's own rows follow a third rule, spelled out on
- * `drawTierRows` below: they cost nothing while the popover is closed, and
- * are guaranteed fresh the instant it opens.
+ * The goal bar: the level's own meters plus the bronze/silver/gold tier popover.
+ * Drawing splits into `rebuild()`, which rebuilds structure and translated
+ * prose (on construction and language change), and `draw()`, which patches
+ * only live values on every tick.
  */
 
 import {
@@ -58,16 +40,7 @@ export interface GoalBarPresenter {
   update(): void;
 }
 
-/**
- * A message key that takes no parameters.
- *
- * `METER_FORMAT`'s own `unitKey` is read out of a table and handed to `t`
- * dynamically rather than written as a literal at each call site — narrowing
- * the type here is what keeps that call typeable, the same trick
- * `src/ui/localize-page.ts`'s own `ShellMessageKey` uses for the same
- * reason: with the whole of {@link MessageKey} the parameter object would be
- * mandatory, since some member of that union demands one.
- */
+/** A message key that takes no parameters, so `t` stays callable with a key looked up dynamically. */
 type NoParamMessageKey = { [K in MessageKey]: MessageArgs<K> extends [] ? K : never }[MessageKey];
 
 /** How a main meter prints its current value and its bar. */
@@ -80,16 +53,7 @@ interface MeterFormat {
   readonly unitKey?: NoParamMessageKey;
 }
 
-/**
- * Formatting for the four fields a level's own bronze requirements ever
- * name (`buildGoalMeters` is built from `level.condition.requirements`,
- * and every existing level's bronze condition reads one of these).
- *
- * `elapsedTime`'s current value carries 0 decimals, matching the statistics
- * panel's own elapsed-time tile, which formats with `seconds(value)` and so
- * takes that helper's default of none. The threshold side keeps 1 decimal,
- * since a real `underElapsedTime`-style limit can be fractional.
- */
+/** Formatting for the fields a level's bronze requirements can name. */
 const METER_FORMAT: Partial<Record<keyof LevelWorldStats, MeterFormat>> = {
   transportedCounter: { currentDigits: 0, thresholdDigits: 0 },
   elapsedTime: { currentDigits: 0, thresholdDigits: 1, unitKey: "game.goalBar.unit.seconds" },
@@ -127,13 +91,9 @@ const TIER_STATE_ICON: Readonly<Record<TierRowState, SpriteIconName>> = {
 const NEAR_THRESHOLD = 0.8;
 
 /**
- * Which state class a main meter draws, if any.
- *
- * An at-least requirement (only `transportedCounter`, today) has nothing
- * between "not there yet" and "done" — there is no useful sense in which
- * carrying 40 of 100 people is "close." An at-most requirement is the
- * opposite: still fine until it is broken, and "near" only warns that it is
- * about to be.
+ * Which state class a main meter draws, if any. An at-least requirement only
+ * has "not there yet" or "done"; an at-most requirement also has "near," for
+ * a limit about to be broken.
  */
 function meterStateClass(meter: GoalMeterView): "is-done" | "is-near" | "is-late" | "" {
   if (meter.requirement.comparison === "atLeast") {
@@ -144,11 +104,8 @@ function meterStateClass(meter: GoalMeterView): "is-done" | "is-near" | "is-late
 
 /**
  * The silver/gold tick marks a bronze meter's own bar draws.
- *
- * Skipped for `transportedCounter` — a defensive no-op, since no level tightens
- * a passenger-count floor tier over tier — and for any field a silver/gold
- * requirement does not itself mention. A tick within 3% of either edge is
- * skipped too, being indistinguishable from the bar's own ends.
+ * Skipped for `transportedCounter` and for ticks within 3% of either edge,
+ * indistinguishable from the bar's own ends.
  */
 function meterTicks(
   requirement: TierRequirementInfo,
@@ -194,14 +151,7 @@ interface MeterRefs {
   readonly fillEl: HTMLElement;
 }
 
-/**
- * Builds and drives the goal bar.
- *
- * @param parent - The element the goal bar's markup is written into.
- * @param world - The run whose figures the bar reads.
- * @param options - The level being played and how to ask whether it is won.
- * @returns The presenter, already built and drawn once.
- */
+/** Builds and drives the goal bar. */
 export function presentGoalBar(
   parent: HTMLElement,
   world: World,
@@ -219,17 +169,7 @@ export function presentGoalBar(
   let meterRefs: readonly MeterRefs[] = [];
   let extraNodes: readonly HTMLElement[] = [];
 
-  /**
-   * Rebuilds the tier popover's rows from scratch.
-   *
-   * Numbers in the popover are only ever computed while it is open — see
-   * `tier-rows.ts`'s own doc comment — so this is a no-op while closed, and
-   * this is also what {@link presentGoalBar}'s own click listener on
-   * `tierOpen` calls, added after {@link createDisclosure} has already run
-   * its own toggle: opening the popover while paused, or after the run has
-   * already ended, must not show whatever was left over from the last time a
-   * tick happened to fire.
-   */
+  /** Rebuilds the tier popover's rows from scratch; a no-op while the popover is closed. */
   function drawTierRows(): void {
     if (!disclosure.isOpen()) {
       return;

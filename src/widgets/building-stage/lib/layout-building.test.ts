@@ -54,11 +54,8 @@ describe("layoutBuilding", () => {
   });
 
   it("distributes uneven weights by cumulative rounding, not per-floor rounding", () => {
-    // room = max(160, 260-38) = 222; unit = 222/4 = 55.5 (weights sum to 4).
-    // Cumulative: 55.5→56, 166.5→167, 222→222, giving heights [56, 111, 55]
-    // that sum to exactly 222. Rounding each floor's own 55.5/111/55.5
-    // independently would give 56+111+56 = 223, one pixel of drift the
-    // cumulative approach exists specifically to avoid.
+    // unit = 222/4 = 55.5; cumulative rounding gives [56, 111, 55] summing to exactly 222,
+    // where rounding each floor independently would give 56+111+56 = 223.
     const layout = layoutBuilding({
       stageHeight: 260,
       stageWidth: 1000,
@@ -98,10 +95,9 @@ describe("layoutBuilding", () => {
   });
 
   it("clamps every shaft down to MIN_SHAFT together when six wide cars won't fit", () => {
-    // wanted = clamp(34, 24+80, 116)+7 = 111 for each of six capacity-10 cars;
-    // asked = 111*6 + 7*5 = 701. A narrow stage clamps free to its 120px
-    // floor, so free/asked (~0.17) is pulled up to floorScale (46/111), the
-    // scale that puts the narrowest wanted shaft exactly at MIN_SHAFT.
+    // wanted = 111 for each of six capacity-10 cars; a narrow stage clamps free to its
+    // 120px floor, so free/asked is pulled up to floorScale (46/111), pinning every
+    // shaft at exactly MIN_SHAFT.
     const layout = layoutBuilding({
       stageHeight: 1000,
       stageWidth: 300,
@@ -115,10 +111,8 @@ describe("layoutBuilding", () => {
   });
 
   it("scales shafts by a ratio strictly between MIN_SHAFT's floor and 1 when compression is moderate", () => {
-    // Four capacity-4 cars each want 63px; asked = 63*4 + 12*3 = 288.
-    // stageWidth 553 gives free = 553-32-84-170-22 = 245, so scale =
-    // 245/288 ≈ 0.8507 — above floorScale (46/63 ≈ 0.730) and below 1, so
-    // the free/asked ratio itself is what binds, not either clamp bound.
+    // Four capacity-4 cars each want 63px; free/asked ≈ 0.8507, above floorScale
+    // (46/63 ≈ 0.730) and below 1, so the ratio itself binds, not either clamp bound.
     const layout = layoutBuilding({
       stageHeight: 1000,
       stageWidth: 553,
@@ -133,10 +127,8 @@ describe("layoutBuilding", () => {
   });
 
   it("gives five elevators a 12px gap and six elevators a 7px gap, all else equal", () => {
-    // Capacity-1 cars want 41px each — already under MIN_SHAFT/0.55 scaling
-    // room, so floorScale exceeds 1 and every scale clamps to exactly 1
-    // regardless of stage width. That isolates the >5-elevator gap rule from
-    // any width-driven compression.
+    // Capacity-1 cars want 41px each, already under MIN_SHAFT, so scale clamps to exactly
+    // 1 regardless of stage width, isolating the >5-elevator gap rule from compression.
     const five = layoutBuilding({
       stageHeight: 1000,
       stageWidth: 2000,
@@ -178,12 +170,9 @@ describe("layoutBuilding", () => {
   });
 
   it("marks a cabin 'counted' only once its capacity no longer fits as rider figures", () => {
-    // A tall stage keeps carHeight well above 38, so the rider-width clamp
-    // saturates at its own 16px ceiling (riderWidth = round(16*0.55)+1 = 10)
-    // in both cases — isolating the capacity/width boundary itself. At
-    // capacity 6 the shaft (79px, scale 1) leaves exactly 60px inside, equal
-    // to 6*10: not counted, since the comparison is strict. Capacity 7's
-    // shaft (87px) leaves 68px against 7*10 = 70: counted.
+    // riderWidth saturates at 10px in both cases. Capacity 6's shaft leaves exactly 60px
+    // inside, equal to 6*10: not counted, since the comparison is strict. Capacity 7's
+    // shaft leaves 68px against 7*10 = 70: counted.
     const notCounted = layoutBuilding({
       stageHeight: 2000,
       stageWidth: 2000,

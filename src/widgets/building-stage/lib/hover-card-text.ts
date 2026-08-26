@@ -1,16 +1,7 @@
 /**
- * Text for the elevator and floor hover cards, from a plain snapshot of
- * engine state rather than the live `Elevator`/`Floor`/`User` objects
- * themselves — so it is unit-testable without a DOM or a running world, the
- * same way `layout-building.ts` and `shaft-scale.ts` are.
- *
- * The engine has no persistent "doors open" flag, only the transient
- * `boarding_started`/arrival events (`src/game/elevator.ts`), so the state
- * line collapses to the three things a snapshot *can* answer at any instant:
- * moving up, moving down, or stopped. `isMoving` with `velocityY === 0` (the
- * very first instant of a move, before acceleration has produced a sign) is
- * treated as "moving down" — a one-frame cosmetic wrinkle, not a state a
- * hover card is ever likely to be read during.
+ * Text for the elevator and floor hover cards, built from a plain snapshot of engine state
+ * rather than the live objects, so it's unit-testable without a DOM or a running world.
+ * `isMoving` with `velocityY === 0` (the first instant of a move) reads as "moving down".
  */
 
 import { elevatorLabel } from "../../../ui/templates.ts";
@@ -87,12 +78,7 @@ function pressedFloorsLine(pressedFloors: readonly number[]): string {
   });
 }
 
-/**
- * Builds an elevator hover card's text.
- *
- * @param snapshot - The car's current state.
- * @returns The card's title and body lines.
- */
+/** Builds an elevator hover card's text. */
 export function elevatorCardText(snapshot: ElevatorCardSnapshot): HoverCardText {
   return {
     title: elevatorLabel(snapshot.index),
@@ -117,12 +103,7 @@ function floorDestinationsLine(destinationFloors: readonly number[]): string {
   });
 }
 
-/**
- * Builds a floor hover card's text.
- *
- * @param snapshot - The floor's current queue state.
- * @returns The card's title and body lines.
- */
+/** Builds a floor hover card's text. */
 export function floorCardText(snapshot: FloorCardSnapshot): HoverCardText {
   const lines = [t("game.buildingStage.floorCard.waiting", { count: snapshot.waitingCount })];
   if (snapshot.longestWaitSeconds !== undefined) {

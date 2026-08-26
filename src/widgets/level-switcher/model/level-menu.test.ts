@@ -12,20 +12,7 @@ function fixtureLevels(count: number): readonly Level[] {
   }));
 }
 
-/**
- * Stand-in Skyscraper levels, built like {@link fixtureLevels} rather than
- * imported like `tutorialLevels`.
- *
- * The block is the one still being written — it holds a single level today —
- * so a menu assembled from the real table could not say anything about a
- * second tile: which one a selection marks current, or which one a tier is
- * keyed to. Only `id` is read here, and it is spelled the way the shipped
- * entries are, since it is what `buildHref` and `bestSkyscraperTiers` are
- * keyed by.
- *
- * @param count - How many levels the block should hold.
- * @returns That many levels, `sky-1` upwards.
- */
+/** Stand-in Skyscraper levels, built directly rather than imported like `tutorialLevels`. */
 function fixtureSkyscraperLevels(count: number): readonly SkyscraperLevel[] {
   return Array.from({ length: count }, (_unused, index) => ({
     id: `sky-${String(index + 1)}`,
@@ -74,14 +61,8 @@ describe("buildLevelMenu", () => {
   it("returns the tutorial, levels, skyscraper and other blocks in that order", () => {
     const blocks = buildLevelMenu(baseInput());
 
-    // The last is `other` and not `sandbox` even though the sandbox is the
-    // only tile in it -- the block and its one tile are captioned with two
-    // different words on screen, so they have two different names here.
-    //
-    // `skyscraper` comes after `levels` and not before, which is the whole of
-    // what the order promises: the numbered nineteen are the original game and
-    // the tiles a returning player reaches for, so a block wedged above them
-    // would move every one of them.
+    // Named `other`, not `sandbox`: the block and its one tile carry different
+    // on-screen captions, so they need different ids here too.
     expect(blocks.map((block) => block.id)).toEqual(["tutorial", "levels", "skyscraper", "other"]);
   });
 
@@ -129,10 +110,6 @@ describe("buildLevelMenu", () => {
   });
 
   it("opens every level tile, whatever is on record", () => {
-    // Levels used to shut until the one before them had any tier on record.
-    // Nothing does now, in this block or any other, so a browser that has
-    // cleared nothing gets the same five open tiles as one that has cleared
-    // them all -- the record is read for the badge alone.
     const [, levelBlock] = buildLevelMenu(
       baseInput({ levels: fixtureLevels(5), bestTiers: new Map([[0, "bronze"]]) }),
     );
@@ -168,9 +145,8 @@ describe("buildLevelMenu", () => {
   });
 
   it("numbers skyscraper tiles from one and links each to its level id", () => {
-    // Linked by id and not by position, the way a lesson is: the block is the
-    // one still being written, so a level inserted into the middle of it must
-    // not hand somebody's bookmark to its neighbor.
+    // Linked by id, not position, so inserting a level later doesn't hand
+    // someone's bookmark to its neighbor.
     const [, , skyscraperBlock] = buildLevelMenu(
       baseInput({ skyscraperLevels: fixtureSkyscraperLevels(3) }),
     );
@@ -188,9 +164,8 @@ describe("buildLevelMenu", () => {
   });
 
   it("carries a skyscraper tile's best tier through, undefined when never cleared", () => {
-    // Keyed by the level's id, not by its position: the two tier records are
-    // two storage keys that know nothing about each other, and this is the one
-    // a Skyscraper level's medal is written to.
+    // Keyed by the level's id, not its position; the two tier records don't
+    // share keys.
     const [, , skyscraperBlock] = buildLevelMenu(
       baseInput({
         skyscraperLevels: fixtureSkyscraperLevels(3),
@@ -205,9 +180,8 @@ describe("buildLevelMenu", () => {
   });
 
   it("reads the skyscraper tiers from their own record and not the numbered one", () => {
-    // The two maps are keyed differently on purpose -- a numbered level by its
-    // position, a Skyscraper level by its id -- so a bronze on level 1 must not
-    // light up `sky-1`, and neither may reach into the other's block.
+    // The maps are keyed differently on purpose, by position vs. by id, so
+    // neither may reach into the other's block.
     const [, levelBlock, skyscraperBlock] = buildLevelMenu(
       baseInput({
         levels: fixtureLevels(2),
@@ -239,8 +213,7 @@ describe("buildLevelMenu", () => {
   });
 
   it("keeps a skyscraper selection out of the block that shares its numbering", () => {
-    // Both blocks number their tiles from one, so an index alone does not say
-    // which block it belongs to. `kind` is what does.
+    // Both blocks number tiles from one, so `kind`, not the index alone, says which block a selection belongs to.
     const [, levelBlock, skyscraperBlock] = buildLevelMenu(
       baseInput({
         levels: fixtureLevels(3),

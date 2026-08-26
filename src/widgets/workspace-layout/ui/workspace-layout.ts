@@ -1,23 +1,7 @@
 /**
- * The workspace's two panes and the splitter between them.
- *
- * Builds the `.workspace` skeleton — the building's pane, the
- * draggable/keyboard-resizable boundary, and the editor's pane — and wires the
- * boundary three ways: Pointer Events with capture for the drag, the
- * `separator` role for the keyboard, and a double-click back to the default.
- *
- * Three details of that wiring are deliberate and easy to undo by accident:
- *
- * - The pointer handlers ignore a non-primary pointer and a non-primary
- *   button, so a right-click never starts a drag the browser's own context
- *   menu then fights with.
- * - The percentage is written to storage once, when a drag or a key press
- *   ends, not from inside the move handler, which can fire dozens of times a
- *   second during a single drag. The value that ends up stored is identical
- *   either way; only the number of writes differs.
- * - The keyboard handler bails on Alt/Ctrl/Meta/Shift rather than calling
- *   `preventDefault()` unconditionally, which on Alt+ArrowLeft/Right would
- *   also swallow the browser's own back/forward navigation.
+ * The workspace's two panes and the splitter between them, wired for
+ * Pointer Events drag, keyboard resize (`separator` role), and a
+ * double-click reset to the mode's default split.
  */
 
 import {
@@ -59,20 +43,7 @@ export interface WorkspaceLayoutElements {
   readonly splitter: HTMLElement;
 }
 
-/**
- * Builds the workspace's DOM skeleton, detached from any document.
- *
- * Both panes are built empty: what goes inside each is `widgets/building-stage`
- * and `widgets/editor-pane`, and this module knows only where they go, not what
- * they hold.
- *
- * @param document - The document to create the elements in, so a caller can
- * build into a document other than the global one — a test builds into its own
- * rather than reaching for the global `document`.
- * @param labels - The localized `aria-label` text for each part.
- * @returns The workspace element and the three children a caller mounts
- * content into or wires up.
- */
+/** Builds the workspace's DOM skeleton, detached from any document, with both panes empty. */
 export function buildWorkspaceLayoutSkeleton(
   document: Document,
   labels: WorkspaceLayoutLabels,
@@ -123,12 +94,7 @@ export interface WorkspaceLayoutOptions {
   readonly storage: Storage;
 }
 
-/**
- * Wires the splitter and restores the mode and split a player left behind.
- *
- * @param options - The skeleton, the element to write onto, and the store.
- * @returns A controller for switching layout modes.
- */
+/** Wires the splitter and restores the mode and split a player left behind. */
 export function presentWorkspaceLayout(options: WorkspaceLayoutOptions): WorkspaceLayoutController {
   const { elements, root, storage } = options;
   const { workspace, splitter } = elements;
@@ -145,13 +111,9 @@ export function presentWorkspaceLayout(options: WorkspaceLayoutOptions): Workspa
 
   /**
    * Clamps `split` to what the current window allows, then writes both the
-   * split and the mode onto {@link WorkspaceLayoutOptions.root}.
-   *
-   * `aria-valuemin`/`aria-valuemax` are computed from the workspace's actual
-   * width rather than fixed at a static `20`/`85`: a range that
-   * only ever widens or narrows the *reachable* bound would tell a screen
-   * reader user the boundary can go somewhere a drag would immediately pull
-   * it back from.
+   * split and the mode onto {@link WorkspaceLayoutOptions.root}. The
+   * `aria-valuemin`/`aria-valuemax` range is computed from the workspace's
+   * actual width so it never claims a bound a drag would immediately reject.
    */
   const apply = (): void => {
     const range = splitRange(workspace.clientWidth);
@@ -198,9 +160,8 @@ export function presentWorkspaceLayout(options: WorkspaceLayoutOptions): Workspa
       return;
     }
     const box = workspace.getBoundingClientRect();
-    // The boundary follows the pointer's absolute position across the
-    // workspace, not the distance dragged from where the pointer went down: it
-    // sits under the pointer rather than offset from where the drag started.
+    // The boundary follows the pointer's absolute position, not the distance
+    // dragged from the pointer's starting point.
     split = ((event.clientX - box.left) / box.width) * 100;
     apply();
   });
@@ -227,9 +188,8 @@ export function presentWorkspaceLayout(options: WorkspaceLayoutOptions): Workspa
   });
 
   splitter.addEventListener("keydown", (event: KeyboardEvent) => {
-    // A modified arrow key belongs to the browser or the operating system --
-    // Alt+ArrowLeft/Right is back/forward, and claiming it here would take
-    // navigation away from a keyboard user who never touched the splitter.
+    // A modified arrow key belongs to the browser or OS, e.g. Alt+ArrowLeft
+    // is back/forward navigation.
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
       return;
     }

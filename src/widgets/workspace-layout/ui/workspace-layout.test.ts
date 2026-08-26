@@ -23,12 +23,7 @@ const LABELS = {
   splitter: "Ширина редактора",
 };
 
-/**
- * A pointer event jsdom does not have.
- *
- * Kept local rather than shared: it is a small, single-purpose stand-in for
- * one API jsdom does not implement, not an abstraction.
- */
+/** A pointer event jsdom doesn't have; kept local since it's a stand-in, not an abstraction. */
 class FakePointerEvent extends MouseEvent {
   readonly pointerId: number;
   readonly isPrimary: boolean;
@@ -54,17 +49,7 @@ interface Harness {
   press: (key: string, init?: KeyboardEventInit) => void;
 }
 
-/**
- * Mounts the workspace layout over a workspace of a given pixel width.
- *
- * jsdom lays nothing out, so the workspace's box is stood in for by a fixed
- * `DOMRect`.
- *
- * @param options - The width to lay the workspace out at, and the store to
- * read/write; both default to values chosen so the shipped default split
- * (62%) sits well inside the reachable range.
- * @returns The harness.
- */
+/** Mounts the workspace layout at a given pixel width, standing in a fixed `DOMRect` since jsdom lays nothing out. */
 function setUp(options: { readonly width?: number; readonly storage?: Storage } = {}): Harness {
   const width = options.width ?? 1200;
   const storage = options.storage ?? new MemoryStorage();
@@ -76,8 +61,7 @@ function setUp(options: { readonly width?: number; readonly storage?: Storage } 
   Object.defineProperty(elements.workspace, "clientWidth", { value: width, configurable: true });
   elements.workspace.getBoundingClientRect = (): DOMRect => new DOMRect(0, 0, width, 600);
 
-  // jsdom has no pointer capture; a pair that remembers the last id is enough
-  // to exercise both the release and the branch that skips it.
+  // jsdom has no pointer capture; this stand-in remembers the last id.
   let captured: number | null = null;
   elements.splitter.setPointerCapture = (pointerId: number): void => {
     captured = pointerId;

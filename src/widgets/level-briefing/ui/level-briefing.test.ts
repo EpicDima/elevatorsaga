@@ -16,16 +16,7 @@ beforeEach(() => {
   document.body.replaceChildren(parent);
 });
 
-/**
- * A briefing to draw.
- *
- * Barely a helper, and here for the reason `tutorial-panel.test.ts` keeps its
- * own: so that a spec reads as "the card, drawn with a title that looks like
- * markup" rather than as an object literal with one interesting field in it.
- *
- * @param overrides - The fields the spec is about.
- * @returns Data for one draw of the card.
- */
+/** A briefing to draw, with only the fields a spec cares about overridden. */
 function briefingData(overrides: Partial<LevelBriefingData> = {}): LevelBriefingData {
   return {
     title: "Morning rush",
@@ -45,10 +36,7 @@ describe("presentLevelBriefing", () => {
   });
 
   it("names the card after the level, so the region is a landmark a reader can find", () => {
-    // A <section> with no accessible name is not a landmark at all, which is
-    // the whole reason the element is a <section> rather than a <div>. The name
-    // is the level's own title, so the words announced on the way in are the
-    // words on the screen.
+    // A <section> with no accessible name isn't a landmark at all.
     presentLevelBriefing(parent, briefingData({ title: "Zoned dispatch" }));
 
     const card = requireElement(".briefingpanel", parent);
@@ -57,20 +45,14 @@ describe("presentLevelBriefing", () => {
   });
 
   it("puts the title at the heading level the rest of the page leaves for it", () => {
-    // <h2>, the same level the lesson card that shares this element emits. The
-    // page's <h1> is the game's, and two cards drawn into one region must not
-    // disagree about the outline of a document neither of them owns.
+    // Matches the lesson card's own heading level, since both share this region's document outline.
     presentLevelBriefing(parent, briefingData());
 
     expect(requireElement(".briefingtitle", parent).tagName).toBe("H2");
   });
 
   it("writes the title as text, whatever it looks like", () => {
-    // The title is escaped, so a level named after a tag is a heading that says
-    // the tag. Nothing a player typed reaches this field -- the editor's
-    // contents never come near this widget -- so this is not a guard against an
-    // attacker so much as against a level whose name contains a `<`, which
-    // would otherwise silently lose the rest of its title to a parser.
+    // Escaped so a level name containing `<` doesn't silently lose the rest of its title to the parser.
     presentLevelBriefing(parent, briefingData({ title: "<script>alert(1)</script>" }));
 
     expect(query("script", parent)).toBeNull();
@@ -79,10 +61,7 @@ describe("presentLevelBriefing", () => {
   });
 
   it("writes the briefing as the catalog markup it is", () => {
-    // The opposite treatment, and deliberately: a briefing is a `.html` message
-    // of this repository's own catalog and carries <code>, <em> and
-    // <span class="emphasis-color"> around the terms it introduces. Escaped, it
-    // would print those tags at the player.
+    // Deliberately unescaped: a briefing is trusted catalog HTML that carries markup around its terms.
     presentLevelBriefing(parent, briefingData({ briefing: "<em>lift</em> dispatch" }));
 
     const prose = requireElement(".briefingtext", parent);
@@ -91,9 +70,7 @@ describe("presentLevelBriefing", () => {
   });
 
   it("replaces the card it drew last time rather than stacking another on it", () => {
-    // `replaceChildren`, not `append`. The page redraws this at the start of
-    // every run and again whenever the language changes, so appending would
-    // leave a column of briefings for one level.
+    // `replaceChildren`, not `append`: this redraws on every run start and language change.
     presentLevelBriefing(parent, briefingData({ title: "Morning rush" }));
     presentLevelBriefing(parent, briefingData({ title: "Evening rush" }));
 
@@ -102,10 +79,7 @@ describe("presentLevelBriefing", () => {
   });
 
   it("clears whatever was in the region before it, including the other card", () => {
-    // The region is shared: exactly one of this card and the learning track's
-    // lesson is ever drawn, and the page empties the element by calling the
-    // presenter the current level needs. A briefing drawn under a leftover
-    // lesson would be two levels' worth of prose beside one building.
+    // The region is shared with the lesson card; exactly one of the two is ever drawn.
     parent.replaceChildren(
       createElement("div", { className: "tutorialpanel", text: "a lesson from before" }),
       createElement("p", { text: "and something else" }),

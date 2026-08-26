@@ -1,61 +1,12 @@
-/*
- * The lesson's card: the level's name and prose, the hint and explanation
- * disclosures, and the answer with the tools for copying it.
- *
- * There is nothing here about the track the level belongs to, and that is the
- * shape of the card rather than an omission. It used to open with a head row
- * naming the track and counting the player's place in it, close on a footnote
- * counting it again, and carry two buttons that left the level; all of it said
- * the same thing the app bar's level switcher already says, on the one surface
- * whose whole job is the level in front of the player. What is left is a
- * lesson.
- */
-
-/*
- * The region the panel is drawn into. Its width, its margins and its place in
- * the pane are the column's business and are stated at `.stagearea > .tutorial`
- * (`widgets/workspace-layout`), next to the arithmetic that produced the 640px;
- * all that is left here is what the region is on the routes that draw no card
- * into it at all.
- *
- * Every route but the track and the Skyscraper levels that have a briefing
- * leaves this element empty -- `App` draws into it only while one of those is
- * on screen, and empties it for the nineteen levels, the sandbox and the demo
- * -- and an empty flex item is not free: it would draw its own 14px of padding
- * inside its own hairline above every building in the game, 48px of bordered
- * nothing counting the margin above it, and 48px of scroll under the pane that
- * leads to it. The principle is general: markup that is present so that a
- * presenter has somewhere to draw must cost nothing on the routes where nothing
- * is drawn.
- */
+/* An empty flex item still draws its own padding and border, so hide it. */
 .tutorial:empty {
   display: none;
 }
 
 /*
- * And what the region looks like on the routes that do draw into it: a lesson
- * card -- 14px of padding, a strong hairline, the large radius, and
- * `--ds-panel` behind it.
- *
- * The card is on the region rather than on the `.tutorialpanel` inside it
- * because the region is the box the layout sizes, and because it is the box
- * both widgets share: `widgets/level-briefing` draws a Skyscraper level's
- * briefing into this same element and deliberately states no surface of its own,
- * so a frame moved inside would have to be drawn twice, from two slices, and
- * could drift in one of them.
- *
- * It was also here for a reason that has since gone, and the difference is
- * worth stating so nobody restores the old one. The region used to be the box
- * that scrolled -- the row gave it a ceiling and an `overflow` of its own -- and
- * a border drawn on a child of a scroll container scrolls away with the writing,
- * so the frame had to be on the box that stayed put. `.stagearea` is the scroll
- * now, one level up, and the whole card moves inside it, frame and all. That is
- * what the frame is for on a pane that scrolls between two boxes: it is the line
- * that says where the lesson ends and the building begins.
- *
- * A card at all, where the panel deliberately had no surface before: it used to
- * be a block of prose in the pane's own column with nothing beside it, and
- * edges would have made it the only bordered box on the page.
+ * The card frame lives on this region, not on `.tutorialpanel` inside it,
+ * because `widgets/level-briefing` also draws into this same element and
+ * states no surface of its own.
  */
 .tutorial {
   padding: 14px;
@@ -64,52 +15,19 @@
   background-color: var(--ds-panel);
 }
 
-/*
- * The panel inside that card.
- *
- * The color is the whole reason this rule exists, and it is the defect written
- * up at `.setmenu`: `<body>` paints everything `white`, which document rules
- * repair for `p` and for the headings only. The four `<summary>` elements are
- * neither, so left alone those four would fall back to that `white`, unreadable
- * on light theme's near-white `--ds-bg` and needlessly flat against dark
- * theme's near-black one, while the prose beneath them (a `p`) already reads
- * `--ds-text`. Measured on the card's own `--ds-panel` rather than assumed off
- * the old background: 14.04:1 dark, 15.99:1 light, both far past the 4.5:1 of
- * WCAG 1.4.3.
- */
+/* `<summary>` elements don't inherit the document's text-color repair, so set it explicitly. */
 .tutorialpanel {
   color: var(--ds-text);
 }
 
-/*
- * The level's own name. The weight has to be stated because this page sets
- * every heading below `h1` to `normal` (see the document rules above), and a
- * 16px heading at the weight of the prose under it is not a heading.
- */
+/* Headings below h1 are reset to `normal` elsewhere, so the weight must be restated here. */
 .tutorialtitle {
   margin: 0 0 5px;
   font-size: 16px;
   font-weight: 650;
 }
 
-/*
- * The prose, one size below the page's own and muted, which is what makes the
- * level's name above it the first thing read.
- * `--ds-text-muted` measures 6.70:1 dark and 5.90:1 light on the card, and
- * 6.19:1 dark / 5.56:1 light on the `--ds-raised` inside an open hint, both
- * past the 4.5:1 of WCAG 1.4.3.
- *
- * The measure is the same 62ch `.seedcaveat` has, and it is here for that
- * rule's reason: a line this long is read by losing your place in it. It was
- * taken off for a while and put back with the card's own width, which is the
- * only thing that decides whether a measure is a decision or a dead
- * declaration. Beside the building the card asked for 384px and could only
- * shrink from there, leaving this prose 354px at its widest against a ceiling
- * that computes to 508px -- 154px it could never reach. Above the building the
- * card is 640px (`.stagearea > .tutorial` in `widgets/workspace-layout`), which
- * leaves 610px of content and 588px of it inside an open hint, and the ceiling
- * is what the lines are actually set to.
- */
+/* Caps the line length for readability. */
 .tutorialgoal,
 .tutorialprose {
   margin: 0 0 11px;
@@ -119,16 +37,6 @@
   line-height: 1.5;
 }
 
-/*
- * The disclosures: the hints, then why the level behaves as it does. A raised,
- * hairlined box the whole width of the card, with its summary as the lid.
- *
- * The summary fills that box rather than shrinking to its words: the warning at
- * `.seedhelp > summary` is that a full-width `<summary>` gives a control an
- * invisible half nobody can see is clickable, and a bordered lid with a marker
- * on it has no invisible half. The pointer still has to be stated: `<summary>`
- * is a control and the UA gives it no cursor.
- */
 .tutorialhint,
 .tutorialexplanation {
   margin-block-end: 6px;
@@ -145,18 +53,7 @@
   cursor: pointer;
 }
 
-/*
- * The marker is drawn rather than left to the UA, which is what `list-style:
- * none` above asks for everywhere except WebKit, where the triangle is a
- * pseudo-element that ignores it. Both are needed; either alone leaves one
- * engine drawing two markers.
- *
- * `--ds-text-muted` and not `--ds-text-faint`: the character is typography
- * rather than an icon -- it inherits the summary's size and sits on its
- * baseline -- so it is measured against 1.4.3's 4.5:1 rather than 1.4.11's
- * 3:1, and faint would be 3.34:1 dark / 2.96:1 light on `--ds-raised`. Muted
- * is 6.19:1 dark and 5.56:1 light there.
- */
+/* WebKit's marker is a pseudo-element that ignores `list-style: none`, so hide it separately. */
 .tutorialhint > summary::-webkit-details-marker,
 .tutorialexplanation > summary::-webkit-details-marker {
   display: none;
@@ -173,31 +70,18 @@
   content: "▾ ";
 }
 
-/*
- * Inside an open hint the prose lines up under its summary's text: the lid's
- * own 11px, plus the bottom padding the box would otherwise not have.
- */
+/* Lines up under the summary's own inset. */
 .tutorialhint .tutorialprose,
 .tutorialexplanation .tutorialprose {
   margin: 0;
   padding: 0 11px 10px;
 }
 
-/*
- * The answer, under the last hint, inset to the same 11px as the prose above
- * it.
- *
- * `pre code` already paints the surface in the page's own code colors and wraps
- * it below 760px; what is stated here is tighter padding, one-size-smaller
- * type, and a ceiling. The longest line in any answer is 68 characters, so a
- * block any wider than that is a code surface with nothing in the right-hand
- * half of it. The ceiling is on the `<code>`, where a `ch` is a character of
- * the monospace face that is about to be measured out in it.
- */
 .tutorialsolution {
   margin: 0 11px 11px;
 }
 
+/* 72ch comfortably fits the longest answer line (68 characters). */
 .tutorialsolution code {
   padding: 9px 11px;
   max-inline-size: 72ch;
@@ -205,34 +89,10 @@
 }
 
 /*
- * The line or lines a player actually has to write, inside the answer.
- * `changedLines` (`src/ui/line-diff.ts`) is what decides which lines these
- * are, by comparing the level's starting program against this one; this rule
- * is only the paint. `--ds-accent` marks the change, the same color the
- * building already uses for "this is lit, this matters" -- a floor's call
- * button, its band once pressed. Checked fresh against `--ds-code-bg`, a
- * pairing neither of those already covers: 8.25:1 dark, 4.33:1 light, clear
- * of the 3:1 that 1.4.11 asks of a graphical indicator; the last row of
- * `tutorial-panel.css.test.ts`'s own table holds it to that bar explicitly.
- *
- * A `<mark>` rather than a `<span>` with the same class: it is the element
- * HTML already has for "this text matters here, against another context",
- * which is exactly what a changed line is against the program the level
- * started with -- see `code-highlight.ts`. The border sits on the inline
- * *start* edge, which is where reading begins in every language this page
- * ships (English and Russian both read left to right), so `border-inline-start`
- * rather than `border-left`.
- *
- * The negative margin and the compensating padding cancel out exactly:
- * `.tutorialsolution code` above pads its content 11px in from its own edge,
- * this element's `display: block` makes it as wide as that content box
- * regardless of which side its margin comes from, and `-11px` pulls its own box
- * back out into that padding so the 3px border can sit inside it. Without the
- * 8px given back the text of a changed line would sit 3px to the left of every
- * other line's; with it, both start at the same 11px from the code block's own
- * edge, and the mark is the only line with anything in the gutter to its left.
- * The two numbers are the code block's padding and that padding less the
- * border, so they move whenever it does.
+ * Marks the line(s) a player must write, as diffed by `changedLines`.
+ * The negative margin pulls the box back into the code block's own padding
+ * so the border sits inside it; the padding gives back the difference so
+ * text still lines up with unmarked lines. Both must move together.
  */
 .tutoriallinechanged {
   display: block;
@@ -242,15 +102,6 @@
   background-color: rgb(51 53 31 / 10%);
 }
 
-/*
- * The row above the answer: a button that copies it to the clipboard, and the
- * line that says whether that worked, in that order -- the line reports on the
- * button beside it, and the pair sits with the code it acts on rather than
- * anywhere else on the card.
- *
- * Inset 11px like everything else inside an open hint, so the button, the
- * prose above it and the code below it stand on one line.
- */
 .tutorialanswertools {
   display: flex;
   align-items: baseline;
@@ -259,27 +110,7 @@
   margin: 8px 11px 4px;
 }
 
-/*
- * The chrome is `.codeslot`'s own -- both are a button-shaped mark beside a
- * piece of code -- with one token changed, and the change is the whole point of
- * this comment. That button is `--ds-raised` because it stands on a `--ds-panel`
- * bar; this one stands inside an open hint, and the hint is `--ds-raised` too, so
- * copied verbatim the button's surface measured 1.00:1 against the box under it
- * in both themes: a control with no shape at all. One step further up the
- * neutral ramp is `--ds-n-3`, which is what the tier popover's own `.tierstate`
- * pill does on the same surface, and it puts the button back at 1.12:1 against
- * the hint in both themes -- faint, but a shape.
- *
- * That is as far as the chrome goes, and the honest reading of WCAG 1.4.11 is
- * that it does not have to go further. The border measures 1.38:1 dark and
- * 1.49:1 light against the hint, well under 3:1, exactly as `--ds-line-strong`
- * does everywhere else it is drawn on a raised surface (see `.call`); a
- * hairline at this weight is decoration and cannot be what identifies the
- * control. What identifies it is its label, and 1.4.11 asks nothing more of a
- * component a player can read the name of. So the ink is where the bar has to
- * be cleared, and `--ds-text` on that fill clears 1.4.3's 4.5:1 outright:
- * 11.54:1 dark, 13.43:1 light.
- */
+/* `--ds-n-3` rather than `.codeslot`'s `--ds-raised`: this button sits on a raised hint, so it needs a step up to stay visible as a shape. */
 .tutorialcopycode {
   padding: 5px 10px;
   border: 1px solid var(--ds-line-strong);
@@ -291,21 +122,9 @@
 }
 
 /*
- * What the button beside it did, one size down from the panel's own prose: a
- * remark about a copy that has already happened, not part of the level being
- * read. Muted for the same reason it is small -- the eye coming back to the
- * card is looking for the next step, not for the receipt of the last one. The
- * surface underneath is the open hint's `--ds-raised` rather than the card's
- * `--ds-panel`, so the color is measured against that: 6.19:1 dark and 5.56:1
- * light, past the 4.5:1 of WCAG 1.4.3.
- *
- * No block margin at all, and that is what lets it be drawn while it is still
- * empty -- which it is for most of a level's life. It is a live region, and the
- * announcement is only reliable when the region was already in the document
- * before the text arrived; `display: none` up to the moment of the update is
- * the case screen readers most often miss. An empty `<p>` has no line box, so
- * with nothing above or below it the region costs the row nothing until there
- * is something in it to read.
+ * This is a live region and must stay in the DOM (not `display: none`) even
+ * while empty, or screen readers miss the announcement when text arrives.
+ * No block margin so the empty `<p>` costs no layout space meanwhile.
  */
 .tutorialcopied {
   margin-block: 0;

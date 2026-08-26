@@ -25,22 +25,12 @@ interface Mounted {
 
 /**
  * Mounts the widget and re-runs its geometry against a stage sized by hand.
- *
- * jsdom lays nothing out, so `.stage.clientWidth`/`clientHeight` are 0 while
- * the widget is building itself and the first geometry pass is worth nothing.
- * The size is stubbed onto the stage the widget just created — the box the
- * presenter really measures — and geometry re-run through the same escape hatch
- * a real caller uses outside a resize. The same stubbing `workspace-layout.test.ts`
- * and `editor-size.test.ts` do, one element further in.
- *
- * @param world - The run to draw.
- * @param width - `clientWidth` the stage reports.
- * @param height - `clientHeight` the stage reports.
- * @returns The mount point, the stage, and the presenter.
+ * jsdom lays nothing out, so `clientWidth`/`clientHeight` are 0 during the first pass;
+ * this stubs them onto the real stage and re-runs geometry through the resize escape hatch.
  */
 function mount(world: World, width: number, height: number): Mounted {
   const parent = document.createElement("div");
-  // `.focus()`/`.blur()` only fire in jsdom for elements attached to the document.
+  // .focus()/.blur() only fire in jsdom for elements attached to the document.
   document.body.append(parent);
 
   const presenter = presentBuildingStage(parent, world);
@@ -53,16 +43,9 @@ function mount(world: World, width: number, height: number): Mounted {
 }
 
 /**
- * Stubs the scroll extents jsdom does not compute, so the stage can be asked
- * what it does in a box the building overflows.
- *
- * `scrollTop` is stubbed as a real accessor rather than a value: the widget
- * both reads it and writes to it, and jsdom's own property is a getter that
- * answers 0 whatever is assigned to it, which would make a scroll the widget
- * performed indistinguishable from one it declined to.
- *
- * @param stage - The stage the widget built, already mounted.
- * @param extents - What the stage should report it has to scroll through.
+ * Stubs the scroll extents jsdom does not compute.
+ * `scrollTop` is a real accessor, not a value: jsdom's own getter always answers 0, which
+ * would make a scroll the widget performed indistinguishable from one it declined to.
  */
 function stubScroll(
   stage: HTMLElement,
@@ -87,17 +70,9 @@ function stubScroll(
 }
 
 /**
- * The layout `presentBuildingStage` itself would have computed for a stage this
- * size.
- *
- * `levelsWidth` is 0 because that is what the presenter measures here too:
- * `.levels` has an 84px rule in the stylesheet, and jsdom applies no
- * stylesheet, so its `offsetWidth` is 0 in both places. A browser feeds the
- * real width through the same call.
- *
- * @param world - The run being drawn.
- * @param stage - The stage, already sized.
- * @returns The layout.
+ * The layout `presentBuildingStage` itself would have computed for a stage this size.
+ * `levelsWidth` is 0 because jsdom applies no stylesheet, so `.levels`'s `offsetWidth`
+ * is 0 both here and in the presenter's own measurement.
  */
 function expectedLayout(world: World, stage: HTMLElement) {
   return layoutBuilding({
@@ -141,9 +116,7 @@ describe("presentBuildingStage", () => {
   });
 
   it("puts the ground floor first in the DOM and lets the column turn itself over", () => {
-    // `relabelWorld` in `src/pages/game/index.ts` reads `.floor` elements back
-    // in DOM order and takes that order for the floor number, so a column that
-    // drew the roof first would rename every floor to somebody else's.
+    // Floor numbers are read back from DOM order, so drawing the roof first would mislabel every floor.
     const world = createWorld({ floorCount: 4, elevatorCount: 1 });
     const { parent } = mount(world, 800, 400);
 
@@ -153,10 +126,6 @@ describe("presentBuildingStage", () => {
   });
 
   it("marks the floor column of a building whose passengers name where they are going", () => {
-    // The column has to be wider there -- a panel of journeys where the others
-    // put two call lamps -- and the stylesheet is what widens it. Nothing
-    // downstream is told: `recomputeGeometry` measures the column it finds and
-    // lays the shafts out beside it.
     const dispatch = createWorld({ floorCount: 3, elevatorCount: 1, destinationDispatch: true });
     const { parent } = mount(dispatch, 800, 400);
     expect(requireElement(".levels", parent).classList.contains("has-destinations")).toBe(true);
@@ -177,21 +146,19 @@ describe("presentBuildingStage", () => {
     expect(layout.floorBottoms).toEqual([0, 90]);
     expect(layout.totalHeight).toBe(180);
 
-    // A row only ever states its height: the column is a flex stack, so where a
-    // floor sits is decided by the floors under it.
+    // A row only states its height; the column is a flex stack, so position follows from that.
     for (const row of queryAll(".levels .floor", parent)) {
       expect(row.style.height).toBe("90px");
       expect(row.style.top).toBe("");
     }
 
-    // The bands beside them are positioned, and they are drawn top-down: the
-    // last one in the DOM is the ground floor, at the bottom of the building.
+    // Bands are positioned and drawn top-down, so the last one in the DOM is the ground floor.
     const lines = queryAll(".floorline", parent);
     expect(lines[0]?.style.top).toBe("0px");
     expect(lines[1]?.style.top).toBe("90px");
     expect(lines[1]?.style.height).toBe("90px");
 
-    // The queue strips are in level order, so the ground floor's is the first.
+    // Queue strips are in level order, so the ground floor's is first.
     const queues = queryAll(".queue", parent);
     expect(queues[0]?.style.top).toBe("90px");
     expect(queues[1]?.style.top).toBe("0px");
@@ -207,9 +174,8 @@ describe("presentBuildingStage", () => {
     expect(requireElement(".tracks", parent).style.width).toBe(
       `${String(Math.round((last.worldX + last.width) * scaleX) + TRAILING_ROOM)}px`,
     );
-    // One pad short of the first car, because that pad is the shaft's own wall
-    // and the order marks inside it need the pointer events a queue drawn under
-    // it would take.
+    // One pad short of the first car: that pad is the shaft's own wall, whose order marks need
+    // the pointer events a queue drawn underneath would otherwise take.
     for (const queue of queryAll(".queue", parent)) {
       expect(queue.style.width).toBe(
         `${String(Math.round(first.worldX * scaleX) - shaftPadPx(scaleX))}px`,
@@ -234,8 +200,7 @@ describe("presentBuildingStage", () => {
   });
 
   it("stands every shaft on its own car's real coordinate, one pad wider on each side", () => {
-    // Six 10-capacity cars (100px wide, 20px apart) need more room than a
-    // narrow stage has, so the shaft scale clamps down to MIN_CAR/100.
+    // Six 10-capacity cars need more room than this narrow stage has, so the shaft scale clamps down.
     const world = createWorld({ floorCount: 4, elevatorCount: 6, elevatorCapacities: [10] });
     const { parent, stage } = mount(world, 500, 400);
 
@@ -253,8 +218,7 @@ describe("presentBuildingStage", () => {
       expect(shaft?.style.getPropertyValue("--ds-shaft-pad")).toBe(`${String(padPx)}px`);
     }
 
-    // The shafts still stand apart: the pad comes out of the 20 world units the
-    // engine leaves between two cars, and never out of all of them.
+    // The pad comes out of the world units the engine leaves between two cars, never all of them.
     const first = shafts[0];
     const second = shafts[1];
     expect(Number.parseFloat(second?.style.left ?? "0")).toBeGreaterThan(
@@ -285,9 +249,8 @@ describe("presentBuildingStage", () => {
       floorHeight: world.floorHeight,
     });
     const elevator = at(world.elevators, 0);
-    // A car only ever moves vertically inside its shaft; the shaft is what
-    // carries the horizontal coordinate, as an inline `left` rather than a
-    // transform.
+    // A car only moves vertically inside its shaft; the shaft carries the horizontal
+    // coordinate, as an inline left rather than a transform.
     const shaftEl = requireElement(".shafts .elevator", parent);
     const carEl = requireElement(".car", shaftEl);
     expect(shaftEl.style.left).toBe(
@@ -316,10 +279,8 @@ describe("presentBuildingStage", () => {
     const carEl = requireElement(".shafts .elevator .car", parent);
     const beforeResize = carEl.style.transform;
 
-    // Shrink the stage: room = max(160, 100-38) = 160, so unit = 160/2 = 80,
-    // a real change from the 90px unit above — which also changes scaleY,
-    // which must show up on the very next paint with no new tick, since the
-    // elevator never moved between the two calls.
+    // Shrink the stage: unit becomes 80px (was 90), which also changes scaleY and must show
+    // up on the very next paint even though the elevator itself never moved.
     Object.defineProperty(stage, "clientHeight", { value: 100, configurable: true });
     presenter.recomputeGeometry();
 
@@ -353,8 +314,7 @@ describe("presentBuildingStage", () => {
     expect(
       [...requireElement(".carcard-lines", card).children].map((el) => el.textContent),
     ).toEqual(expected.lines);
-    // The row is what a screen reader reads it from, even though the pointer
-    // never went near it: the row is the focusable thing on that floor.
+    // The row gets the description even though the pointer never touched it: it's the focusable thing.
     expect(floorEl?.getAttribute("aria-describedby")).toBe(card.id);
   });
 
@@ -394,16 +354,14 @@ describe("presentBuildingStage", () => {
     queues[0]?.dispatchEvent(new Event("pointerenter"));
 
     expect(rows[0]?.classList.contains("is-hot")).toBe(true);
-    // The bands are in the DOM top floor first, the rows ground floor first, so
-    // the lobby's band is the last of the three. Get that backwards and
-    // pointing at the lobby lights the roof.
+    // Bands are DOM-ordered top floor first, rows ground floor first, so the lobby's band is last.
     expect(lines[2]?.classList.contains("is-hot")).toBe(true);
     expect(lines[0]?.classList.contains("is-hot")).toBe(false);
 
     queues[0]?.dispatchEvent(new Event("pointerleave"));
     expect(queryAll(".is-hot", parent)).toHaveLength(0);
 
-    // The row is the floor's other half, and it marks the same two boxes.
+    // The row is the floor's other half, and marks the same two boxes.
     rows[1]?.dispatchEvent(new Event("pointerenter"));
     expect(rows[1]?.classList.contains("is-hot")).toBe(true);
     expect(lines[1]?.classList.contains("is-hot")).toBe(true);
@@ -413,9 +371,8 @@ describe("presentBuildingStage", () => {
     const world = createWorld({ floorCount: 10, elevatorCount: 1 });
     const { parent } = mount(world, 800, 300);
 
-    // jsdom lays nothing out, so the three boxes the placement reads are given
-    // the shape a tall building really has: a shaft far longer than the pane it
-    // is being looked at through, with the car standing near the foot of it.
+    // jsdom lays nothing out, so the three boxes are given the shape a tall building really has:
+    // a shaft far longer than the pane, with the car near the foot of it.
     const wrap = requireElement(".stagewrap", parent);
     const shaftEl = requireElement(".elevator", parent);
     const carEl = requireElement(".car", shaftEl);
@@ -425,10 +382,8 @@ describe("presentBuildingStage", () => {
 
     shaftEl.dispatchEvent(new Event("pointerenter"));
 
-    // Centered on the cabin, which is 250..290 of the pane's own 300. Centered on
-    // the shaft it would be at -100, and every such card is clamped to the top
-    // edge of the pane -- floors away from the car it names, which is what this
-    // is here to catch.
+    // Centered on the cabin (250..290 of 300), not on the shaft, which would put it at -100
+    // and get clamped to the pane's top edge, floors away from the car it names.
     expect(requireElement(".carcard", parent).style.top).toBe("270px");
   });
 
@@ -449,8 +404,7 @@ describe("presentBuildingStage", () => {
     carEl.getBoundingClientRect = (): DOMRect => new DOMRect(200, 100, 40, 40);
     at(world.elevators, 0).updateDisplayPosition(true);
 
-    // A card that rode the cabin would read as a blur on the way up, and its
-    // lines are the ones taken when it opened either way.
+    // A card that rode the cabin would read as a blur on the way up.
     expect(card.style.top).toBe("270px");
   });
 
@@ -509,11 +463,8 @@ describe("presentBuildingStage", () => {
   });
 
   it("dismisses a card opened by hovering, from a keyboard that never left the body", () => {
-    // The other way a card opens, and the one the Escape has to travel furthest
-    // from: a pointer leaves focus wherever it already was, which on a page
-    // nobody has tabbed into is `<body>`, so a handler bound inside the stage
-    // would answer only the cards a player had tabbed to. Dismissing a hover
-    // card without moving the pointer is the whole of WCAG 1.4.13.
+    // A pointer leaves focus wherever it already was, body on an untouched page, so the Escape
+    // handler must answer from there too — WCAG 1.4.13, dismissible without moving the pointer.
     const world = createWorld({ floorCount: 3, elevatorCount: 1 });
     const { parent } = mount(world, 800, 300);
 
@@ -529,11 +480,8 @@ describe("presentBuildingStage", () => {
   });
 
   it("stops listening for Escape once the card is down", () => {
-    // The listener is on the document, and this widget is built again from
-    // scratch on every redraw of the world, so one left behind per card shown
-    // is one left behind per card shown for ever. It is unbound with the card:
-    // an Escape arriving after that reaches a document nothing here is
-    // listening to.
+    // The listener is on the document and must be removed with the card, or every redraw
+    // of the world (a fresh widget each time) leaks another one permanently.
     const world = createWorld({ floorCount: 3, elevatorCount: 1 });
     const { parent } = mount(world, 800, 300);
     const listening = vi.spyOn(document, "removeEventListener");
@@ -571,8 +519,7 @@ describe("presentBuildingStage", () => {
   });
 
   it("leaves an open card alone on any key but Escape", () => {
-    // The arrow keys scroll the stage, which is the whole reason it is a tab
-    // stop: reading a car's figures with the keyboard must not dismiss them.
+    // Arrow keys scroll the stage; reading a car's figures with the keyboard must not dismiss them.
     const world = createWorld({ floorCount: 3, elevatorCount: 1 });
     const { parent } = mount(world, 800, 300);
 
@@ -584,10 +531,8 @@ describe("presentBuildingStage", () => {
   });
 
   it("leaves a floor's pointerleave alone once another card has taken the card over", () => {
-    // Pointing at a floor and then at a car hands the one card to the car. The
-    // floor's own pointerleave arrives after that, and it has to notice that
-    // what it was asked to hide is not what is on screen any more -- otherwise
-    // moving the pointer between the two blanks the card that just opened.
+    // The floor's pointerleave arrives after the car has taken the card over, and must notice
+    // it's no longer what's shown, or moving the pointer between the two would blank it.
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });
     const { parent } = mount(world, 800, 218);
 
@@ -604,9 +549,7 @@ describe("presentBuildingStage", () => {
   });
 
   it("leaves a car's blur alone once another card has taken the card over", () => {
-    // The same question from the other side: a car that loses focus after a
-    // floor's card has replaced its own must not take the floor's card down
-    // with it.
+    // A car that loses focus after a floor's card has replaced its own must not take it down too.
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });
     const { parent } = mount(world, 800, 218);
 
@@ -623,11 +566,8 @@ describe("presentBuildingStage", () => {
   });
 
   it("opens looking at the lobby, and hands the view over once it is there", () => {
-    // The building is drawn ground-floor-last in the document, so a stage
-    // taller than its box opens looking at the roof. Every geometry pass tries
-    // again until it finds the view already at the bottom -- and from that pass
-    // on the scroll position is the player's, so a later one must not yank a
-    // player who has scrolled up back down to the lobby.
+    // The building draws ground-floor-last, so a tall stage opens looking at the roof; each
+    // geometry pass retries until the view is at the bottom, then stops overriding the player's scroll.
     const world = createWorld({ floorCount: 8, elevatorCount: 1 });
     const { stage, presenter } = mount(world, 800, 218);
     stubScroll(stage, { scrollHeight: 1000 });
@@ -636,9 +576,8 @@ describe("presentBuildingStage", () => {
     expect(stage.scrollTop).toBe(1000);
 
     presenter.recomputeGeometry();
-    // Up to the roof, through a scroll event: that event is how a browser tells
-    // the widget where the view has got to, and without it a stage this one had
-    // just parked at the lobby would still be believed to be there.
+    // A scroll event is how the widget learns the view moved; without one, it would still
+    // believe the stage is parked at the lobby.
     stage.scrollTop = 0;
     stage.dispatchEvent(new Event("scroll"));
     presenter.recomputeGeometry();
@@ -647,26 +586,21 @@ describe("presentBuildingStage", () => {
   });
 
   it("puts the lobby back in the window when a pass moves the floors under it", () => {
-    // The view is handed over, but the floors are not: every geometry pass
-    // re-lays them out under a scroll position that does not move with them, so
-    // a stage showing the ground comes out of a window one drag of the splitter
-    // shorter showing the middle of the building -- and the lobby is where
-    // every car is parked, so what a resize takes away is the elevators. The
-    // opening scroll cannot answer this one: it has finished by then.
+    // The view is handed over, but the floors are re-laid-out under a scroll position that
+    // doesn't move with them, so a resize can push the ground (and its parked cars) out of view
+    // after the opening scroll has already finished.
     const world = createWorld({ floorCount: 8, elevatorCount: 1 });
     const { stage, presenter } = mount(world, 800, 218);
     stubScroll(stage, { scrollHeight: 1000 });
 
     presenter.recomputeGeometry();
     presenter.recomputeGeometry();
-    // The stub does not clamp the way a scroll container does, so the view is
-    // put where a browser would have left it: at the foot of the 782px of room
-    // a 218px box has for a 1000px building.
+    // The stub doesn't clamp like a real scroll container: 782px is the room a 218px box
+    // has for a 1000px building.
     stage.scrollTop = 782;
     stage.dispatchEvent(new Event("scroll"));
 
-    // And now the box is 100px, so there is 900px of room and the view that was
-    // on the ground is 118px above it.
+    // Now the box is 100px, so there's 900px of room, and the ground view is 118px above it.
     Object.defineProperty(stage, "clientHeight", { value: 100, configurable: true });
     presenter.recomputeGeometry();
 
@@ -674,20 +608,15 @@ describe("presentBuildingStage", () => {
   });
 
   it("stops reaching for the lobby once its opening frames are spent", () => {
-    // The other way out of the opening scroll, for the stage that never gets
-    // there: the retry loop runs on animation frames and gives up after a fixed
-    // few of them, so a widget cannot still be moving the view once the player
-    // has one to look at. Frames are handed over by hand rather than waited
-    // for, which is what makes the count exact instead of a matter of how busy
-    // the machine is.
+    // For a stage that never settles: the retry loop gives up after a fixed number of animation
+    // frames, run by hand here so the count is exact rather than a race with the machine's speed.
     const frames: (() => void)[] = [];
     vi.stubGlobal("requestAnimationFrame", (callback: () => void): number => frames.push(callback));
 
     const world = createWorld({ floorCount: 8, elevatorCount: 1 });
     const { stage, presenter } = mount(world, 800, 218);
-    // Deliberately not `stubScroll`: a `scrollTop` that reads back 0 whatever is
-    // written to it is the stage this loop exists for, so every retry writes and
-    // none of them lands.
+    // Deliberately not stubScroll: a scrollTop that reads back 0 regardless is exactly the
+    // stage this loop exists for, so every retry writes and none of them lands.
     let scrolls = 0;
     Object.defineProperty(stage, "scrollHeight", { value: 1000, configurable: true });
     Object.defineProperty(stage, "scrollTop", {
@@ -698,8 +627,7 @@ describe("presentBuildingStage", () => {
       },
     });
 
-    // Bounded, so a loop that never shuts itself fails this test rather than
-    // hanging it.
+    // Bounded, so a loop that never shuts itself off fails this test rather than hanging it.
     let runs = 0;
     for (let frame = frames.shift(); frame !== undefined && runs < 10; frame = frames.shift()) {
       frame();
@@ -713,22 +641,18 @@ describe("presentBuildingStage", () => {
 
     expect(frames).toHaveLength(0);
     expect(scrollsWhileSettling).toBeGreaterThan(0);
-    // One write from the first pass, which finds the view where the pass before
-    // it left the view -- at the lobby, as far as anything here knows -- and
-    // puts it back there. On this stage that write moves nothing, the pass
-    // reads back that it moved nothing, and the pass after it writes nothing at
-    // all. What must not survive the opening window is the *loop*.
+    // One write from the first pass (it still believes the view is at the lobby), then none:
+    // the loop itself must not survive past the opening window, even though it never scrolled anything.
     expect(afterOnePass).toBe(scrollsWhileSettling + 1);
     expect(scrolls).toBe(afterOnePass);
   });
 
   it("gives the stage a tab stop exactly while there is somewhere to scroll to", () => {
-    // A scrollable region a keyboard cannot reach is WCAG 2.1.1, and so is a
-    // tab stop that goes nowhere.
+    // A scrollable region a keyboard cannot reach is WCAG 2.1.1, and so is a tab stop that goes nowhere.
     const world = createWorld({ floorCount: 8, elevatorCount: 1 });
     const { stage, presenter } = mount(world, 800, 218);
 
-    // jsdom reports nothing overflowing until it is told otherwise.
+    // jsdom reports nothing overflowing until told otherwise.
     expect(stage.hasAttribute("tabindex")).toBe(false);
 
     stubScroll(stage, { scrollHeight: 1000 });
@@ -738,8 +662,7 @@ describe("presentBuildingStage", () => {
   });
 
   it("gives a wide building a tab stop too, though every floor of it fits on screen", () => {
-    // Sideways is a question of its own: a building whose floors all fit
-    // vertically can still have a shaft off the right-hand edge.
+    // A building whose floors all fit vertically can still have a shaft off the right-hand edge.
     const world = createWorld({ floorCount: 3, elevatorCount: 6 });
     const { stage, presenter } = mount(world, 400, 400);
     stubScroll(stage, { scrollWidth: 2000 });
@@ -755,13 +678,12 @@ describe("presentBuildingStage", () => {
     const wrap = requireElement(".stagewrap", parent);
     stubScroll(stage, { scrollHeight: 1000 });
 
-    // Down at the lobby the widget opened on: seven floors above, none below.
+    // At the lobby the widget opened on: floors above, none below.
     presenter.recomputeGeometry();
     expect(wrap.classList.contains("is-cut-top")).toBe(true);
     expect(wrap.classList.contains("is-cut-bottom")).toBe(false);
 
-    // And at the roof, the other way about. Through a scroll event this time,
-    // which is the only thing that redraws the shadows while a player scrolls.
+    // A scroll event is what redraws the shadows while a player scrolls.
     stage.scrollTop = 0;
     stage.dispatchEvent(new Event("scroll"));
     expect(wrap.classList.contains("is-cut-top")).toBe(false);
@@ -781,10 +703,8 @@ describe("presentBuildingStage", () => {
   });
 
   it("draws the passengers a world already has, not only the ones who arrive after", () => {
-    // The case is `src/pages/game/index.ts` drawing the building a crunch has
-    // just finished running: every `new_user` of that run was triggered while
-    // nothing was mounted to hear it, so a stage that only subscribed would
-    // show floors and cars in an empty building.
+    // Simulates mounting after a crunch already ran: every new_user fired before anything
+    // was listening, so a stage that only subscribed would show an empty building.
     const world = createWorld({ floorCount: 3, elevatorCount: 1 });
     const waiting = new User(60);
     const riding = new User(60);
@@ -794,8 +714,7 @@ describe("presentBuildingStage", () => {
 
     expect(queryAll(".people .person", parent)).toHaveLength(2);
 
-    // And they are live views rather than a snapshot: the subscriptions a
-    // passenger drawn on arrival gets are the ones these have too.
+    // Live views, not a snapshot: they get the same subscriptions as a passenger drawn on arrival.
     waiting.trigger("removed");
     expect(queryAll(".people .person", parent)).toHaveLength(1);
   });

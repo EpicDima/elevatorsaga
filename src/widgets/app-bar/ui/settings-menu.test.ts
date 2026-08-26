@@ -15,15 +15,7 @@ import type { SeedLinkData } from "../../../ui/templates.ts";
 /** A run, the same fixture `seed-panel.test.ts` uses. */
 const SEED: SeedLinkData = { seed: "1234567890", url: "#level=1,seed=1234567890" };
 
-/**
- * A mounted toolbar, its parent and the options it was built with.
- *
- * @param seed - What {@link appBarSettingsTemplate} and the presenter are
- * both given — the two must agree, the same way a real caller would give
- * both the same run.
- * @param overrides - Fields to replace on the base options fixture.
- * @returns The mounted parent, the controller and the options used.
- */
+/** A mounted toolbar, its parent and the options it was built with; `seed` is given to both the template and the presenter, as a real caller would. */
 function setUp(
   seed: SeedLinkData | null = null,
   overrides: Partial<AppBarSettingsOptions> = {},
@@ -129,8 +121,7 @@ describe("appBarSettingsTemplate", () => {
     expect(links[0]?.querySelector("b")?.textContent).toBe("This fork");
     expect(links[1]?.querySelector("b")?.textContent).toBe("Original");
     expect(parent.querySelector(".sethint")?.textContent).toContain("Elevator Saga");
-    // MIT and OFL both want their notices to travel with the software, and
-    // this is the game's only route to the file the build writes them into.
+    // The game's only route to the license file the build writes notices into.
     const licenses = parent.querySelector(".sethint a");
     expect(licenses?.getAttribute("href")).toBe("licenses.txt");
     expect(licenses?.textContent).toBe("MIT");
@@ -202,9 +193,7 @@ describe("presentAppBarSettings", () => {
   it("closes the popover before invoking onOpenHotkeys when keysOpen is clicked", () => {
     let menuHiddenAtCall: boolean | undefined;
     const onOpenHotkeys = vi.fn(() => {
-      // `!!`, not a direct pass-through: newer DOM typings widen `hidden` to
-      // `boolean | "hidden" | "until-found"`, even though `presentAppBarSettings`
-      // only ever writes a plain boolean to it through `createDisclosure`.
+      // `!!`, not a pass-through: DOM typings widen `hidden` to `boolean | "hidden" | "until-found"`.
       menuHiddenAtCall = !!setMenu.hidden;
     });
     const { parent } = setUp(null, { onOpenHotkeys });
@@ -272,8 +261,7 @@ describe("presentAppBarSettings", () => {
     });
 
     it("keeps the row wired after the rebuild, so a second seed can be chosen too", () => {
-      // The presenter is wired onto the wrapper, not onto the row inside it,
-      // precisely so that this redraw does not take the listeners with it.
+      // Wired onto the wrapper, not the row inside it, so this redraw doesn't take the listeners with it.
       const onSeed = vi.fn();
       const { parent, controller } = setUp(SEED, { onSeed });
 
@@ -284,10 +272,7 @@ describe("presentAppBarSettings", () => {
     });
 
     it("puts focus back on the control the player was holding", () => {
-      // Choosing a seed is usually done from this very row, so the rebuild it
-      // triggers lands under the player's own hands. Dropping focus to <body>
-      // would leave a keyboard player with an open popover and nothing in it
-      // reachable without tabbing in from the top of the page.
+      // Dropping focus to <body> would strand a keyboard player in an open popover with nothing reachable.
       const { parent, controller } = setUp(SEED);
       const field = requireElement(".seedvalue", parent);
       field.focus();
