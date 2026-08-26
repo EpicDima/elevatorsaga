@@ -38,35 +38,25 @@ export interface LevelSwitcherPresenter {
   update(): void;
 }
 
+/** Every tile in the menu, block captions dropped — the single run the step buttons walk. */
+function flatTiles(blocks: readonly LevelMenuBlock[]): readonly LevelMenuTile[] {
+  return blocks.flatMap((block) => block.tiles);
+}
+
 /** Finds the tile marked current in the menu, or `undefined` if none is. */
 function currentTile(blocks: readonly LevelMenuBlock[]): LevelMenuTile | undefined {
-  for (const block of blocks) {
-    const found = block.tiles.find((tile) => tile.current);
-    if (found !== undefined) {
-      return found;
-    }
-  }
-  return undefined;
+  return flatTiles(blocks).find((tile) => tile.current);
 }
 
 /**
- * Neighboring tile's href within the current tile's own block — scoped to one
- * block so stepping never crosses into a different kind of level.
+ * Neighboring tile's href in menu order, block boundaries included: stepping off
+ * the end of one block carries on into the next rather than stopping there.
  * @param step - `-1` for the previous tile, `1` for the next.
  */
 function stepHref(blocks: readonly LevelMenuBlock[], step: -1 | 1): string | undefined {
-  const block = blocks.find((candidate) => candidate.tiles.some((tile) => tile.current));
-  if (block === undefined) {
-    return undefined;
-  }
-  const from = block.tiles.findIndex((tile) => tile.current);
-  for (let index = from + step; index >= 0 && index < block.tiles.length; index += step) {
-    const tile = block.tiles[index];
-    if (tile !== undefined) {
-      return tile.href;
-    }
-  }
-  return undefined;
+  const tiles = flatTiles(blocks);
+  const from = tiles.findIndex((tile) => tile.current);
+  return from === -1 ? undefined : tiles[from + step]?.href;
 }
 
 /** Visible tile text: a bare number, since the grid tiles are small squares. */

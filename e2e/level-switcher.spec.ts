@@ -4,8 +4,8 @@
  * trigger is, and a tile in it changes the building. These are position
  * assertions rather than markup ones on purpose - a widget that is present,
  * correct, and simply drawn somewhere else is a failure markup checks miss.
- * Measured in the sandbox, the one route where both chevrons are disabled, so
- * a spec that read them as clickable arrows would have nothing to click.
+ * Measured in the sandbox, the last tile in the menu, so the forward chevron is
+ * disabled there; nothing below clicks a chevron either way.
  */
 
 import { expect, test, type Locator } from "@playwright/test";

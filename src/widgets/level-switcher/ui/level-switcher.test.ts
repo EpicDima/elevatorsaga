@@ -385,24 +385,29 @@ describe("presentLevelSwitcher", () => {
     expect(taskMenu.hidden).toBe(true);
   });
 
-  it("disables the previous button on a block's first tile and the next button on its last", () => {
-    const first = setUp({
-      chapter1Levels: fixtureLevels(3),
-      selection: { kind: "chapter1", index: 0 },
-    });
+  it("disables an arrow only at the very ends of the menu, not at a block's", () => {
+    // The first lesson and the sandbox are the two ends; a block's own first and
+    // last tiles have a neighbor one block over.
+    const first = setUp({ selection: { kind: "tutorial", index: 0 } });
     presentLevelSwitcher(first.parent, first.options);
 
     expect(requireElement(".task-prev", first.parent).hasAttribute("disabled")).toBe(true);
     expect(requireElement(".task-next", first.parent).hasAttribute("disabled")).toBe(false);
 
-    const last = setUp({
-      chapter1Levels: fixtureLevels(3),
-      selection: { kind: "chapter1", index: 2 },
-    });
+    const last = setUp({ selection: { kind: "sandbox" } });
     presentLevelSwitcher(last.parent, last.options);
 
     expect(requireElement(".task-prev", last.parent).hasAttribute("disabled")).toBe(false);
     expect(requireElement(".task-next", last.parent).hasAttribute("disabled")).toBe(true);
+
+    const blockEdge = setUp({
+      chapter1Levels: fixtureLevels(3),
+      selection: { kind: "chapter1", index: 2 },
+    });
+    presentLevelSwitcher(blockEdge.parent, blockEdge.options);
+
+    expect(requireElement(".task-prev", blockEdge.parent).hasAttribute("disabled")).toBe(false);
+    expect(requireElement(".task-next", blockEdge.parent).hasAttribute("disabled")).toBe(false);
   });
 
   it("steps next to the adjacent tile and navigates on click", () => {
@@ -419,23 +424,46 @@ describe("presentLevelSwitcher", () => {
     expect(parent.ownerDocument.defaultView?.location.hash).toBe("#level=2");
   });
 
-  it("scopes stepping to the current tile's own block", () => {
+  it("steps off the end of a block into the one after it", () => {
     const { parent, options } = setUp({
       tutorialLevels: tutorialLevels.slice(0, 2),
+      chapter1Levels: fixtureLevels(4),
       selection: { kind: "tutorial", index: 1 },
     });
     presentLevelSwitcher(parent, options);
     const taskNext = requireElement(".task-next", parent);
 
-    expect(taskNext.hasAttribute("disabled")).toBe(true);
+    expect(taskNext.hasAttribute("disabled")).toBe(false);
+    taskNext.click();
+
+    // Past the last lesson lies the first numbered level, one block on.
+    expect(parent.ownerDocument.defaultView?.location.hash).toBe("#level=1");
+  });
+
+  it("steps back off the start of a block into the one before it", () => {
+    const lastLesson = tutorialLevels[1];
+    const { parent, options } = setUp({
+      tutorialLevels: tutorialLevels.slice(0, 2),
+      chapter1Levels: fixtureLevels(4),
+      selection: { kind: "chapter1", index: 0 },
+    });
+    presentLevelSwitcher(parent, options);
+    const taskPrev = requireElement(".task-prev", parent);
+
+    expect(taskPrev.hasAttribute("disabled")).toBe(false);
+    taskPrev.click();
+
+    expect(parent.ownerDocument.defaultView?.location.hash).toBe(
+      `#level=${lastLesson === undefined ? "" : lastLesson.id}`,
+    );
   });
 
   it("navigates nowhere when an arrow is pressed with nothing to step to", () => {
     // Not a click a player can make (the button is disabled), but the handler
-    // still has to survive a dispatched one.
+    // still has to survive a dispatched one. Stepping back from the menu's very
+    // first tile is the only way left to have nowhere to go.
     const { parent, options } = setUp({
-      chapter1Levels: fixtureLevels(3),
-      selection: { kind: "chapter1", index: 0 },
+      selection: { kind: "tutorial", index: 0 },
     });
     presentLevelSwitcher(parent, options);
     const view = parent.ownerDocument.defaultView;
