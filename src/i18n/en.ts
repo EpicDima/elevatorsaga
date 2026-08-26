@@ -91,7 +91,7 @@ export const EN_MESSAGES = {
   "game.level.nav.link": "Level {number}",
   "game.levelSwitcher.prevLabel": "Previous level",
   "game.levelSwitcher.nextLabel": "Next level",
-  "game.levelSwitcher.tutorialBlockLabel": "Learning track",
+  "game.levelSwitcher.tutorialBlockLabel": "Learning",
   "game.levelSwitcher.otherBlockLabel": "Other",
   "game.levelSwitcher.sandboxLabel": "Sandbox",
   "game.levelSwitcher.skyscraperBlockLabel": "Skyscraper",

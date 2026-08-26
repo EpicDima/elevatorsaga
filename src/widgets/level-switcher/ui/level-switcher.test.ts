@@ -151,7 +151,7 @@ describe("presentLevelSwitcher", () => {
     presentLevelSwitcher(parent, options);
 
     const captions = [...parent.querySelectorAll(".taskblock .cap")].map((el) => el.textContent);
-    expect(captions).toEqual(["Learning track", "Levels", "Skyscraper", "Other"]);
+    expect(captions).toEqual(["Learning", "Levels", "Skyscraper", "Other"]);
     const [, , , otherBlock] = parent.querySelectorAll(".taskblock");
     expect(otherBlock?.querySelector(".tasklink")?.textContent).toBe("Sandbox");
   });

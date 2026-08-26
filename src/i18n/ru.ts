@@ -87,7 +87,7 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "game.level.nav.link": "Уровень {number}",
   "game.levelSwitcher.prevLabel": "Предыдущий уровень",
   "game.levelSwitcher.nextLabel": "Следующий уровень",
-  "game.levelSwitcher.tutorialBlockLabel": "Учебная дорожка",
+  "game.levelSwitcher.tutorialBlockLabel": "Обучение",
   "game.levelSwitcher.otherBlockLabel": "Остальное",
   "game.levelSwitcher.sandboxLabel": "Песочница",
   "game.levelSwitcher.skyscraperBlockLabel": "Небоскрёб",
