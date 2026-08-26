@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+
 import { CompletionContext } from "@codemirror/autocomplete";
+import { SearchQuery, getSearchQuery, openSearchPanel, setSearchQuery } from "@codemirror/search";
 import { EditorView } from "@codemirror/view";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -47,6 +51,34 @@ function setUp(storage: Storage = new MemoryStorage()): {
     throw new Error("The editor did not build its view");
   }
   return { editor, view, storage };
+}
+
+/** The CodeMirror packages this editor mounts that put any label on screen of their own. */
+const PHRASE_PACKAGES = [
+  "@codemirror/view",
+  "@codemirror/language",
+  "@codemirror/search",
+  "@codemirror/autocomplete",
+  "@codemirror/commands",
+];
+
+/**
+ * Every phrase those packages pass to `state.phrase()`, read out of the copies actually installed.
+ * Both call shapes are literal at the call site — `phrase("go")` and `phrase(view, "next")` — so
+ * the string literals inside each call's parentheses are the whole set.
+ */
+function bundledPhrases(): string[] {
+  const resolve = createRequire(import.meta.url);
+  const found = new Set<string>();
+  for (const name of PHRASE_PACKAGES) {
+    const source = readFileSync(resolve.resolve(name), "utf8");
+    for (const [, call = ""] of source.matchAll(/\bphrase\(([^)]*)\)/g)) {
+      for (const [, literal = ""] of call.matchAll(/"([^"]+)"/g)) {
+        found.add(literal);
+      }
+    }
+  }
+  return [...found];
 }
 
 /** A `Storage` that throws from everything, as Safari does in private mode. */
@@ -1585,6 +1617,108 @@ describe("codeMirrorView", () => {
         "Программа для лифтов",
       );
     });
+
+    it("says CodeMirror's own labels in that locale too", () => {
+      vi.useRealTimers();
+      const parent = document.createElement("div");
+      document.body.append(parent);
+      setLocale("ru");
+
+      codeMirrorView(parent)({ onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() }, "");
+
+      const state = EditorView.findFromDOM(parent)?.state;
+      expect(state?.phrase("Find")).toBe("Найти");
+      expect(state?.phrase("replace all")).toBe("заменить все");
+      expect(state?.phrase("replaced $ matches", 3)).toBe("заменено совпадений: 3");
+    });
+
+    it("leaves no phrase its own packages use in English", () => {
+      // Scanned rather than listed: an upgrade that adds a phrase is exactly what
+      // would otherwise put one English label back on a Russian page, unnoticed.
+      vi.useRealTimers();
+      const parent = document.createElement("div");
+      document.body.append(parent);
+      setLocale("ru");
+
+      codeMirrorView(parent)({ onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() }, "");
+
+      const state = EditorView.findFromDOM(parent)?.state;
+      if (state === undefined) {
+        throw new Error("The editor did not mount");
+      }
+      const phrases = bundledPhrases();
+      expect(phrases.length).toBeGreaterThan(20);
+      expect(phrases.filter((phrase) => state.phrase(phrase) === phrase)).toEqual([]);
+    });
+
+    it("re-reads them when the language changes under an editor already on screen", () => {
+      // Without this the search panel would stay English until the page was reloaded.
+      vi.useRealTimers();
+      const parent = document.createElement("div");
+      document.body.append(parent);
+      const view = codeMirrorView(parent)(
+        { onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() },
+        "",
+      );
+      expect(EditorView.findFromDOM(parent)?.state.phrase("Find")).toBe("Find");
+
+      setLocale("ru");
+      view.relocalize();
+
+      expect(parent.querySelector(".cm-content")?.getAttribute("aria-label")).toBe(
+        "Программа для лифтов",
+      );
+      expect(EditorView.findFromDOM(parent)?.state.phrase("Find")).toBe("Найти");
+    });
+
+    it("rebuilds a search panel already open, keeping what was typed into it", () => {
+      // The panel writes its labels once, in its constructor, so the reconfigure alone leaves an
+      // open one in English. Reopening it takes the query from the selection unless it is restored.
+      vi.useRealTimers();
+      const parent = document.createElement("div");
+      document.body.append(parent);
+      const view = codeMirrorView(parent)(
+        { onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() },
+        "elevators[0].goToFloor(3);",
+      );
+      const surface = EditorView.findFromDOM(parent);
+      if (surface === null) {
+        throw new Error("The editor did not mount");
+      }
+      openSearchPanel(surface);
+      surface.dispatch({
+        effects: setSearchQuery.of(new SearchQuery({ search: "goToFloor" })),
+        selection: { anchor: 0, head: "elevators".length },
+      });
+      const placeholder = (): string | null | undefined =>
+        parent.querySelector(".cm-search input[name='search']")?.getAttribute("placeholder");
+      expect(placeholder()).toBe("Find");
+
+      setLocale("ru");
+      view.relocalize();
+
+      expect(placeholder()).toBe("Найти");
+      expect(getSearchQuery(surface.state).search).toBe("goToFloor");
+    });
+
+    it("keeps them through a swap, which builds a whole new state", () => {
+      vi.useRealTimers();
+      const parent = document.createElement("div");
+      document.body.append(parent);
+      const view = codeMirrorView(parent)(
+        { onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() },
+        "",
+      );
+
+      setLocale("ru");
+      view.relocalize();
+      view.setValue("// a whole new buffer", "swap");
+
+      expect(parent.querySelector(".cm-content")?.getAttribute("aria-label")).toBe(
+        "Программа для лифтов",
+      );
+      expect(EditorView.findFromDOM(parent)?.state.phrase("Find")).toBe("Найти");
+    });
   });
 });
 
@@ -1676,6 +1810,18 @@ describe("the program on screen when the language changes", () => {
     editor.relocalize();
 
     expect(changed).not.toHaveBeenCalled();
+  });
+
+  it("still re-labels the surface when the program is the player's own", () => {
+    // The accessible name and the search panel are the game's to translate, whoever wrote the code.
+    const { editor, view } = setUp();
+    view.type("// my own dispatcher");
+
+    setLocale("ru");
+    editor.relocalize();
+
+    expect(view.relocalizeCount).toBe(1);
+    expect(view.getValue()).toBe("// my own dispatcher");
   });
 
   it("resets a level to its starting point in the language on screen", () => {

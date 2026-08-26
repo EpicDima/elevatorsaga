@@ -90,6 +90,8 @@ export class FakeTextEditorView implements TextEditorView {
   value = "";
   /** How often the caret has been put back in the editor. */
   focusCount = 0;
+  /** How often the surface has been asked to re-read its labels. */
+  relocalizeCount = 0;
   /** Where the last error mark was put, if there is one now. */
   errorMark: CodeErrorLocation | undefined = undefined;
   /**
@@ -118,6 +120,11 @@ export class FakeTextEditorView implements TextEditorView {
 
   focus(): void {
     this.focusCount += 1;
+  }
+
+  /** Counts the relocalizations instead of relabeling anything. */
+  relocalize(): void {
+    this.relocalizeCount += 1;
   }
 
   /** Records the mark instead of drawing it. */

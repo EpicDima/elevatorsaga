@@ -6,7 +6,15 @@
 
 import { expect, test } from "@playwright/test";
 
-import { building, editor, seedCode, seedLevelCode, startButton, storedCode } from "./game-page.ts";
+import {
+  building,
+  editor,
+  languagePicker,
+  seedCode,
+  seedLevelCode,
+  startButton,
+  storedCode,
+} from "./game-page.ts";
 
 /** A short, valid program with something distinctive to look for. */
 const PROGRAM = `function init(elevators, floors) {
@@ -142,4 +150,39 @@ test("gives the player search and folding, not just a text box", async ({ page }
   await page.keyboard.press("ControlOrMeta+f");
 
   await expect(page.locator(".cm-search input[name='search']")).toBeVisible();
+});
+
+test("draws CodeMirror's own panels in the language the page is in", async ({ page }) => {
+  // The panel is markup CodeMirror writes, out of reach of the redraw the rest of the page gets,
+  // and jsdom draws none of it - so this is the only place the translation can be checked at all.
+  await page.goto("/#lang=ru");
+
+  await editor(page, "Программа для лифтов").click();
+  await page.keyboard.press("ControlOrMeta+f");
+
+  const search = page.locator(".cm-search");
+  await expect(search.locator("input[name='search']")).toHaveAttribute("placeholder", "Найти");
+  await expect(search.getByRole("button", { name: "заменить все" })).toBeVisible();
+  await expect(search).not.toContainText("match case");
+});
+
+test("redraws those panels when the language changes under an open editor", async ({ page }) => {
+  // The player's own program, not the starter one: translating a starter program replaces the
+  // whole document, which closes the panel before anything can be said about its labels.
+  await page.goto("/");
+  await editor(page).click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.insertText(PROGRAM);
+  await page.keyboard.press("ControlOrMeta+f");
+  const searchField = page.locator(".cm-search input[name='search']");
+  // Typed key by key, not filled: the field commits its query on `keyup`, which `fill` never fires.
+  await searchField.pressSequentially("goToFloor");
+  await expect(searchField).toHaveAttribute("placeholder", "Find");
+
+  await (await languagePicker(page)).selectOption("ru");
+
+  // Rebuilt, since the panel writes its labels once; the query it was carrying is put back.
+  await expect(searchField).toHaveAttribute("placeholder", "Найти");
+  await expect(searchField).toHaveValue("goToFloor");
+  await expect(editor(page, "Программа для лифтов")).toContainText("e2e-marker-a7f3");
 });

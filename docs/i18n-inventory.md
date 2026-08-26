@@ -108,7 +108,7 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalog holds **517 keys** in two locales, each locale spread over two files. `src/i18n/en.ts`
+The catalog holds **544 keys** in two locales, each locale spread over two files. `src/i18n/en.ts`
 is the reference — its text is the English wording, extracted verbatim — and `src/i18n/ru.ts` is
 the Russian translation; `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts` are the same thing for the
 reference pages, kept in files of their own so that the bundle cannot reach them. The types make
@@ -117,7 +117,7 @@ key English does not have, or giving a plural message the wrong number of forms 
 error, not a runtime surprise.
 
 ```sh
-grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | wc -l       # 517
+grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | wc -l       # 544
 grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -132,8 +132,8 @@ grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | tr -d '"' | cut -d. 
 | `level.*`      | 14      | `src/game/levels.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `editor.*`     | 8       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **Total**      | **517** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `editor.*`     | 35      | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Total**      | **544** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 Which keys nothing reads:
 
@@ -1105,7 +1105,7 @@ ask them are drawn by `src/pages/game/index.ts` now, and the app is what knows t
 `fitness.measuring` is filed here rather than under `src/app/fitness.ts` because that is where it
 is printed; the benchmark itself stopped touching the page.
 
-### `src/ui/editor.ts` and `src/ui/default-code.ts` — 2 keys
+### `src/ui/editor.ts` and `src/ui/default-code.ts` — 29 keys
 
 | Key                       | English                                                                                                  | Notes                                  |
 | ------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------- |
@@ -1119,6 +1119,53 @@ same file's `DEV_TEST_CODE` is deliberately outside the catalog — no player ev
 `#devtest` has been retired; it is the yardstick `level-tiers-solutions.test.ts` measures the
 tiers against, and a fixture whose comments moved with the language would be a different fixture in
 each locale.
+
+The other 27 are not the page's own strings but CodeMirror's, fed to it through
+`EditorState.phrases`: the search panel `Mod-F` opens, the go-to-line panel behind `Mod-Alt-G`, the
+fold gutter, and what the editor announces to a screen reader. That facet is keyed by the English
+phrase each package ships, so the left column below is a lookup key twice over — once for `t()`,
+once for CodeMirror. A phrase with no entry is drawn in English on a Russian page and says nothing
+about it, which is why `src/ui/editor.test.ts` reads the phrases out of the installed
+packages rather than listing them: an upgrade that adds one fails a test instead of shipping.
+
+Both this facet and the editor's `aria-label` sit in a compartment, so a language chosen with the
+editor already on screen reaches them. A search panel already open is closed and reopened as well,
+since it writes its labels into the DOM once, in its constructor.
+
+English keeps CodeMirror's own wording verbatim. Russian shortens the search panel's buttons —
+"регистр", not "учитывать регистр" — because they sit in one narrow row inside the editor pane,
+and puts the preposition of "Свёрнуты строки с 3 по 7" in `foldedLines` rather than in `to`, which
+the unfolding announcement shares.
+
+| Key                              | English                  | Notes                                                   |
+| -------------------------------- | ------------------------ | ------------------------------------------------------- |
+| `editor.phrase.find`             | Find                     | the search field's placeholder and `aria-label`         |
+| `editor.phrase.replace`          | Replace                  | the replace field's, likewise                           |
+| `editor.phrase.next`             | next                     | the button stepping to the match after the cursor       |
+| `editor.phrase.previous`         | previous                 | the button stepping back                                |
+| `editor.phrase.all`              | all                      | the button selecting every match at once                |
+| `editor.phrase.matchCase`        | match case               | the case-sensitivity checkbox                           |
+| `editor.phrase.regexp`           | regexp                   | the checkbox reading the query as a regular expression  |
+| `editor.phrase.byWord`           | by word                  | the whole-word checkbox                                 |
+| `editor.phrase.replaceOne`       | replace                  | the button replacing the current match                  |
+| `editor.phrase.replaceAll`       | replace all              | the button replacing every match                        |
+| `editor.phrase.goToLine`         | Go to line               | the `Mod-Alt-G` panel's field                           |
+| `editor.phrase.go`               | go                       | that panel's submit button                              |
+| `editor.phrase.currentMatch`     | current match            | announced when the search moves the cursor              |
+| `editor.phrase.onLine`           | on line                  | the rest of that announcement, before the line number   |
+| `editor.phrase.replacedMatches`  | replaced $ matches       | announced after "replace all"; `$` takes the count      |
+| `editor.phrase.replacedOnLine`   | replaced match on line $ | announced after a single replace; `$` takes the line    |
+| `editor.phrase.close`            | close                    | the `aria-label` on a panel's close button              |
+| `editor.phrase.controlCharacter` | Control character        | names the placeholder drawn over a control character    |
+| `editor.phrase.foldLine`         | Fold line                | the fold gutter's marker, on a line that can fold       |
+| `editor.phrase.unfoldLine`       | Unfold line              | the same marker, on a folded one                        |
+| `editor.phrase.foldedCode`       | folded code              | the `aria-label` of the placeholder standing for a fold |
+| `editor.phrase.unfold`           | unfold                   | that placeholder's `title`                              |
+| `editor.phrase.foldedLines`      | Folded lines             | announced on folding, before the first line number      |
+| `editor.phrase.unfoldedLines`    | Unfolded lines           | the same, on unfolding                                  |
+| `editor.phrase.to`               | to                       | between the two line numbers of both announcements      |
+| `editor.phrase.completions`      | Completions              | the `aria-label` of the completion list                 |
+| `editor.phrase.selectionDeleted` | Selection deleted        | announced by the delete commands in the default keymap  |
 
 ### `src/features/manage-code-slots/ui/code-slots.ts` — 3 `editor.slot.*` keys
 

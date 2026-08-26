@@ -53,10 +53,13 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   await expect(page.getByRole("button", { name: "Вызвать лифт вверх с этажа 0" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Лифт 0" })).toBeVisible();
   await expect(await languagePicker(page)).toHaveValue("ru");
-  // Located by its English accessible name on purpose: CodeMirror's accessible name is set once
-  // when the view is built and does not follow language changes.
-  await expect(editor(page)).toContainText("Возьмём первый лифт");
-  await expect(editor(page)).not.toContainText("Let's use the first elevator");
+  // Found by its Russian name: the surface's own accessible name follows the change too, so the
+  // English one no longer matches anything.
+  await expect(editor(page, "Программа для лифтов")).toContainText("Возьмём первый лифт");
+  await expect(editor(page, "Программа для лифтов")).not.toContainText(
+    "Let's use the first elevator",
+  );
+  await expect(editor(page)).toHaveCount(0);
 
   // Same seed confirms the run was not restarted.
   await expect(await seedField(page)).toHaveValue(seed);

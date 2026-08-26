@@ -16,8 +16,16 @@ import {
   indentUnit,
   syntaxHighlighting,
 } from "@codemirror/language";
-import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
-import { EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
+import {
+  closeSearchPanel,
+  getSearchQuery,
+  highlightSelectionMatches,
+  openSearchPanel,
+  searchKeymap,
+  searchPanelOpen,
+  setSearchQuery,
+} from "@codemirror/search";
+import { Compartment, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import type { Extension, Text } from "@codemirror/state";
 import {
   crosshairCursor,
@@ -136,6 +144,8 @@ export interface TextEditorView {
   setValue: (value: string, replacement?: TextReplacement) => void;
   /** Puts the caret back in the editor. */
   focus: () => void;
+  /** Re-reads the surface's own labels — its accessible name, and CodeMirror's — from the catalog. */
+  relocalize: () => void;
   /**
    * Marks where a program failed, or clears the mark for `undefined`. Never
    * moves the caret. A location the document can no longer contain also
@@ -575,8 +585,10 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * Re-renders the on-screen program in the active language, but only if it is
    * a starter program the game wrote (never the player's own text). Storage is
    * left alone; {@link localizeStarterCode} makes stale copies harmless to read.
+   * The surface's own labels are re-read either way — they belong to the game.
    */
   relocalize(): void {
+    this.#view.relocalize();
     const code = this.getCode();
     const localized = localizeStarterCode(code);
     if (localized === code) {
@@ -694,9 +706,58 @@ const BASE_EXTENSIONS: Extension = [
   ]),
 ];
 
+/**
+ * CodeMirror's own labels — the search panel, the fold gutter, what it announces to a screen
+ * reader — keyed by the English phrase its packages pass to `state.phrase()`. Anything missing
+ * here is shown in English, whatever language the page is in.
+ */
+function editorPhrases(): Record<string, string> {
+  return {
+    // @codemirror/search: the panel Mod-F opens, and the one Mod-Alt-G opens.
+    Find: t("editor.phrase.find"),
+    Replace: t("editor.phrase.replace"),
+    next: t("editor.phrase.next"),
+    previous: t("editor.phrase.previous"),
+    all: t("editor.phrase.all"),
+    "match case": t("editor.phrase.matchCase"),
+    regexp: t("editor.phrase.regexp"),
+    "by word": t("editor.phrase.byWord"),
+    replace: t("editor.phrase.replaceOne"),
+    "replace all": t("editor.phrase.replaceAll"),
+    "Go to line": t("editor.phrase.goToLine"),
+    go: t("editor.phrase.go"),
+    "current match": t("editor.phrase.currentMatch"),
+    "on line": t("editor.phrase.onLine"),
+    "replaced $ matches": t("editor.phrase.replacedMatches"),
+    "replaced match on line $": t("editor.phrase.replacedOnLine"),
+    // @codemirror/view: the search panel's close button, and a control character's placeholder.
+    close: t("editor.phrase.close"),
+    "Control character": t("editor.phrase.controlCharacter"),
+    // @codemirror/language: the fold gutter, its placeholder, and what folding announces.
+    "Fold line": t("editor.phrase.foldLine"),
+    "Unfold line": t("editor.phrase.unfoldLine"),
+    "folded code": t("editor.phrase.foldedCode"),
+    unfold: t("editor.phrase.unfold"),
+    // Both run "<phrase> 3 <to> 7.", so the Russian puts its preposition in the first half.
+    "Folded lines": t("editor.phrase.foldedLines"),
+    "Unfolded lines": t("editor.phrase.unfoldedLines"),
+    to: t("editor.phrase.to"),
+    // @codemirror/autocomplete, then @codemirror/commands.
+    Completions: t("editor.phrase.completions"),
+    "Selection deleted": t("editor.phrase.selectionDeleted"),
+  };
+}
+
 /** Builds a factory that mounts a CodeMirror 6 editing surface into `parent`. */
 export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
   return (handlers: TextEditorHandlers, initialValue: string): TextEditorView => {
+    // In a compartment so `relocalize` can swap the labels without rebuilding the view.
+    const localized = new Compartment();
+    /** Every label the surface reads from the catalog, at the language active right now. */
+    const localizedExtensions = (): Extension => [
+      EditorView.contentAttributes.of({ "aria-label": t("editor.label") }),
+      EditorState.phrases.of(editorPhrases()),
+    ];
     // Kept in a variable, not inlined: a "swap" below rebuilds a second
     // state from these same extensions.
     const extensions = [
@@ -710,10 +771,6 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       syntaxHighlighting(editorSyntaxTheme),
       indentUnit.of(INDENT),
       EditorState.tabSize.of(INDENT.length),
-      // Read fresh on each mount (not at module scope), so an editor built
-      // after a language change gets the new label. An editor already on
-      // screen keeps its old label until it is rebuilt.
-      EditorView.contentAttributes.of({ "aria-label": t("editor.label") }),
       // Ahead of the default keymap, which binds Mod-Enter itself.
       Prec.highest(
         keymap.of([
@@ -771,7 +828,9 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
         },
       }),
     ];
-    const view = new EditorView({ parent, doc: initialValue, extensions });
+    /** The whole configuration, with the labels read at whatever language is active now. */
+    const stateExtensions = (): Extension => [extensions, localized.of(localizedExtensions())];
+    const view = new EditorView({ parent, doc: initialValue, extensions: stateExtensions() });
     view.dom.tabIndex = -1;
 
     return {
@@ -781,7 +840,7 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
           // A whole new state, not a filtered one: CodeMirror offers no
           // command that empties `history()`, and a fresh state guarantees no
           // stale history from the previous buffer can resurface.
-          view.setState(EditorState.create({ doc: value, extensions }));
+          view.setState(EditorState.create({ doc: value, extensions: stateExtensions() }));
           return;
         }
         view.dispatch({
@@ -791,6 +850,18 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       },
       focus: () => {
         view.focus();
+      },
+      relocalize: () => {
+        view.dispatch({ effects: localized.reconfigure(localizedExtensions()) });
+        // A search panel already on screen wrote its labels in its constructor and re-reads
+        // them only when rebuilt. Its query is restored by hand, since reopening a panel
+        // otherwise takes the query from whatever happens to be selected.
+        if (searchPanelOpen(view.state)) {
+          const query = getSearchQuery(view.state);
+          closeSearchPanel(view);
+          openSearchPanel(view);
+          view.dispatch({ effects: setSearchQuery.of(query) });
+        }
       },
       markError: (location: CodeErrorLocation | undefined) => {
         const range = location === undefined ? undefined : errorRange(view.state.doc, location);
