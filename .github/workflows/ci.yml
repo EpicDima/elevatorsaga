@@ -143,15 +143,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Read from the installed package rather than parsed back out of the
+      # lockfile, so the key names the version that will actually launch.
+      - name: Note which Playwright the browser has to match
+        id: playwright
+        run: echo "version=$(node -p 'require("./node_modules/@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+
       # The browser is about 100 MB and only ever changes when the Playwright
       # version does, so it is restored from cache rather than downloaded on
-      # every push.
+      # every push. Keyed on that version and not on the lockfile's hash, which
+      # threw the browser away and fetched it again whenever any unrelated
+      # dependency moved.
       - name: Restore the Playwright browser
         id: playwright-cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
       - name: Install Chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
