@@ -690,6 +690,51 @@ test("scrolls a chapter two briefing and its house in the same box", async ({ pa
   expect(measured.groundShown, "the ground floor at the foot of the scroll").toBe(true);
 });
 
+test("opens the fullscreen demo at the lobby, with the lesson out of the flow", async ({
+  page,
+}) => {
+  // The demo keeps a level's card mounted and hides it, so the column can't decide where to
+  // park by asking whether a lesson exists: it has to measure one. A house drawn
+  // ground-floor-last would otherwise open showing its roof, on the one route with no
+  // scrollbar to say so.
+  await page.setViewportSize({ width: 1040, height: 600 });
+  await page.goto("/#level=tutorial-5,fullscreen=true");
+  await expect(page.locator(".building")).toBeVisible();
+
+  const demo = await page.locator(".stagearea").evaluate((area) => {
+    const card = area.querySelector(".tutorial");
+    const world = area.querySelector(".world");
+    const lobby = area.querySelector(".levels .floor");
+    if (card === null || world === null || lobby === null) {
+      throw new Error("the stage area is missing the card or the building");
+    }
+    const view = area.getBoundingClientRect();
+    const ground = lobby.getBoundingClientRect();
+    return {
+      // Mounted, and not merely invisible: `getClientRects` is empty only for a box out of the flow.
+      cardMounted: card.querySelector(".tutorialpanel") !== null,
+      cardBoxes: card.getClientRects().length,
+      worldShown: getComputedStyle(world).visibility,
+      room: Math.round(area.scrollHeight - area.clientHeight),
+      top: Math.round(area.scrollTop),
+      nested: [...area.querySelectorAll("*")]
+        .filter((box) => box.scrollHeight - box.clientHeight > 1)
+        .map((box) => box.className),
+      groundShown: ground.top >= view.top - 1 && ground.bottom <= view.bottom + 1,
+    };
+  });
+
+  expect(demo.cardMounted, "the demo emptied the card instead of hiding it").toBe(true);
+  expect(demo.cardBoxes, "the hidden lesson still taking room above the house").toBe(0);
+  expect(demo.worldShown, "the building the demo exists to show").toBe("visible");
+  expect(demo.room, "level 5's building fits the demo's pane after all").toBeGreaterThan(0);
+  expect(Math.abs(demo.top - demo.room), "the demo on arrival").toBeLessThanOrEqual(1);
+  expect(demo.groundShown, "the ground floor on arrival").toBe(true);
+  expect(demo.nested, "a second scroll inside the stage area").toEqual([]);
+  // Hidden, not removed: everything else keeps its box so the building lands where it does in play.
+  await expect(editor(page)).toBeHidden();
+});
+
 test("costs the levels nothing: the widest building in the game still fits its pane", async ({
   page,
 }) => {
