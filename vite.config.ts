@@ -266,13 +266,14 @@ export default defineConfig({
       reporter: ["text", "lcov"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts", "src/**/test-helpers.ts", "src/i18n/test-setup.ts"],
-      // A ratchet, not a target: each threshold sits a whole percent below
-      // current coverage, so ordinary drift passes but untested code doesn't
-      // land. Global rather than per-file since main.ts/docs.ts are covered by e2e/ instead.
+      // A floor, not a target: branches, the tightest of the four, clears it by
+      // a point and a half. Global rather than per-file because what is left
+      // uncovered is mostly index fallbacks `noUncheckedIndexedAccess` asks for
+      // and cannot be reached, thinly spread across the view modules.
       thresholds: {
         statements: 95,
-        branches: 93,
-        functions: 94,
+        branches: 95,
+        functions: 95,
         lines: 95,
       },
     },
