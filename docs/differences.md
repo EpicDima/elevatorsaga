@@ -23,14 +23,21 @@ is scored by the same rules.
   bar.
   Nothing is locked: the list is a table of contents, not a gate, and any level in it opens from the
   first visit whether or not the ones below it have been cleared. What you have earned shows as
-  stars on the tile instead. The one being played is marked, and free play sits in a block of its
-  own under the numbered ones.
+  stars on the tile instead. The one being played is marked, and the menu runs learning track,
+  numbered levels, Skyscraper, free play.
+- **A Skyscraper block.** Thirteen levels on how real lift systems are actually run — morning and
+  evening peaks and the lunch hour, cars that serve only part of the building, and buildings whose
+  passengers name the floor they want instead of pressing a call button. They are `#level=sky-1` to
+  `#level=sky-13` and sit in their own block in the menu, because the numbered levels are the
+  original's and a decade of published solutions is scored against them. Each pins its own seed, so
+  a medal means the same thing to two players.
 - **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the settings
   menu and printed to the console as the run starts. Following the seed link, or writing `#seed=…` yourself,
   brings the same people back in the same order to every restart — enough to compare two programs
   on one problem instead of on two different ones. A second link drops the seed again when you are
-  done with it. It does not make a run frame-for-frame identical: the browser decides how long a
-  frame is.
+  done with it. The whole run repeats, not only the passengers: player code and physics advance in
+  fixed ticks rather than in whatever a frame was worth, so the cars end up in the same places at
+  the same times whatever the display is doing.
 - **A sandbox building.** `#level=sandbox` takes `floors`, `elevators`, `capacities` and
   `spawnrate`, so you can build the case your program is failing on rather than looking for a
   shipped level that resembles it. See [URL parameters](url-parameters.md).
@@ -270,11 +277,10 @@ Four more, without upstream issues:
   in the API documentation — "the elevator will probably not stop at a floor, so passengers will not
   get out" — and what the reporter wanted is spelled `goToFloor`. `src/game/world.test.ts`
   reproduces the whole scenario under "stopping en route", alongside the one-line change that makes
-  the same passenger board, so the difference is pinned rather than argued.
-
-  This one was listed as _fixed_ here until 2026-08-12, filed with #59 / #74 / #98 above. It never
-  was: those are about an elevator standing still with the wrong indicator lit, and no indicator can
-  help a car that is not level with a floor.
+  the same passenger board, so the difference is pinned rather than argued. It reads like the
+  indicator bugs under [Fixed bugs](#fixed-bugs) and is not one of them: those are about a car
+  standing still with the wrong indicator lit, and no indicator can help a car that is not level
+  with a floor.
 
 ## Asked for upstream, and here already
 
