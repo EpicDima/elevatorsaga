@@ -135,6 +135,13 @@ export class Elevator extends Movable<ElevatorEvents> {
     down: this.goingDownIndicator,
   };
 
+  /**
+   * World y of floor 0, the fixed end of every conversion between a floor and
+   * a position. Kept because those conversions run several times per car per
+   * simulation step, and both terms of it are settled in the constructor.
+   */
+  readonly #groundY: number;
+
   /** Stream {@link userEntering} draws its starting slot from. */
   readonly #random: RandomSource;
 
@@ -159,6 +166,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     this.MAXSPEED = floorHeight * speedFloorsPerSec;
     this.floorCount = floorCount;
     this.floorHeight = floorHeight;
+    this.#groundY = (floorCount - 1) * floorHeight;
     // A missing or zero capacity falls back to 4.
     this.maxUsers = maxUsers === undefined || maxUsers === 0 ? DEFAULT_MAX_USERS : maxUsers;
 
@@ -416,12 +424,12 @@ export class Elevator extends Movable<ElevatorEvents> {
 
   /** World y of a floor; floor 0 is at the bottom, i.e. the largest y. */
   getYPosOfFloor(floorNum: number): number {
-    return (this.floorCount - 1) * this.floorHeight - floorNum * this.floorHeight;
+    return this.#groundY - floorNum * this.floorHeight;
   }
 
   /** Fractional floor for a world y. */
   getExactFloorOfYPos(y: number): number {
-    return ((this.floorCount - 1) * this.floorHeight - y) / this.floorHeight;
+    return (this.#groundY - y) / this.floorHeight;
   }
 
   /** Fractional floor the car is at right now. */

@@ -130,32 +130,35 @@ export class WorldController extends Observable<WorldControllerEvents> {
           }
         }
 
+        // Read once for the whole frame: the loop below runs up to
+        // MAX_TICKS_PER_FRAME times and none of the three can change under it.
+        const tickSeconds = this.#tickSeconds;
+        const elevatorInterfaces = world.elevatorInterfaces;
+        const floorInterfaces = world.floorInterfaces;
+
         const dt = t - lastT;
         accumulator += dt * 0.001 * this.timeScale;
-        accumulator = Math.min(accumulator, MAX_TICKS_PER_FRAME * this.#tickSeconds);
+        accumulator = Math.min(accumulator, MAX_TICKS_PER_FRAME * tickSeconds);
 
         // Computed by one division rather than repeated subtraction: subtracting the same
         // not-quite-representable fraction up to MAX_TICKS_PER_FRAME times drifts under the
         // threshold before reaching zero, silently running one tick short of the cap.
-        const ticksAvailable = Math.min(
-          Math.floor(accumulator / this.#tickSeconds),
-          MAX_TICKS_PER_FRAME,
-        );
+        const ticksAvailable = Math.min(Math.floor(accumulator / tickSeconds), MAX_TICKS_PER_FRAME);
         let ticksRun = 0;
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- world.update() can end the level mid-loop, which defeats the narrowing above
         while (ticksRun < ticksAvailable && !world.levelEnded) {
           try {
-            codeObj.update(this.#tickSeconds, world.elevatorInterfaces, world.floorInterfaces);
+            codeObj.update(tickSeconds, elevatorInterfaces, floorInterfaces);
           } catch (e) {
             this.handleUserCodeError(e, "update");
             // This tick's time is still owed, so it stays out of ticksRun; setPaused above
             // stops the next frame from retrying.
             break;
           }
-          world.update(this.#tickSeconds);
+          world.update(tickSeconds);
           ticksRun++;
         }
-        accumulator -= ticksRun * this.#tickSeconds;
+        accumulator -= ticksRun * tickSeconds;
         if (this.updatesDisplay) {
           world.updateDisplayPositions();
           // Every frame, deliberately, so the stats panel always matches what's on screen;
