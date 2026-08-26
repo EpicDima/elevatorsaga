@@ -38,14 +38,14 @@ well as printing it to the console. Put that seed back in the URL and the same p
 arriving in the same order come back — from the Restart button, from <kbd>Ctrl</kbd>+<kbd>Enter</kbd>
 and from a reload alike.
 
-You do not have to type it. When the URL pins no seed, the seed in the menu is a link that pins the
-one currently running, so a run worth keeping is one click away after you have seen it. When the URL
-does pin one, the menu shows the value with a **new draw** link beside it, which drops the seed and
-starts again on fresh passengers. Both links name the level as well as the seed, so either one
-is a complete address you can paste at someone.
+You do not have to type it. The menu shows the seed of the run in progress in a box you can put
+another one in, with a **new draw** button beside it that starts again on fresh passengers and a
+copy button whose link is the address of this exact run — level as well as seed, so it is complete
+to paste at someone.
 
-A URL with no `seed` draws a fresh one on every restart, which is deliberate: a run you cannot get
-away from is not what you want when you are stuck on a level.
+The seed you last played is remembered, in `localStorage` under `elevatorSeed`, and used again
+whenever the URL names none, so the same people come back even from an address with no `seed` in it.
+**New draw** is the way out of a run you are stuck with.
 
 None of this applies in chapter two, where the seed belongs to the level rather than to you: there
 is no seed line in the menu, nothing is printed, and every restart replays the same passengers, so
