@@ -1,23 +1,4 @@
-/*
- * Elevator Saga's stylesheet: the one file both entry points import, and the
- * order the rest of them are read in.
- *
- * There is a file per slice, next to the module that draws the markup it
- * paints, the way the TypeScript is laid out -- shared, entities, features,
- * widgets, pages, and app for what belongs to the page's own frame. Nothing
- * imports its own CSS: an @import here is resolved at build time, so this list
- * is the single place the cascade is decided, and a rule's position in it is
- * something a reader can see rather than something the module graph happens to
- * arrive at.
- *
- * The order below is deliberately not the layer ladder. Cascade order is
- * behavior: two rules of equal specificity are settled by which came second,
- * so re-sorting this list into shared-first order would change what is drawn,
- * dressed up as tidying. Tokens are the one entry that has to be first.
- *
- * `box-sizing` is `border-box` everywhere; the building's two rules that count
- * borders themselves opt back out, and `app/styles/document.css` says why.
- */
+/* Import order is the cascade: equal-specificity rules are settled by which import came second, and tokens must stay first. */
 
 @import "../shared/styles/tokens.css";
 @import "../app/styles/document.css";

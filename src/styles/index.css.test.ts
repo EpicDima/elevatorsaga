@@ -1,12 +1,4 @@
-/**
- * The one thing that can be said about `index.css` and about no other
- * stylesheet: it is the whole of the cascade order, so it is the whole of what
- * decides which of two competing rules wins.
- *
- * Everything else the stylesheet is checked for lives beside the slice that
- * declares it, as `<slice>.css.test.ts`, and reads the assembled text through
- * `#shared/styles/test-helpers.ts`.
- */
+/** index.css alone decides the cascade order; per-slice CSS is checked beside the slice that declares it. */
 
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -17,11 +9,8 @@ import { IMPORTED, ROOT } from "#shared/styles/test-helpers.ts";
 
 describe("the index", () => {
   it("imports every stylesheet in the source tree, exactly once each", () => {
-    // The cascade is stated in one place, and a slice's stylesheet only reaches
-    // a browser because the index names it. A new file that nobody wired up is
-    // the failure this guards: it costs nothing at build time, breaks no test
-    // of its own, and simply is not there on screen -- which reads as a widget
-    // whose CSS "did not work" rather than as CSS that was never loaded.
+    // Guards a stylesheet that got created but never imported: it costs nothing at build
+    // time and simply never renders, reading as broken CSS rather than CSS never loaded.
     const found: string[] = [];
     const walk = (directory: string): void => {
       for (const entry of readdirSync(join(ROOT, directory), { withFileTypes: true })) {

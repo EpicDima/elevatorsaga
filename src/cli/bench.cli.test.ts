@@ -1,22 +1,4 @@
-/**
- * The benchmark as an actual command, in an actual subprocess.
- *
- * `bench.test.ts` calls {@link runBench} with its streams handed to it, which is
- * the right way to test what the command *decides* -- and it cannot see any of
- * what makes it a command. Five things live outside that boundary and are
- * exercised here or nowhere: the entry guard that decides whether being
- * imported means running, the exit code a shell reads, the real file descriptor
- * a pipe is attached to, Node stripping the types off a `.ts` file it was
- * pointed at, and the thread the suite really runs in. Each of them has a way of
- * failing that leaves every in-process test green: a guard that never matches
- * makes the command print nothing and succeed, output that reaches standard
- * output through a path the tests do not model makes `--json` unparseable only
- * once it is piped, and a deadline is worth nothing until it is held against a
- * program that genuinely will not stop.
- *
- * The cost is a process per case, so there are few of them and they run the
- * shortest suite the tool can be asked for.
- */
+/** The benchmark as an actual command, in an actual subprocess: what `bench.test.ts` cannot see by calling {@link runBench} directly. */
 
 import { spawn } from "node:child_process";
 import { mkdtemp, symlink, writeFile } from "node:fs/promises";
@@ -47,15 +29,7 @@ const DRIVING_PROGRAM = `{
   update: function () {}
 }`;
 
-/**
- * The driving program with one more thing done before it starts driving.
- *
- * For the cases about what a program leaves behind it: the report has to hold
- * real numbers, or passing would prove nothing about the measurement surviving.
- *
- * @param firstLine - A statement to run at the top of `init`.
- * @returns The program, as source.
- */
+/** The driving program with one more statement run at the top of `init`. */
 function driving(firstLine: string): string {
   return DRIVING_PROGRAM.replace("elevators.forEach", `${firstLine}\n    elevators.forEach`);
 }
@@ -70,18 +44,11 @@ interface Ran {
   readonly err: string;
 }
 
-/**
- * Runs the command.
- *
- * @param args - The arguments after the script.
- * @param script - The path to point node at; the command itself by default.
- * @returns What it printed, and the code it exited with.
- */
+/** Runs the command. */
 async function bench(args: readonly string[], script: string = BENCH): Promise<Ran> {
   const child = spawn(process.execPath, [script, ...args], {
     stdio: ["ignore", "pipe", "pipe"],
-    // A safety net rather than part of any assertion: a command that hangs
-    // should fail the case that asked for it, not outlive the test run.
+    // A safety net: a command that hangs should fail the case, not the test run.
     timeout: 10_000,
   });
   let out = "";
@@ -101,22 +68,8 @@ async function bench(args: readonly string[], script: string = BENCH): Promise<R
 }
 
 /**
- * Runs the command with a reader that takes the report slowly.
- *
- * {@link bench} takes every chunk the moment it is offered, which is the one
- * habit that hides the case below: a reader that keeps up leaves nothing queued
- * to lose. Real ones do not always keep up -- `bench --json | jq` on a large
- * report is the ordinary example -- and a pipe holds 64KB before the writer has
- * to wait.
- *
- * The delay per chunk is what makes it slow; the watermark of one byte is what
- * stops the stream from swallowing the whole report into memory and reporting
- * it drained. Standard error is thrown away rather than collected, because the
- * program this is used with logs its enormous message once per scenario and
- * none of that is what is being asked about.
- *
- * @param args - The arguments after the script.
- * @returns What reached the reader, and the code the command exited with.
+ * Runs the command with a reader that takes the report slowly, so a report
+ * bigger than a pipe's 64KB buffer is written in pieces rather than one go.
  */
 async function benchThroughSlowReader(args: readonly string[]): Promise<Ran> {
   const child = spawn(process.execPath, [BENCH, ...args], {
@@ -138,8 +91,7 @@ async function benchThroughSlowReader(args: readonly string[]): Promise<Ran> {
       settle(status ?? -1);
     });
   });
-  // The child being gone says nothing about the reader being done with what it
-  // was handed, and the last chunk is the whole point of this case.
+  // The child exiting does not mean the reader is done with its last chunk.
   await new Promise<void>((done) => {
     slow.on("finish", done).on("close", done);
   });
@@ -163,13 +115,7 @@ describe("the benchmark as a command", () => {
   });
 
   it("runs when node is pointed at a link to it rather than at the file", async () => {
-    // What `npm link`, a `bin` entry and every `node_modules/.bin` shim do. Node
-    // resolves the module to the file the link points at, so `import.meta.url`
-    // is the real path while `argv[1]` is the link -- and an entry guard that
-    // compares the two without resolving the link decides this process is
-    // merely importing the module. Nothing then runs, nothing is printed, and
-    // the command exits 0: a silence that a CI check reading the exit code
-    // would pass.
+    // What `npm link`, a `bin` entry and every `node_modules/.bin` shim do.
     const link = join(scratch, "bench-link.ts");
     await symlink(BENCH, link);
 
@@ -194,16 +140,9 @@ describe("the benchmark as a command", () => {
   });
 
   it("keeps what the run printed out of the report, whatever it printed with", async () => {
-    // The proof the in-process test cannot give: two file descriptors, and the
-    // report parsing after a program has printed through the console methods
-    // that write to standard output without going through `console.log`.
-    //
-    // The last line is the one only a subprocess can catch. The suite runs in a
-    // worker thread, where `process` is a real Node process object and a program
-    // is free to write to the descriptor itself -- no console involved, so
-    // nothing the thread does to its own console can stop it. What keeps it out
-    // of the report is the parent taking the thread's streams rather than
-    // letting Node forward them, and that plumbing exists nowhere else.
+    // Only a subprocess can prove the last line: a program writing straight to
+    // the descriptor bypasses the console entirely, so only the parent taking
+    // the worker's real streams keeps it out of the report.
     const program = join(scratch, "chatty.js");
     await writeFile(
       program,
@@ -230,10 +169,7 @@ describe("the benchmark as a command", () => {
   });
 
   it("stops when the report is printed, whatever the program left running", async () => {
-    // `setInterval` in `init` is an ordinary thing for a program to do and it
-    // holds Node's event loop open forever. The whole report was printed and
-    // the command then sat there: in a shell loop scoring one program after
-    // another, the second one never starts.
+    // `setInterval` in `init` holds Node's event loop open forever.
     const program = join(scratch, "timer.js");
     await writeFile(
       program,
@@ -244,29 +180,14 @@ describe("the benchmark as a command", () => {
     const ran = await bench([program, "--seeds", "1", "--json"]);
 
     expect(ran.code).toBe(EXIT_OK);
-    // Parsed rather than merely non-empty: the exit has to happen after the
-    // pipe has taken the last chunk, and a truncated report is the way that
-    // goes wrong.
+    // Parsed rather than merely non-empty, since a truncated report is the failure mode.
     expect(JSON.parse(ran.out)).toMatchObject({ program });
   }, 15_000);
 
   it("hands over a report larger than a pipe before it exits", async () => {
-    // The other half of that exit, and the half every other case is blind to.
-    // Exiting is what stops a program's stray `setInterval` from holding the
-    // command open; flushing first is what stops the exit from cutting the
-    // report in two. A pipe takes 64KB and then makes the writer wait, so a
-    // report bigger than that is written in pieces -- and `process.exit` with a
-    // piece still queued drops it. Deleting the flush leaves every other test
-    // in this file green, because every other report is small enough to fit in
-    // one go, and turns this one into exactly 65536 bytes of JSON that no
-    // longer parses.
-    //
-    // A huge error message is how the report is made huge, because it is the
-    // only part of one that a program controls the size of: the scenarios are
-    // averaged, so three of them is three of them however many seeds were
-    // asked for. It is not a contrivance either -- a message with a serialized
-    // object in it, or a stack from a library, reaches this size without
-    // trying.
+    // A pipe takes 64KB before the writer must wait, so a report bigger than
+    // that is written in pieces; `process.exit` with a piece still queued
+    // would drop it. The error message is what makes the report this big.
     const message = "x".repeat(100_000);
     const program = join(scratch, "verbose-failure.js");
     await writeFile(
@@ -277,33 +198,22 @@ describe("the benchmark as a command", () => {
 
     const ran = await benchThroughSlowReader([program, "--seeds", "1", "--json"]);
 
-    // Stated rather than assumed: a report that fits in the pipe proves
-    // nothing here, so if this ever stops being true the case is no longer
-    // asking its question and should say so by failing.
+    // Asserted so the case fails loudly if the report ever shrinks below the pipe's limit.
     expect(ran.out.length).toBeGreaterThan(65_536);
     expect(ran.code).toBe(EXIT_PROGRAM_FAILED);
     expect(JSON.parse(ran.out)).toMatchObject({ program, error: `Error: ${message}` });
   }, 30_000);
 
   it("stops a program that will not stop, and reports it as the program failing", async () => {
-    // The case the whole thread exists for, and the only one that cannot be
-    // faked: `while (true)` never returns to the simulation, never returns to
-    // the command, and cannot be interrupted from inside the language. Before
-    // the deadline this printed nothing and ran until somebody killed it from
-    // another terminal.
+    // `while (true)` can't be interrupted from inside the language, so this is
+    // the one failure mode the worker's deadline exists to stop.
     const program = join(scratch, "spinning.js");
     await writeFile(program, `{ init: function () { while (true) {} }, update: function () {} }`);
 
-    // In Russian, in the same process rather than in a second one, because the
-    // sentence is the one part of a report the thread does not write: a thread
-    // that missed its deadline is not going to answer a question about
-    // language, so the command renders it here from the locale it was given.
-    // Spinning a core for a second is the cost of this case, and doing it twice
-    // to ask two questions is a second nobody needs to spend.
+    // Locale is asserted here rather than in a second run, since a thread that
+    // missed its deadline never renders the report's language itself.
     const ran = await bench([program, "--seeds", "1", "--timeout", "1", "--locale=ru", "--json"]);
 
-    // A failed program, not a misused command: a benchmark in a shell loop has
-    // to be able to record this one and go on to the next.
     expect(ran.code).toBe(EXIT_PROGRAM_FAILED);
     expect(JSON.parse(ran.out)).toEqual({
       program,
@@ -314,10 +224,8 @@ describe("the benchmark as a command", () => {
   }, 15_000);
 
   it("answers for a program that ends the thread out from under the report", async () => {
-    // `process.exit()` reaches a real process object inside the worker and ends
-    // that thread on the spot: no message, no error, nothing for the command to
-    // report. Left unanswered it is the hang the deadline was added to remove,
-    // arriving by another door -- and a minute later rather than at once.
+    // `process.exit()` reaches a real process inside the worker and ends the
+    // thread with no message and no error for the command to report.
     const program = join(scratch, "exiting.js");
     await writeFile(program, `{ init: function () { process.exit(0); }, update: function () {} }`);
 
@@ -330,27 +238,10 @@ describe("the benchmark as a command", () => {
   });
 
   it("scores a program that left a failure behind it, rather than blaming this tool", async () => {
-    // The measurement was made: three buildings, scored, before any of this
-    // happened. What a program starts and does not finish -- an `async` function
-    // that rejects, a promise nobody caught -- fails on the turn of the event
-    // loop after the run, where `doFitnessSuite` is no longer looking; in a
-    // worker that ends the thread, and a thread that ended is how this command
-    // finds out that *it* is broken. So a single `await` in a player's program
-    // used to be exit 2 and an empty report, which is the answer that tells a
-    // script scoring a directory of solutions to stop.
-    //
-    // Both shapes, because they arrive by different doors: an uncaught
-    // exception and an unhandled rejection. The page scores both of these
-    // programs too -- a worker there survives what a worker here did not -- so
-    // this is also the two ways of asking for a report agreeing again.
-    //
-    // This case is the demonstration and not the guard. Reinstating the bug it
-    // was written for -- the listeners being taken off after the first failure
-    // -- leaves it passing on an idle machine and failing only under load, since
-    // what it depends on is which of two answers reaches the parent first. The
-    // assertion that fails every time is the listener count in
-    // `bench-worker.test.ts`, so that is the one to keep if these ever look
-    // redundant.
+    // Covers both doors a late failure arrives through: an uncaught exception
+    // and an unhandled rejection, after `doFitnessSuite` already has its result.
+    // This demonstrates the fix, not guards it -- the listener count in
+    // `bench-worker.test.ts` is what actually fails if it regresses.
     const asyncThrow = join(scratch, "async-throw.js");
     await writeFile(
       asyncThrow,
@@ -379,19 +270,10 @@ describe("the benchmark as a command", () => {
   }, 30_000);
 
   it("says it could not run when a program breaks the run itself", async () => {
-    // The other side of the case above, and the reason the worker's listeners
-    // check whether a report exists before they answer with one. Poisoning
-    // `Array.prototype.push` breaks the suite rather than the program: the
-    // throw comes out of the line that collects a scenario's result, which is
-    // outside the `try` that turns a program's own failure into a report. So
-    // there is no report to hand over, and answering anyway -- or swallowing
-    // the failure and letting the thread exit quietly -- would have this print
-    // "the fitness worker failed", which names the wrong thing entirely and
-    // hides a sentence that says exactly what happened.
-    //
-    // Exit 2 and not 1, because 1 means the program was measured and scored
-    // badly. Nothing here was measured. A script scoring a directory of
-    // solutions should stop on this one and ask, which is what 2 tells it.
+    // Poisoning `Array.prototype.push` breaks the suite itself, not the
+    // program: the throw is outside the `try` that turns a program's own
+    // failure into a report, so there is no report and this exits 2 (a tool
+    // failure) rather than 1 (a scored, failing program).
     const poisoning = join(scratch, "poisoning.js");
     await writeFile(
       poisoning,
@@ -402,18 +284,14 @@ describe("the benchmark as a command", () => {
     const ran = await bench([poisoning, "--seeds", "1", "--json"]);
 
     expect(ran.code, ran.err).toBe(EXIT_USAGE);
-    // Nothing on standard output at all: a `--json` reader is given no report
-    // rather than one that would parse and be wrong.
+    // A `--json` reader gets nothing rather than a report that would parse and be wrong.
     expect(ran.out).toBe("");
     expect(ran.err).toContain("The benchmark could not be run");
     expect(ran.err).toContain("poisoned push");
   }, 15_000);
 
   it("tells a program that threw apart from arguments it could not use", async () => {
-    // The two failure codes, as literals rather than as the constants the
-    // implementation happens to export: a script deciding what to do with a
-    // failed run reads the number, and changing it is a breaking change however
-    // the constant is spelled.
+    // Codes are asserted as literals too, since a script consuming them reads the number.
     const throwing = join(scratch, "throwing.js");
     await writeFile(
       throwing,

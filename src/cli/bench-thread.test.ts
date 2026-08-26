@@ -1,20 +1,4 @@
-/**
- * The command's side of the thread the suite runs in, driven without a thread.
- *
- * `bench.test.ts` hands {@link runBench} a fake `runSuite`, so everything this
- * file is about is stubbed out there; `bench.cli.test.ts` runs the real thread
- * in a real process, which proves the thing works but can only ask it questions
- * a shell can ask. Between the two sits the part that decides what a thread is
- * told, what is done with what it says, and what is done when it says nothing --
- * and each of those has a way of failing that leaves both of those files green.
- *
- * So `node:worker_threads` is mocked, as in `bench-worker.test.ts`, and the
- * thread is a fake this file drives by hand: it records the request it was
- * given, hands its events over on demand, and counts the times it was
- * terminated. That makes the deadline testable in milliseconds of fake time
- * rather than in seconds of a real core, and makes "the thread was stopped"
- * something to assert rather than something to believe.
- */
+/** Exercises the command's thread-management logic against a fake `Worker`. */
 
 import process from "node:process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -40,14 +24,8 @@ interface FakeThread {
   readonly workerData: BenchWorkerRequest;
   /** Both of its streams being piped somewhere, in the order they were. */
   readonly piped: readonly Piped[];
-  /** How many times it was terminated. */
   readonly terminations: number;
-  /**
-   * Hands an event to whatever the command registered for it.
-   *
-   * @param event - The event name.
-   * @param payload - What to hand over.
-   */
+  /** Hands an event to whatever the command registered for it. */
   emit: (event: string, payload: unknown) => void;
 }
 
@@ -60,10 +38,7 @@ vi.mock("node:worker_threads", () => {
     readonly url: URL;
     readonly workerData: BenchWorkerRequest;
     readonly piped: Piped[] = [];
-    // Piped to standard error by the command. Where the bytes end up is a
-    // question only `bench.cli.test.ts` can answer, with a real process; what
-    // these record is the instruction the command gave, which is the half of it
-    // no real process can be asked about.
+    // These record only the instruction the command gave to pipe, not where the bytes end up -- that needs a real process, which `bench.cli.test.ts` uses.
     readonly stdout = {
       pipe: (destination: unknown, options: unknown): void => {
         this.piped.push({ destination, options });
@@ -83,24 +58,12 @@ vi.mock("node:worker_threads", () => {
       threads.started.push(this);
     }
 
-    /**
-     * Registers an event handler, as `Worker` does.
-     *
-     * @param event - The event name.
-     * @param handler - What to call.
-     */
+    /** Registers an event handler, as `Worker` does. */
     on(event: string, handler: (payload: unknown) => void): void {
       this.handlers.set(event, handler);
     }
 
-    /**
-     * Hands an event over.
-     *
-     * @param event - The event name.
-     * @param payload - What to hand over.
-     * @throws {Error} When nothing is listening, which is the failure this fake
-     * exists to catch.
-     */
+    /** Hands an event over, throwing if nothing is listening -- the failure this fake exists to catch. */
     emit(event: string, payload: unknown): void {
       const handler = this.handlers.get(event);
       if (handler === undefined) {
@@ -109,20 +72,14 @@ vi.mock("node:worker_threads", () => {
       handler(payload);
     }
 
-    /**
-     * Counts a shutdown.
-     *
-     * @returns The exit code, as the real one does.
-     */
+    /** Counts a shutdown and returns the exit code, as the real one does. */
     terminate(): Promise<number> {
       this.terminations += 1;
       return Promise.resolve(0);
     }
   }
 
-  // The command asks this before deciding whether being loaded means being run.
-  // False is the truth for a mocked thread module, and it is also what keeps
-  // importing the module under test from running the command.
+  // The command checks this to decide whether being loaded means being run; false also keeps importing the module under test from running the command.
   return { isMainThread: false, Worker: FakeWorker };
 });
 
@@ -141,11 +98,7 @@ const OPTIONS: BenchOptions = {
   timeoutMs: DEFAULT_TIMEOUT_MS,
 };
 
-/**
- * The thread the command started, failing the test if it started none.
- *
- * @returns The one and only thread.
- */
+/** The thread the command started, failing the test if it started none. */
 function startedThread(): FakeThread {
   expect(threads.started).toHaveLength(1);
   const [thread] = threads.started;
@@ -157,8 +110,7 @@ function startedThread(): FakeThread {
 
 beforeEach(() => {
   threads.started.length = 0;
-  // The deadline is a minute by default, and a test that waited it out would be
-  // a test nobody runs.
+  // The deadline is a minute by default, and a test that waited it out would be a test nobody runs.
   vi.useFakeTimers();
 });
 
@@ -168,12 +120,7 @@ afterEach(() => {
 
 describe("running the suite in a thread", () => {
   it("hands the thread the program, the seeds and the language to report in", async () => {
-    // Why `BenchWorkerRequest` carries a locale at all: a thread is a second
-    // instance of every module, with an active locale of its own that starts at
-    // the default however the command set its own. Drop the language from the
-    // request and `--locale ru` reports Russian everywhere except the scenario
-    // names, which are rendered inside the thread -- a report half in each
-    // language, from a command that was told once.
+    // A thread is a second instance of every module, with its own active locale that starts at the default regardless of the command's.
     const running = runSuiteInWorker(CODE, { ...OPTIONS, locale: "ru", seeds: ["7", "rush-hour"] });
 
     const thread = startedThread();
@@ -189,19 +136,7 @@ describe("running the suite in a thread", () => {
   });
 
   it("sends both of the thread's streams to standard error, and closes neither", async () => {
-    // Standard output is the report, so anything the run prints has to go to the
-    // other descriptor -- and the thread cannot be trusted to put it there
-    // itself, since inside a worker `process.stdout` is a real stream a program
-    // is free to write to.
-    //
-    // `end: false` is the load-bearing half. A pipe ends its destination when the
-    // source ends, and both of these end when the thread is terminated: without
-    // it, whichever of the two finishes first closes this command's standard
-    // error, and every sentence the command had left -- the deadline it missed,
-    // the file it could not read, the reason it is giving up -- is written to a
-    // stream that is gone. The command exits 2 having said nothing about why.
-    // Nothing else here can catch that: the report is on the other descriptor
-    // and comes out fine, so a run that fails this way looks like a success.
+    // Standard output is the report, so both streams are piped to standard error instead; `end: false` matters, since a pipe otherwise closes its destination when the source ends.
     const running = runSuiteInWorker(CODE, OPTIONS);
     const thread = startedThread();
 
@@ -215,12 +150,7 @@ describe("running the suite in a thread", () => {
   });
 
   it("stops the thread and its timer as soon as the answer is in", async () => {
-    // Two leaks in one line of the implementation. A thread that is not
-    // terminated goes on holding a core -- the command exits anyway, so nothing
-    // in a shell would show it, but `runSuiteInWorker` is also what a script
-    // that scores a directory of programs would call in a loop. A timer that is
-    // not cleared keeps the process alive for the rest of the deadline, which is
-    // a benchmark that prints its report and then sits there for a minute.
+    // An unterminated thread holds a core, and an uncleared timer keeps the process alive -- both harmless once but a leak for a script that calls this in a loop.
     const running = runSuiteInWorker(CODE, OPTIONS);
     const thread = startedThread();
 
@@ -232,11 +162,7 @@ describe("running the suite in a thread", () => {
   });
 
   it("stops a thread that has run out of time, and says so", async () => {
-    // The whole reason the suite runs in a thread: a program that will not
-    // finish cannot be stopped from inside the language, so the deadline has to
-    // reach it from outside. The sentence is rendered here rather than in the
-    // thread for the same reason -- a thread that has missed its deadline is not
-    // going to answer a question about wording.
+    // A program that will not finish cannot be stopped from inside the language, so the deadline reaches it from outside, and the message is rendered here since a stuck thread cannot answer.
     const running = runSuiteInWorker(CODE, { ...OPTIONS, timeoutMs: 5000 });
     const thread = startedThread();
 
@@ -249,11 +175,7 @@ describe("running the suite in a thread", () => {
   });
 
   it("gives up when the thread itself fails, instead of calling it a failed program", async () => {
-    // The thread answers for the program itself -- what it throws at the run,
-    // and what it leaves failing behind the run -- so an error event is the
-    // thread failing to be a thread. Answered with a rejection rather than with
-    // an error report, because a report is a measurement and nothing was
-    // measured.
+    // An error event means the thread itself failed, not the program it was running; rejected rather than reported, since a report is a measurement and nothing was measured.
     const running = runSuiteInWorker(CODE, OPTIONS);
     const thread = startedThread();
 
@@ -264,9 +186,7 @@ describe("running the suite in a thread", () => {
   });
 
   it("gives up on a thread that failed with something that is not an error", async () => {
-    // `worker.on("error")` passes on whatever was thrown, and what is thrown is
-    // not always an `Error`. A rejection with a bare string reads as a promise
-    // that was rejected by mistake, three frames further up.
+    // `worker.on("error")` passes on whatever was thrown, and it is not always an `Error` -- a bare string would otherwise read as a promise rejected by mistake.
     const running = runSuiteInWorker(CODE, OPTIONS);
 
     startedThread().emit("error", "the loader gave up");
@@ -275,10 +195,7 @@ describe("running the suite in a thread", () => {
   });
 
   it("reports a program that exhausted the thread's memory as a failed program", async () => {
-    // The one thread failure that is the program's doing: allocating without
-    // stopping takes the heap the thread was given, and Node ends the thread
-    // rather than letting it report. Nothing about this tool went wrong, so this
-    // one is a result -- the same answer a program that threw would get.
+    // Out-of-memory is the one thread failure that is the program's own doing, so it is reported as a result rather than as this tool being broken.
     const outOfMemory = Object.assign(
       new Error("Worker terminated due to reaching memory limit: JS heap out of memory"),
       { code: "ERR_WORKER_OUT_OF_MEMORY" },
@@ -287,19 +204,14 @@ describe("running the suite in a thread", () => {
 
     startedThread().emit("error", outOfMemory);
 
-    // The catalog's sentence rather than Node's, which is a line about heap
-    // sizes: it says nothing about the program, and it is in English however the
-    // command was called.
+    // The catalog's own sentence is used instead of Node's, which is a line about heap sizes and always in English regardless of locale.
     await expect(running).resolves.toEqual({
       error: translateIn(DEFAULT_LOCALE, "fitness.workerOutOfMemory"),
     });
   });
 
   it("says a thread ran out of memory in the language the command was given", async () => {
-    // Rendered on this side, like the deadline's sentence and for the same
-    // reason -- a thread whose heap is gone cannot be asked for wording -- so it
-    // is the command's own active locale that decides it, and this is the case
-    // that notices when nobody set one.
+    // Rendered on this side, like the deadline's sentence, since a thread whose heap is gone cannot be asked for wording.
     await loadLocale("ru");
     setLocale("ru");
     try {
@@ -321,9 +233,7 @@ describe("running the suite in a thread", () => {
   });
 
   it("reports the first answer only, however many arrive", async () => {
-    // Terminating a thread makes it exit, and the exit handler answers as well:
-    // every deadline is therefore two answers racing, and the second of them
-    // would overwrite a report that had already been decided.
+    // Terminating a thread makes it exit, and the exit handler answers as well, so every deadline is two answers racing.
     const running = runSuiteInWorker(CODE, { ...OPTIONS, timeoutMs: 5000 });
     const thread = startedThread();
 

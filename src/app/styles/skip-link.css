@@ -1,25 +1,8 @@
-/*
- * The bypass link, first in the tab order on the game page and out of sight
- * until it has the focus. `app` because it belongs to the page's own frame:
- * `index.html` ships it and `src/main.ts` wires it, and what it skips over is
- * the whole of the workspace rather than any one widget.
- */
+/* The skip link: first in the tab order on the game page, hidden until focused. */
 
 /*
- * First in the tab order, and out of sight until it has the focus.
- *
- * The building comes before the editor in the document and most of what it
- * contains can be focused: the scroll container itself, then a button for every
- * call and every floor inside it. Tabbing from the top of the page to the
- * editor is 40 stops on the first level and 241 on the eighteenth -- 31 of
- * chrome, the scroll container, and then a button apiece, which on the
- * eighteenth is 208 of them: eight cars of 21 floors, plus a call each way.
- * The editor is what the page is for. WCAG 2.4.1 asks for a way past.
- *
- * Hidden by being moved off the top of the page rather than by `display: none`
- * or `visibility: hidden`, either of which would take it out of the tab order
- * as well -- a bypass that cannot be reached is not one. The colors are the
- * page's own buttons, which is what it behaves like.
+ * Hidden by moving it off-screen rather than `display: none` or
+ * `visibility: hidden`, either of which would remove it from the tab order too.
  */
 .skip-link {
   position: absolute;

@@ -25,13 +25,7 @@ import {
   type BenchOptions,
 } from "./bench.ts";
 
-/**
- * A program that actually delivers people.
- *
- * The report is made of numbers the simulation produced, and a program that
- * never moves an elevator produces zeroes on every seed -- which would let a
- * test about columns pass while the columns held nothing.
- */
+/** A program that actually delivers people, so the report holds numbers rather than zeroes. */
 const DRIVING_PROGRAM = `{
   init: function (elevators, floors) {
     elevators.forEach(function (elevator) {
@@ -56,29 +50,14 @@ interface Streams {
   err: string;
 }
 
-/**
- * Runs the suite on this thread, which is what these tests want: the command
- * runs it somewhere it can be stopped, and paying for that in every case that
- * only wants to know what {@link runBench} does with an answer would make this
- * file a suite of subprocesses.
- *
- * @param code - The program's source.
- * @param benchOptions - What was asked for; the seeds are what it runs on.
- * @returns The averaged results, or an error report.
- */
+/** Runs the suite on this thread rather than in the worker {@link runBench} normally uses. */
 function runSuiteHere(code: string, benchOptions: BenchOptions): Promise<FitnessSuiteResult> {
   return Promise.resolve(
     withRunOutputOnStandardError(() => doFitnessSuite(code, benchOptions.seeds)),
   );
 }
 
-/**
- * Builds the pair {@link runBench} writes through.
- *
- * @param files - The files that exist, by path; anything else fails to open.
- * @param runSuite - What runs the suite; by default it runs here and now.
- * @returns The streams, and the io that writes into them.
- */
+/** Builds the pair {@link runBench} writes through. */
 function streams(
   files: Readonly<Record<string, string>> = {},
   runSuite: BenchIo["runSuite"] = runSuiteHere,
@@ -107,12 +86,6 @@ function streams(
   };
 }
 
-/**
- * Options for the report formatter.
- *
- * @param overrides - What this test cares about.
- * @returns The options.
- */
 function options(overrides: Partial<BenchOptions> = {}): BenchOptions {
   return {
     programPath: "solution.js",
@@ -124,13 +97,7 @@ function options(overrides: Partial<BenchOptions> = {}): BenchOptions {
   };
 }
 
-/**
- * Builds a scored scenario.
- *
- * @param description - The scenario name.
- * @param result - Its averaged metrics.
- * @returns The run.
- */
+/** Builds a scored scenario. */
 function run(description: string, result: Record<string, number>): AveragedFitnessRun {
   return {
     options: { description, floorCount: 4, elevatorCount: 2 },
@@ -138,22 +105,10 @@ function run(description: string, result: Record<string, number>): AveragedFitne
   };
 }
 
-/**
- * Silences a real stream and records what was written to it.
- *
- * The streams rather than the console methods, because a run prints through a
- * console of the command's own making -- a different object from the one the
- * assertions are written against, which is the whole mechanism -- and because
- * what matters to a report being piped is which file descriptor a line came out
- * of, not which method wrote it.
- *
- * @param stream - The stream to watch.
- * @returns Everything written to it so far, read when the assertions run.
- */
+/** Silences a real stream and records what was written to it, since a run prints through a console of the command's own making. */
 function recordStream(stream: NodeJS.WriteStream): () => string {
   const written = vi.spyOn(stream, "write").mockImplementation((...args: unknown[]) => {
-    // Node's `Console` hands its stream an error handler; a stream that never
-    // called it back would leave `console.log` waiting for it.
+    // A stream must call back or `console.log` would hang waiting for it.
     const callback = args.find((argument) => typeof argument === "function");
     if (callback !== undefined) {
       (callback as () => void)();
@@ -164,19 +119,15 @@ function recordStream(stream: NodeJS.WriteStream): () => string {
 }
 
 afterEach(() => {
-  // The active locale is module state, and `--locale ru` sets it for good.
+  // `--locale ru` sets the active locale for the module, not just for its own test.
   setLocale(DEFAULT_LOCALE);
-  // Console spies otherwise outlive the test that installed them, and the next
-  // `vi.spyOn` of the same method hands back the one already there -- with
-  // everything an earlier test made it record still in it.
+  // Console spies otherwise outlive the test that installed them.
   vi.restoreAllMocks();
 });
 
 describe("reading the command line", () => {
   it("takes the program and scores it on the buildings the game uses", () => {
-    // The default is the shipped list rather than a list of its own, which is
-    // what makes a number from this command comparable with a number from the
-    // page: the same seeds are the same passengers on the same floors.
+    // The default seed list is the shipped one, so a score is comparable with the page's.
     expect(parseBenchArgs(["solution.js"])).toEqual({
       kind: "run",
       options: {
@@ -196,9 +147,7 @@ describe("reading the command line", () => {
   });
 
   it("keeps a seed exactly as it was typed", () => {
-    // `createRandomSource` hashes `String(seed)`, so a label is as good a seed as
-    // a number and reproduces just as exactly; reporting it back as it was
-    // written is what lets somebody re-run a result they were sent.
+    // `createRandomSource` hashes `String(seed)`, so a label reproduces as exactly as a number.
     const request = parseBenchArgs(["solution.js", "--seeds", "rush-hour, 7 ,003"]);
 
     expect(request).toEqual({
@@ -214,17 +163,12 @@ describe("reading the command line", () => {
   });
 
   it("refuses a seed list with a hole in it", () => {
-    // `--seeds 1,,2` is a typing slip, and an empty seed is still a seed as far
-    // as the hash is concerned -- it would silently score a fourth building.
+    // An empty seed still hashes to a building, so `1,,2` would silently score a fourth one.
     expect(() => parseBenchArgs(["solution.js", "--seeds", "1,,2"])).toThrow(BenchUsageError);
   });
 
   it("gives the program the same minute the page gives it, unless told otherwise", () => {
-    // The default is `WORKER_TIMEOUT_MS` from `src/app/fitness.ts` over again,
-    // for the same scenario list on the same seeds: a program the page can
-    // measure has to be one this command can measure. Asserted against that
-    // constant rather than against a number written here, because a claim that
-    // two things agree is worth nothing while each of them is free to move.
+    // Asserted against the page's own constant so the two cannot drift apart unnoticed.
     expect(DEFAULT_TIMEOUT_MS).toBe(WORKER_TIMEOUT_MS);
     expect(parseBenchArgs(["solution.js"])).toMatchObject({
       options: { timeoutMs: DEFAULT_TIMEOUT_MS },
@@ -235,12 +179,7 @@ describe("reading the command line", () => {
   });
 
   it("refuses a deadline that is not a whole number of seconds it could wait", () => {
-    // Digits and nothing else, so a unit is a sentence rather than a silent 60;
-    // zero is a deadline every program misses, and a negative one fires before
-    // the thread it is timing exists. The last three are numbers JavaScript is
-    // happy to read and this option is not: a hexadecimal 16, an exponent that
-    // means 1000, and a padded 5 -- each of which `Number.isInteger` accepts,
-    // and none of which anybody typed on purpose.
+    // The last three are numbers JavaScript reads happily but this option does not: a hex 16, an exponent, and a padded 5, which `Number.isInteger` accepts.
     for (const value of ["60s", "abc", "1.5", "0", "-1", "Infinity", "", "0x10", "1e3", " 5 "]) {
       expect(() => parseBenchArgs(["solution.js", `--timeout=${value}`])).toThrow(BenchUsageError);
     }
@@ -250,19 +189,10 @@ describe("reading the command line", () => {
   });
 
   it("refuses a deadline longer than a timer can be asked to wait", () => {
-    // `setTimeout` holds its delay in a signed 32-bit integer of milliseconds
-    // and rewrites anything longer to 1 -- so a deadline of 24.9 days would fire
-    // at once and report a program that is running perfectly well as having run
-    // out of time.
-    //
-    // The ceiling is written out rather than read from the parser's own
-    // constant, so that raising it has to be done here too; what the second
-    // assertion holds it against is the timer's limit, which is the fact the
-    // ceiling exists for and the one thing raising it cannot change.
+    // `setTimeout` holds its delay in a signed 32-bit integer of milliseconds and rewrites anything longer to 1, so a 24.9-day deadline would fire at once.
     const largest = parseBenchArgs(["solution.js", "--timeout=2147483"]);
     expect(largest).toMatchObject({ kind: "run", options: { timeoutMs: 2_147_483_000 } });
-    // `NaN` for a request that turned out not to be a run, which fails the
-    // comparison rather than passing it by vacuum.
+    // `NaN` fails the comparison below rather than passing it vacuously.
     const largestMs = largest.kind === "run" ? largest.options.timeoutMs : Number.NaN;
     expect(largestMs).toBeLessThanOrEqual(2 ** 31 - 1);
     for (const value of ["2147484", "3000000", "9007199254740991"]) {
@@ -285,10 +215,7 @@ describe("reading the command line", () => {
   });
 
   it("refuses to read the next option as the value of this one", () => {
-    // Taken as a value, `--seeds --json` scores one nonsense building, in table
-    // mode, and exits 0 -- three wrong answers, none of them reported. A seed
-    // beginning with a dash is legitimate, though, so the refusal says how to
-    // insist rather than forbidding the seed.
+    // Taken as a value, `--seeds --json` would silently score one nonsense building; a dash-prefixed seed is legitimate, so the refusal explains how to insist.
     expect(() => parseBenchArgs(["solution.js", "--seeds", "--json"])).toThrow(
       /--seeds needs a value, and --json looks like another option\. Write --seeds=--json/,
     );
@@ -298,9 +225,7 @@ describe("reading the command line", () => {
   });
 
   it("refuses an option that was given twice, however each one was spelled", () => {
-    // Both readings -- first wins, last wins -- are guesses about what somebody
-    // meant, usually a shell loop that appended an argument the base command
-    // already carried, and either guess scores a building nobody asked for.
+    // Either reading -- first wins, last wins -- is a guess that could score a building nobody asked for.
     expect(() => parseBenchArgs(["a.js", "--seeds", "1", "--seeds", "2"])).toThrow(
       /--seeds was given more than once/,
     );
@@ -310,7 +235,7 @@ describe("reading the command line", () => {
   });
 
   it("refuses a value for the option that has none", () => {
-    // `--json=false` reads as switching JSON off and would switch it on.
+    // `--json=false` reads like switching JSON off but would switch it on.
     expect(() => parseBenchArgs(["a.js", "--json=false"])).toThrow(
       /--json takes no value, but was given false/,
     );
@@ -327,9 +252,7 @@ describe("reading the command line", () => {
         timeoutMs: DEFAULT_TIMEOUT_MS,
       },
     });
-    // Everything after it is a file name, including the words that are options
-    // before it -- which is the whole point, and means two of them are still two
-    // programs.
+    // Everything after `--` is a file name, even words that are options before it.
     expect(parseBenchArgs(["--", "-h"])).toMatchObject({ options: { programPath: "-h" } });
     expect(() => parseBenchArgs(["--", "a.js", "--json"])).toThrow(/a\.js and --json/);
   });
@@ -345,7 +268,6 @@ describe("reading the command line", () => {
   it("answers with the usage when asked, wherever the question comes in the line", () => {
     expect(parseBenchArgs(["--help"])).toEqual({ kind: "help" });
     expect(parseBenchArgs(["solution.js", "-h"])).toEqual({ kind: "help" });
-    // Somebody finding out what this is.
     expect(parseBenchArgs([])).toEqual({ kind: "help" });
   });
 });
@@ -376,10 +298,7 @@ describe("the report", () => {
   });
 
   it("takes its columns from the run rather than from a list written here", () => {
-    // `makeAverageResult` averages whatever properties the result carried, so a
-    // metric added to the simulation has to appear without this file being
-    // edited, and a scenario whose statistics never changed has to leave its
-    // cells empty rather than print a zero it never measured.
+    // `makeAverageResult` averages whatever properties the result carried, so a new simulation metric appears here without this file changing.
     const report = formatReport(
       [run("Quiet scenario", {}), run("Busy scenario", { energyUsed: 3.5 })],
       options(),
@@ -397,8 +316,7 @@ describe("the report", () => {
   });
 
   it("gives a machine the numbers it measured, not the numbers it printed", () => {
-    // The table rounds so that columns line up; JSON must not, because whatever
-    // reads it can round for itself and cannot recover what was thrown away.
+    // The table rounds so that columns line up; JSON must not, since whatever reads it can round for itself but cannot recover what was thrown away.
     const parsed: unknown = JSON.parse(
       formatReport(
         [run("Small scenario", { avgWaitTime: 12.345678901234 })],
@@ -422,9 +340,7 @@ describe("the report", () => {
   });
 
   it("says which building produced a number, whatever a building is made of", () => {
-    // Two of the three shipped scenarios carry `elevatorCapacities`, which a
-    // hand-written list of fields dropped -- and would go on dropping for every
-    // world option added after it. The scenario is passed through whole instead.
+    // A hand-written list of fields would drop any world option added later (like `elevatorCapacities`), so the scenario is passed through whole instead.
     const scored = {
       options: {
         description: "Medium scenario",
@@ -457,9 +373,7 @@ describe("the report", () => {
   });
 
   it("writes the seeds back the same way whichever mode it is in", () => {
-    // The default list is numbers and a typed list is strings; a report that
-    // showed the difference would be inviting somebody to think the two are
-    // different buildings, which -- `String(seed)` -- they are not.
+    // The default list is numbers and a typed list is strings; showing the difference would wrongly suggest the two are different buildings.
     const parsed = JSON.parse(formatReport([], options({ json: true, seeds: fitnessSeeds }))) as {
       seeds: unknown;
     };
@@ -473,9 +387,7 @@ describe("running the command", () => {
   let printed: () => string;
 
   beforeEach(() => {
-    // The engine logs a failed program, and a program is free to print; both are
-    // deliberately kept out of the report and would otherwise land in the test
-    // output instead.
+    // The engine logs a failed program, and a program is free to print; both are deliberately kept out of the report and would otherwise land in the test output.
     printed = recordStream(process.stderr);
   });
 
@@ -498,9 +410,7 @@ describe("running the command", () => {
   });
 
   it("prints the same numbers every time it is asked", async () => {
-    // The whole reason for the seed list: a score that moved between runs could
-    // not be a CI check, and two programs could not be told apart from a luckier
-    // draw.
+    // The whole reason for the seed list: a score that moved between runs could not be a CI check, and two programs could not be told apart from a luckier draw.
     const first = streams({ "solution.js": DRIVING_PROGRAM });
     const second = streams({ "solution.js": DRIVING_PROGRAM });
 
@@ -519,10 +429,7 @@ describe("running the command", () => {
   });
 
   it("keeps everything the run printed out of the report", async () => {
-    // A program being debugged prints, and the engine prints a failed program's
-    // stack. On a page both go to a console nobody parses; here standard output
-    // is the report, and one stray line through it is a `--json` that no longer
-    // parses.
+    // A program being debugged prints, and the engine prints a failed program's stack; standard output here is the report, so one stray line is a `--json` that no longer parses.
     const chatty = `{
       init: function () { console.log("thinking about it"); throw new Error("boom"); },
       update: function () {}
@@ -551,12 +458,7 @@ describe("running the command", () => {
   });
 
   it("says this tool broke rather than blaming a program it never ran", async () => {
-    // The difference a script scoring a directory of programs lives on. A
-    // benchmark that has stopped working -- a thread that will not start, a
-    // module with a syntax error in it -- fails identically for every program it
-    // is pointed at, and reporting that as the program failing writes a
-    // directory of perfectly good solutions down as broken, at exit code 1,
-    // with a report on standard output under each program's name.
+    // A broken benchmark -- a thread that will not start, a syntax error in the module -- fails identically for every program, so reporting it as a broken program would wrongly fail a whole directory of good solutions.
     const { streams: recorded, io } = streams({ "solution.js": DRIVING_PROGRAM }, () =>
       Promise.reject(new SyntaxError("Expression expected")),
     );
@@ -601,27 +503,18 @@ describe("running the command", () => {
 });
 
 describe("running the suite where it can be stopped", () => {
-  /**
-   * What the runner is asked for, with the deadline short enough to wait for.
-   *
-   * @param overrides - What the case cares about.
-   * @returns The options.
-   */
+  /** Builds bench options with a deadline short enough to wait for. */
   function toRun(overrides: Partial<BenchOptions> = {}): BenchOptions {
     return options({ seeds: ONE_SEED, timeoutMs: 2000, ...overrides });
   }
 
   beforeEach(() => {
-    // A real thread prints through real streams, and a failed program's stack
-    // would land in the test output.
+    // A real thread prints through real streams, and a failed program's stack would land in the test output.
     recordStream(process.stderr);
   });
 
   it("hands back what the thread measured, which is what running it here gives", async () => {
-    // A thread is where the run happens, not something the run is measured
-    // against: the same program on the same seed has to come back with the same
-    // numbers it produces on this thread, or the command and the page have
-    // stopped agreeing about what a score is.
+    // A thread is where the run happens, not something the run is measured against: the same program and seed must produce the same numbers here.
     const measured = await runSuiteInWorker(DRIVING_PROGRAM, toRun());
 
     expect(measured).toEqual(
@@ -630,9 +523,7 @@ describe("running the suite where it can be stopped", () => {
   }, 30_000);
 
   it("stops a program that will not stop and says how long it waited", async () => {
-    // The reason the run is not on this thread at all. Nothing inside the
-    // language can interrupt `while (true)`, and a run of it here would have
-    // taken the test process with it rather than failing this case.
+    // Nothing inside the language can interrupt `while (true)`, and a run of it here would have taken the test process with it rather than failing this case.
     const measured = await runSuiteInWorker(
       `{ init: function () { while (true) {} }, update: function () {} }`,
       toRun({ timeoutMs: 1000 }),
@@ -644,10 +535,7 @@ describe("running the suite where it can be stopped", () => {
   }, 30_000);
 
   it("answers for a thread that ends without answering", async () => {
-    // `process.exit()` reaches a real process object inside the thread and ends
-    // it on the spot: no message, no error, nothing to report. Unanswered, this
-    // is the deadline's own failure mode arriving by another door -- the command
-    // waits out the full minute for a thread that is already gone.
+    // `process.exit()` ends the thread with no message and nothing to report, so an unanswered run looks just like the deadline's own failure mode.
     const measured = await runSuiteInWorker(
       `{ init: function () { process.exit(0); }, update: function () {} }`,
       toRun(),
@@ -658,11 +546,7 @@ describe("running the suite where it can be stopped", () => {
 });
 
 describe("moving a run's output off standard output", () => {
-  /**
-   * Watches both real streams a console can reach.
-   *
-   * @returns The text written to each, read when the assertions run.
-   */
+  /** Watches both real streams a console can reach. */
   function watchStreams(): { out: () => string; err: () => string } {
     return { out: recordStream(process.stdout), err: recordStream(process.stderr) };
   }
@@ -684,10 +568,7 @@ describe("moving a run's output off standard output", () => {
     const watched = watchStreams();
 
     withRunOutputOnStandardError(() => {
-      // Every console method that writes to standard output in Node 22, not
-      // just the three that go through `log`: `dir`, `table`, `group` and
-      // `count` reach the stream on their own, and a single one of them
-      // reaching the report is a `--json` that no longer parses.
+      // Console methods beyond `log` -- `dir`, `table`, `group`, `count` -- also write to standard output, and one reaching the report is a `--json` that no longer parses.
       console.log("logged");
       console.info("informed");
       console.debug("debugged");
@@ -723,8 +604,7 @@ describe("moving a run's output off standard output", () => {
     const watched = watchStreams();
 
     withRunOutputOnStandardError(() => {
-      // What `runBench` does with the result: the io writes the report through
-      // the stream directly, and swapping the console must not touch it.
+      // What `runBench` does with the result: the io writes the report through the stream directly, and swapping the console must not touch it.
       process.stdout.write("the report");
     });
 
@@ -732,9 +612,7 @@ describe("moving a run's output off standard output", () => {
   });
 
   it("puts the console back where it found it, whoever swapped it first", () => {
-    // The engine logs through whatever `globalThis.console` is at the time, and
-    // so does a test that spies on it. Restoring by identity rather than by
-    // reassigning Node's original console is what keeps a surrounding spy alive.
+    // The engine logs through whatever `globalThis.console` is at the time, so restoring by identity rather than reassigning is what keeps a surrounding spy alive.
     const swapped = { ...console };
     const before = globalThis.console;
     globalThis.console = swapped;

@@ -1,53 +1,19 @@
-/**
- * Host side of the fitness benchmark.
- *
- * Replaces `fitnessSuite` from the legacy `fitness.js`: it spawns the module
- * worker in `fitness-worker.ts`, hands it the player's source and resolves with
- * whatever the worker reports. Running the suite on the main thread would block
- * the page for seconds, so the worker is strongly preferred; the synchronous
- * fallback exists only for environments where a worker cannot be created, which
- * is what the legacy code did too.
- *
- * The legacy version took a callback; this one returns a promise. It also
- * terminates the worker once the result is in, where the legacy code leaked one
- * worker per call.
- */
+/** Runs the fitness benchmark in a worker, with a synchronous fallback. */
 
 import { doFitnessSuite, fitnessSeeds, type FitnessSuiteResult } from "../game/fitness.ts";
 import { getLocale, quantity, seconds, t, type Quantity } from "../i18n/index.ts";
 import type { FitnessWorkerRequest } from "./fitness-worker.ts";
 
 /**
- * Seeds the suite is run on when it has to run on the main thread.
- *
- * Deliberately fewer than the worker's: fewer buildings average worse, but the
- * page is frozen for the whole time, so it has to stay short.
- *
- * The first few of {@link fitnessSeeds} rather than seeds of its own, so that the
- * buildings it measures are a subset of the full run's rather than a separate set
- * nobody else uses. The number it prints is still not the worker's: an average
- * over two of these seeds is a different number from an average over six, and
- * {@link describeFitnessResults} prints both as the same line, so a fallback
- * report is comparable with another fallback report and not with a worker one.
- * Living with that is the trade the fallback already was — the alternative is
- * freezing the page for the full suite — and taking the prefix at least keeps the
- * two from disagreeing about which buildings exist.
+ * Seeds used when the suite must run on the main thread: a prefix of
+ * {@link fitnessSeeds}, kept short since the page freezes for the duration.
+ * The resulting average isn't comparable to a worker run's.
  */
 const FALLBACK_SEED_COUNT = 2;
 
 /**
- * How long the worker is given before it is written off, in milliseconds.
- *
- * Exported so that `src/cli/bench.ts`, which gives a program the same minute for
- * the same suite, can be held to it: the two deadlines have to agree, or the
- * command and the game disagree about which programs are measurable.
- *
- * A player program with a `while (true)` in it never returns, and a worker
- * running one never posts a message and never raises an error either: it just
- * spins a core forever. Without this the promise never settles, the page reads
- * "Measuring fitness..." for the rest of the session, and every further call
- * strands another worker. Generous enough that a merely slow program still
- * reports, since the whole suite is several seconds of simulation.
+ * Milliseconds before the worker is written off. Exported so
+ * `src/cli/bench.ts` can use the same deadline for the same suite.
  */
 export const WORKER_TIMEOUT_MS = 60_000;
 
@@ -57,11 +23,7 @@ export interface FitnessWorkerLike {
   onmessage: ((event: MessageEvent<FitnessSuiteResult>) => void) | null;
   /** Called when the worker itself fails. */
   onerror: ((event: ErrorEvent) => void) | null;
-  /**
-   * Sends the player's source to the worker, with the language to report in.
-   *
-   * @param message - The source to benchmark, and the active locale.
-   */
+  /** Sends the player's source to the worker, with the language to report in. */
   postMessage(message: FitnessWorkerRequest): void;
   /** Shuts the worker down. */
   terminate(): void;
@@ -71,13 +33,8 @@ export interface FitnessWorkerLike {
 export type FitnessWorkerFactory = () => FitnessWorkerLike;
 
 /**
- * Spawns the bundled fitness worker.
- *
- * The `new URL(..., import.meta.url)` form is what lets the bundler find the
- * worker entry and emit it as its own chunk; the legacy `new Worker(
- * "fitnessworker.js")` relied on the file sitting next to the page.
- *
- * @returns The worker.
+ * Spawns the bundled fitness worker. The `new URL(..., import.meta.url)`
+ * form lets the bundler find the entry and emit it as its own chunk.
  */
 function createFitnessWorker(): FitnessWorkerLike {
   return new Worker(new URL("./fitness-worker.ts", import.meta.url), { type: "module" });
@@ -93,13 +50,7 @@ export interface FitnessSuiteOptions {
   readonly timeoutMs?: number;
 }
 
-/**
- * Benchmarks a player program.
- *
- * @param codeStr - The player's source.
- * @param options - Whether and how to use a worker.
- * @returns The averaged results, or an error report. Never rejects.
- */
+/** Benchmarks a player program and never rejects. */
 export function runFitnessSuite(
   codeStr: string,
   options: FitnessSuiteOptions = {},
@@ -113,12 +64,7 @@ export function runFitnessSuite(
   return Promise.resolve(doFitnessSuite(codeStr, fitnessSeeds.slice(0, FALLBACK_SEED_COUNT)));
 }
 
-/**
- * Creates a worker, reporting rather than throwing when that is impossible.
- *
- * @param createWorker - The factory to call.
- * @returns The worker, or `null` if it could not be created.
- */
+/** Creates a worker, reporting rather than throwing if that fails. */
 function tryCreateWorker(createWorker: FitnessWorkerFactory): FitnessWorkerLike | null {
   try {
     return createWorker();
@@ -128,14 +74,7 @@ function tryCreateWorker(createWorker: FitnessWorkerFactory): FitnessWorkerLike 
   }
 }
 
-/**
- * Runs the suite in a worker and shuts the worker down afterwards.
- *
- * @param worker - The worker to run in.
- * @param codeStr - The player's source.
- * @param timeoutMs - How long to wait before giving up on the worker.
- * @returns The averaged results, or an error report. Always settles.
- */
+/** Runs the suite in a worker and shuts the worker down afterward. Always settles. */
 function runInWorker(
   worker: FitnessWorkerLike,
   codeStr: string,
@@ -149,67 +88,35 @@ function runInWorker(
       worker.terminate();
       resolve(result);
     };
-    // A program that never returns -- a `while (true)`, or an update() that
-    // loops -- posts nothing and raises nothing, so without a deadline the
-    // promise never settles: the page keeps saying "Measuring fitness...", and
-    // the worker keeps a core busy for as long as the tab is open.
+    // A program that never returns leaves the worker silent, so without a
+    // deadline the promise would never settle.
     const timer = setTimeout(() => {
       finish({
-        // Rendered on this side, not in the worker: a worker that has not
-        // answered in a minute is one that is never going to, so there is
-        // nobody there to ask for the sentence. A deadline of a thousand
-        // seconds or more now reads `1,000s` where it used to read `1000s`;
-        // the shipped one is sixty and only a test passes another.
+        // Rendered here since a worker that hasn't answered by now never will.
         error: t("fitness.workerTimeout", { seconds: seconds(Math.round(timeoutMs / 1000)) }),
       });
     }, timeoutMs);
     worker.onmessage = (event): void => {
       finish(event.data);
     };
-    // The worker catches everything the player code throws, so an error event
-    // means the worker itself broke. The legacy code left the callback hanging
-    // forever in that case; reporting it keeps the caller unblocked.
+    // The worker catches player-code errors itself; an error event means the worker broke.
     worker.onerror = (event): void => {
       finish({ error: describeWorkerError(event) });
     };
-    // The locale travels with the source because the worker is a second module
-    // instance and cannot see the one this page set; see the note on
-    // {@link "./fitness-worker.ts"!FitnessWorkerRequest} for why the language
-    // goes out with the request rather than the scenario names coming back as
-    // identifiers.
+    // The worker is a separate module instance and can't see this page's
+    // locale, so it travels with the request.
     worker.postMessage({ code: codeStr, locale: getLocale() });
   });
 }
 
-/**
- * Turns a worker error event into something readable.
- *
- * @param event - The error event.
- * @returns The message to report.
- */
+/** Turns a worker error event into a readable message. */
 function describeWorkerError(event: ErrorEvent): string {
   return event.message === "" ? t("fitness.workerFailed") : event.message;
 }
 
 /**
- * An average wait time, as the report prints it.
- *
- * Three significant digits, which is what `toPrecision(3)` gave and what this
- * has to keep giving: 12.3456 is `12.3s` and 7 is `7.00s`, in English, exactly
- * as before. {@link "../i18n/index.ts"!seconds} is the obvious helper and is not
- * usable here, because it fixes the number of *decimals* rather than of
- * significant digits, so it would round 7 to `7.0s` and change a number on
- * screen — the one thing routing this through the catalog is not allowed to
- * do. The unit options are its, so English still gets a bare `s` and Russian
- * gets ` с` with the non-breaking space its typography asks for.
- *
- * A wait time above 999 seconds does move: `toPrecision(3)` rendered it as
- * `1.23e+3s`, and `Intl` renders `1,230s`. Exponential notation in a wait time
- * was not a deliberate format, and no benchmark scenario runs long enough to
- * produce one.
- *
- * @param waitTime - The averaged wait time, in seconds.
- * @returns The number and its unit, ready to be interpolated into a message.
+ * An average wait time with 3 significant digits (7 -> `7.00s`, not `7.0s`
+ * as {@link seconds} would round it).
  */
 function waitTimeQuantity(waitTime: number): Quantity {
   return quantity(waitTime, {
@@ -223,24 +130,8 @@ function waitTimeQuantity(waitTime: number): Quantity {
 
 /**
  * Formats suite results as the single line of plain text the page shows.
- *
- * Plain text rather than markup, because it ends up in `textContent`: the
- * scenario descriptions are data and the error is whatever the player's program
- * threw.
- *
- * Both of those arrive already in the player's language — the scenario names and
- * the error alike are rendered wherever the suite ran, which is the worker for a
- * real report and this thread for the fallback. Only the frame around them is put
- * on here.
- *
- * Which means a language switch during a run leaves one line half-translated:
- * the names were rendered at the locale the request went out with, and the frame
- * at whichever is active when the answer comes back. Not worth carrying a locale
- * home in the response to fix — a benchmark is a few seconds, a switch during one
- * is rare, and the next run is written entirely in the new language.
- *
- * @param results - What {@link runFitnessSuite} resolved with.
- * @returns The message to display.
+ * Scenario names and errors are already rendered in the locale the run
+ * used, which can differ from the current locale if it changed mid-run.
  */
 export function describeFitnessResults(results: FitnessSuiteResult): string {
   if (!Array.isArray(results)) {
@@ -252,7 +143,6 @@ export function describeFitnessResults(results: FitnessSuiteResult): string {
       avgWaitTime === undefined ? t("fitness.unknownValue") : waitTimeQuantity(avgWaitTime);
     return t("fitness.result", { scenario: run.options.description, value });
   });
-  // Non-breaking spaces, as in the legacy `&nbsp&nbsp&nbsp` separator, so the
-  // columns survive HTML whitespace collapsing.
+  // Non-breaking spaces so the columns survive HTML whitespace collapsing.
   return t("fitness.results", { results: waitTimes.join("\u00a0\u00a0\u00a0") });
 }
