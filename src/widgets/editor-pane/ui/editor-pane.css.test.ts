@@ -6,7 +6,26 @@
 
 import { describe, expect, it } from "vitest";
 
-import { contrast, declaration, ruleBody, THEMES, themed } from "#shared/styles/test-helpers.ts";
+import {
+  contrast,
+  declaration,
+  over,
+  ruleBody,
+  THEMES,
+  themed,
+  token,
+} from "#shared/styles/test-helpers.ts";
+
+describe("the code-slot switcher", () => {
+  it.each(THEMES)("keeps the open slot's own label readable, %s theme", (_, palette) => {
+    // The label sits on --ds-accent-soft washed over `.slots`, which is
+    // --ds-bg; the plain accent reads 3.59:1 on that composite in the light theme.
+    const selector = '.codeslot[aria-pressed="true"]';
+    expect(declaration(ruleBody(selector), "color", selector)).toBe(token("ds-accent-hi"));
+    const seat = over(themed(palette, "ds-accent-soft"), themed(palette, "ds-bg"));
+    expect(contrast(themed(palette, "ds-accent-hi"), seat)).toBeGreaterThanOrEqual(4.5);
+  });
+});
 
 describe("the failing line's own mark", () => {
   it.each(THEMES)(
