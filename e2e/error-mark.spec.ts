@@ -9,16 +9,15 @@ import { expect, test } from "@playwright/test";
 import { editor, seedCode, startButton } from "./game-page.ts";
 
 /**
- * Compiles, then throws on line 4, column 9. Indented eight spaces so the
- * mark - which runs from the failing column to the line's end - should cover
- * exactly `missingHelperE2E();` and none of the indentation. In `update`, not
- * `init`, so the error arrives from inside a running simulation.
+ * Compiles, then throws on line 4, column 5. Indented, so the mark - which
+ * runs from the failing column to the line's end - should cover exactly
+ * `missingHelperE2E();` and none of the indentation. In `update`, not `init`,
+ * so the error arrives from inside a running simulation.
  */
-const THROWS_ON_LINE_4 = `{
-    init: function (elevators, floors) {},
-    update: function (dt, elevators, floors) {
-        missingHelperE2E();
-    },
+const THROWS_ON_LINE_4 = `function init(elevators, floors) {}
+
+function update(dt, elevators, floors) {
+    missingHelperE2E();
 }`;
 
 /** The banner the app shows for any failure in the player's program. */
@@ -59,7 +58,7 @@ test("takes the underline off as soon as the player edits", async ({ page }) => 
 test("underlines nothing when the program never compiled", async ({ page }) => {
   // A syntax error has no position in a V8 stack: the code never ran, so
   // there's no frame describing it, though the banner still says what's wrong.
-  await seedCode(page, "{ init: function () { , }, update: function () {} }");
+  await seedCode(page, "function init() { , }");
 
   await page.goto("/");
 

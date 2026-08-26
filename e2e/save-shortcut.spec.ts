@@ -12,12 +12,11 @@ import { expect, test } from "@playwright/test";
 import { editor, storedCode } from "./game-page.ts";
 
 /** A program with something in it no other test would leave behind. */
-const PROGRAM = `{
-    init: function (elevators, floors) {
-        // e2e-save-shortcut-9c21
-    },
-    update: function (dt, elevators, floors) {}
-}`;
+const PROGRAM = `function init(elevators, floors) {
+    // e2e-save-shortcut-9c21
+}
+
+function update(dt, elevators, floors) {}`;
 
 test("writes the program to storage the moment the shortcut is pressed", async ({ page }) => {
   await page.goto("/");

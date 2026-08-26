@@ -9,30 +9,28 @@ import { expect, test } from "@playwright/test";
 import { building, editor, seedCode, seedLevelCode, startButton, storedCode } from "./game-page.ts";
 
 /** A short, valid program with something distinctive to look for. */
-const PROGRAM = `{
-    init: function (elevators, floors) {
-        // e2e-marker-a7f3
-        elevators[0].on("idle", function () {
-            elevators[0].goToFloor(0);
-        });
-    },
-    update: function (dt, elevators, floors) {}
-}`;
+const PROGRAM = `function init(elevators, floors) {
+    // e2e-marker-a7f3
+    elevators[0].on("idle", function () {
+        elevators[0].goToFloor(0);
+    });
+}
+
+function update(dt, elevators, floors) {}`;
 
 /**
  * Indented two spaces, while the editor itself indents by four - every
  * indented line here is one the editor's indenter would write differently,
  * which is the point: text it happens to agree with can't prove anything.
  */
-const PASTED_PROGRAM = `{
-  init: function (elevators, floors) {
-    // e2e-paste-marker-4b2e
-    elevators[0].on("idle", function () {
-      elevators[0].goToFloor(0);
-    });
-  },
-  update: function (dt, elevators, floors) {}
-}`;
+const PASTED_PROGRAM = `function init(elevators, floors) {
+  // e2e-paste-marker-4b2e
+  elevators[0].on("idle", function () {
+    elevators[0].goToFloor(0);
+  });
+}
+
+function update(dt, elevators, floors) {}`;
 
 /** The banner the game raises when the player's program misbehaves. */
 const errorBanner = "There is an error in your program";
@@ -83,7 +81,7 @@ test("pastes code without reindenting it", async ({ page, context }) => {
 });
 
 test("surfaces a program that will not compile", async ({ page }) => {
-  await seedCode(page, "{ init: function () { this is not javascript }, update: function () {} }");
+  await seedCode(page, "function init() { this is not javascript }");
 
   await page.goto("/");
 
@@ -100,13 +98,8 @@ test("surfaces a program that will not compile", async ({ page }) => {
 test("starts the code slot that is open, not the one the level opened on", async ({ page }) => {
   // The second slot's program announces itself by throwing, the only way from
   // out here to tell which of the two the building is actually running.
-  await seedLevelCode(page, 1, "{ init: function () {}, update: function () {} }", 1);
-  await seedLevelCode(
-    page,
-    1,
-    '{ init: function () { throw new Error("e2e slot two"); }, update: function () {} }',
-    2,
-  );
+  await seedLevelCode(page, 1, "function init() {}", 1);
+  await seedLevelCode(page, 1, 'function init() { throw new Error("e2e slot two"); }', 2);
 
   await page.goto("/");
   await expect(page.getByText(errorBanner)).toBeHidden();
@@ -122,10 +115,7 @@ test("starts the code slot that is open, not the one the level opened on", async
 });
 
 test("surfaces a program that throws once the simulation is running", async ({ page }) => {
-  await seedCode(
-    page,
-    '{ init: function () { throw new Error("e2e boom"); }, update: function () {} }',
-  );
+  await seedCode(page, 'function init() { throw new Error("e2e boom"); }');
 
   await page.goto("/");
 
