@@ -372,6 +372,13 @@ export class World extends Observable<WorldEvents> {
   /** Resolved passenger spawn rate: a positive finite number, or {@link NO_ARRIVALS_SPAWN_RATE}. */
   readonly #spawnRate: number;
   /**
+   * Simulated seconds between two arrivals: the reciprocal of {@link World.#spawnRate},
+   * which the spawn loop would otherwise divide out twice a tick. Safe to divide
+   * without checking, since `resolveSpawnRate` rejected anything but a positive
+   * finite rate and neither value can change afterwards.
+   */
+  readonly #spawnInterval: number;
+  /**
    * Which way this building's passengers mostly travel.
    *
    * Fixed for the life of the world, so a seed always draws the same trip
@@ -416,6 +423,7 @@ export class World extends Observable<WorldEvents> {
     this.floorHeight = options.floorHeight ?? DEFAULT_OPTIONS.floorHeight;
     this.#floorCount = options.floorCount ?? DEFAULT_OPTIONS.floorCount;
     this.#spawnRate = resolveSpawnRate(options.spawnRate ?? DEFAULT_OPTIONS.spawnRate);
+    this.#spawnInterval = 1.0 / this.#spawnRate;
     this.#trafficProfile = options.trafficProfile ?? DEFAULT_OPTIONS.trafficProfile;
     const elevatorCount = options.elevatorCount ?? DEFAULT_OPTIONS.elevatorCount;
 
@@ -469,11 +477,19 @@ export class World extends Observable<WorldEvents> {
   /** Recomputes the derived statistics and notifies listeners. */
   #recalculateStats(): void {
     this.transportedPerSec = this.transportedCounter / this.elapsedTime;
-    this.moveCount = this.elevators.reduce((sum, elevator) => sum + elevator.moveCount, 0);
+    // One pass over the elevators for all three sums; it runs on every tick.
+    let moveCount = 0;
+    let loadSum = 0;
+    let stopCount = 0;
+    for (const elevator of this.elevators) {
+      moveCount += elevator.moveCount;
+      loadSum += elevator.loadFactorSumOnMove;
+      stopCount += elevator.stopCount;
+    }
+    this.moveCount = moveCount;
     // Guarded against 0/0 -> NaN before any elevator has moved.
-    const loadSum = this.elevators.reduce((sum, elevator) => sum + elevator.loadFactorSumOnMove, 0);
     this.avgLoadFactorOnMove = this.moveCount === 0 ? 0 : loadSum / this.moveCount;
-    this.stopCount = this.elevators.reduce((sum, elevator) => sum + elevator.stopCount, 0);
+    this.stopCount = stopCount;
     // Same 0/0 guard, before any door has opened.
     this.avgPeoplePerStop =
       this.stopCount === 0 ? 0 : (this.#pickedUpCounter + this.transportedCounter) / this.stopCount;
@@ -610,11 +626,8 @@ export class World extends Observable<WorldEvents> {
   update(dt: number): void {
     this.elapsedTime += dt;
     this.#elapsedSinceSpawn += dt;
-    // Safe to divide without checking: resolveSpawnRate already rejected any
-    // value that is not a positive finite rate, and #spawnRate cannot change
-    // afterwards.
-    while (this.#elapsedSinceSpawn > 1.0 / this.#spawnRate) {
-      this.#elapsedSinceSpawn -= 1.0 / this.#spawnRate;
+    while (this.#elapsedSinceSpawn > this.#spawnInterval) {
+      this.#elapsedSinceSpawn -= this.#spawnInterval;
       this.#registerUser(
         spawnUserRandomly(
           this.#floorCount,
@@ -627,19 +640,23 @@ export class World extends Observable<WorldEvents> {
       );
     }
 
-    for (let i = 0, len = this.elevators.length; i < len; ++i) {
-      const e = requireAt(this.elevators, i, "elevator");
-      e.update(dt);
-      e.updateElevatorMovement(dt);
+    for (const elevator of this.elevators) {
+      elevator.update(dt);
+      elevator.updateElevatorMovement(dt);
     }
     const users = this.users;
     // Ties cannot arise (no two passengers share a spawn time), but `>` would
     // keep the earliest arrival if they did.
     let longestWait = -1;
     let longestWaiter: User | null = null;
-    for (let i = 0, len = users.length; i < len; ++i) {
-      const u = requireAt(users, i, "user");
+    // Set by whoever finished walking off during this tick, which is the only
+    // thing that fills the removal pass below.
+    let anyRemoved = false;
+    for (const u of users) {
       u.update(dt);
+      if (u.removeMe) {
+        anyRemoved = true;
+      }
       // Skips passengers still walking off-screen: their wait was already
       // recorded once by the exited_elevator handler, and re-measuring here
       // would fold in animation time.
@@ -659,10 +676,12 @@ export class World extends Observable<WorldEvents> {
     }
     this.#setLongestWaitingUser(longestWaiter);
 
-    for (let i = users.length - 1; i >= 0; i--) {
-      const u = requireAt(users, i, "user");
-      if (u.removeMe) {
-        users.splice(i, 1);
+    if (anyRemoved) {
+      for (let i = users.length - 1; i >= 0; i--) {
+        const u = requireAt(users, i, "user");
+        if (u.removeMe) {
+          users.splice(i, 1);
+        }
       }
     }
 
