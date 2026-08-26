@@ -234,6 +234,18 @@ describe("presentSeedPanel", () => {
     expect(onSeed).toHaveBeenCalledExactlyOnceWith("later-still");
   });
 
+  it("answers to its own field alone, not to everything in the block", () => {
+    // The listeners sit on the block rather than on the field, so every other
+    // control in there is heard too and has to be told apart from the field.
+    const { block, onSeed } = panel();
+    const newDraw = block.querySelector(".seednewdraw");
+
+    newDraw?.dispatchEvent(new Event("input", { bubbles: true }));
+    newDraw?.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(onSeed).not.toHaveBeenCalled();
+  });
+
   it("leaves the link alone, because a link needs no help going where it points", () => {
     const { block, onSeed } = panel();
 

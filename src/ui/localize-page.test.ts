@@ -40,6 +40,14 @@ function textOf(element: Element | null): string {
   return (element?.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
+/** Parses a fragment of shell, the way index.html itself is read. */
+function shell(body: string): Document {
+  return new DOMParser().parseFromString(
+    `<!doctype html><html lang="en"><body>${body}</body></html>`,
+    "text/html",
+  );
+}
+
 /** A message the page shell names, and where it names it. */
 interface NamedMessage {
   readonly element: Element;
@@ -137,6 +145,17 @@ describe("localizePage", () => {
     );
   });
 
+  it("writes a message that ends in .html as markup rather than as its characters", () => {
+    const scrap = shell(`<p ${TEXT_KEY_ATTRIBUTE}="game.appBar.aboutCopyright.html">Shipped</p>`);
+
+    localizePage(scrap, USER_AGENTS.windows);
+
+    const paragraph = scrap.querySelector("p");
+    expect(paragraph?.querySelector("a")?.getAttribute("href")).toBe("licenses.txt");
+    expect(textOf(paragraph)).toBe("Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.");
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
   describe("the language the page shell comes out in", () => {
     afterEach(() => {
       // On the hook, not in the test body, so a failing assertion can't leave the rest of the file running in Russian.
@@ -188,14 +207,6 @@ describe("localizePage", () => {
 });
 
 describe("a page shell asking for something the catalog cannot answer", () => {
-  /** Parses a fragment of shell, the way index.html itself is read. */
-  function shell(body: string): Document {
-    return new DOMParser().parseFromString(
-      `<!doctype html><html lang="en"><body>${body}</body></html>`,
-      "text/html",
-    );
-  }
-
   it("keeps the English it shipped with, and says why on the console", () => {
     const scrap = shell(`
       <p id="missing" ${TEXT_KEY_ATTRIBUTE}="page.nonesuch">Shipped English</p>

@@ -149,6 +149,13 @@ describe("event completions", () => {
   it("is not fooled by a method whose name merely ends in one of ours", () => {
     expect(labelsFor('elevator.turnOn("')).toBeNull();
   });
+
+  it("offers nothing inside a subscription call on the arrays themselves", () => {
+    // `elevators` is an array, which has no `on`; naming an event there would
+    // suggest a call that throws.
+    expect(labelsFor('elevators.on("')).toBeNull();
+    expect(labelsFor("floors.once('")).toBeNull();
+  });
 });
 
 describe("the program skeleton", () => {

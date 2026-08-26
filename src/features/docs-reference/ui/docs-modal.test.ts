@@ -37,6 +37,22 @@ function search(dialog: HTMLDialogElement, query: string): void {
   input.dispatchEvent(new Event("input"));
 }
 
+/** The dialog's scrolling body, whose position the modal remembers between visits. */
+function bodyOf(dialog: HTMLDialogElement): HTMLElement {
+  const body = dialog.querySelector<HTMLElement>(".docs-body");
+  if (body === null) {
+    throw new TypeError("Expected .docs-body to exist");
+  }
+  return body;
+}
+
+/** Scrolls the dialog's body and fires the listener that notes where the reader is. */
+function scrollTo(dialog: HTMLDialogElement, top: number): void {
+  const body = bodyOf(dialog);
+  body.scrollTop = top;
+  body.dispatchEvent(new Event("scroll"));
+}
+
 const TOTAL_API_ROWS = API_REFERENCE.reduce((total, group) => total + group.entries.length, 0);
 
 describe("docsModalTemplate", () => {
@@ -211,6 +227,20 @@ describe("presentDocsModal search", () => {
     expect(document.activeElement).toBe(input);
   });
 
+  it("starts at the top and gives the reader their place back afterwards", () => {
+    const { dialog, modal } = setUp();
+    modal.open();
+    scrollTo(dialog, 120);
+
+    search(dialog, "queue");
+    expect(bodyOf(dialog).scrollTop).toBe(0);
+    // Where the results were read is not a place to come back to; the guide is.
+    scrollTo(dialog, 300);
+    search(dialog, "");
+
+    expect(bodyOf(dialog).scrollTop).toBe(120);
+  });
+
   it("closing the dialog clears the query", () => {
     const { dialog, modal } = setUp();
     modal.open();
@@ -233,6 +263,28 @@ describe("presentDocsModal", () => {
     modal.open();
     expect(dialog.open).toBe(true);
     expect(document.activeElement).toBe(dialog.querySelector(".docs-find"));
+  });
+
+  it("open() brings the reader back to where they were reading", () => {
+    const { dialog, modal } = setUp();
+    modal.open();
+    scrollTo(dialog, 240);
+
+    modal.close();
+    modal.open();
+
+    expect(bodyOf(dialog).scrollTop).toBe(240);
+  });
+
+  it("open() on a dialog already open leaves the focus where the reader put it", () => {
+    const { dialog, modal } = setUp();
+    modal.open();
+    const closeButton = dialog.querySelector<HTMLButtonElement>(".docsclose");
+    closeButton?.focus();
+
+    modal.open();
+
+    expect(document.activeElement).toBe(closeButton);
   });
 
   it("the close button closes the dialog", () => {

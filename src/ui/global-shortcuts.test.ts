@@ -58,7 +58,7 @@ function setUp(): {
 }
 
 /** Dispatches a bubbling keydown as if `target` were the focused element. */
-function keydown(target: Element, init: KeyboardEventInit): void {
+function keydown(target: EventTarget, init: KeyboardEventInit): void {
   target.dispatchEvent(new KeyboardEvent("keydown", { ...init, bubbles: true }));
 }
 
@@ -175,6 +175,16 @@ describe("presentGlobalShortcuts", () => {
     keydown(input, { key: "?" });
 
     expect(onSettingsOpen).not.toHaveBeenCalled();
+  });
+
+  it("takes a keydown that arrives with no element behind it", () => {
+    // A document with nothing focusable in it targets the document itself,
+    // which is no more a form field than the body is.
+    const { onOpenDocs } = setUp();
+
+    keydown(document, { key: "F1" });
+
+    expect(onOpenDocs).toHaveBeenCalledOnce();
   });
 
   it("ignores a key with no shortcut of its own", () => {

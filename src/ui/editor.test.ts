@@ -147,6 +147,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("storage keys", () => {
@@ -238,6 +239,19 @@ describe("CodeEditor storage", () => {
     editor.save();
 
     expect(refused).not.toHaveBeenCalled();
+  });
+
+  it("keeps the program in the page's own store when none is named", () => {
+    // What the running game relies on: it names no store, so a player's
+    // program survives a reload only if the default is the page's own.
+    const storage = new MemoryStorage();
+    vi.stubGlobal("localStorage", storage);
+
+    const editor = new CodeEditor((handlers, initial) => new SwapAwareView(handlers, initial));
+    editor.setCode("// mine");
+    editor.save();
+
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// mine");
   });
 
   it("keeps working when the browser refuses storage", () => {
@@ -1362,6 +1376,105 @@ describe("codeMirrorView", () => {
 
     expect(result?.from).toBe(state.doc.length - "goT".length);
     expect(result?.options.map((option) => option.label)).toContain("goToFloor");
+  });
+
+  it("offers nothing where the game's API has no business being", () => {
+    // `Math.` and the player's own objects are dotted into far more often than
+    // an elevator, and a popup there is in the way.
+    vi.useRealTimers();
+    const parent = document.createElement("div");
+    document.body.append(parent);
+
+    codeMirrorView(parent)(
+      { onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() },
+      "{\n    init: function() {\n        Math.",
+    );
+    const state = EditorView.findFromDOM(parent)?.state;
+    if (state === undefined) {
+      throw new Error("The editor did not mount");
+    }
+
+    const result = playerApiCompletionSource(new CompletionContext(state, state.doc.length, false));
+
+    expect(result).toBeNull();
+  });
+
+  describe("the keys bound ahead of CodeMirror's own", () => {
+    function mount(doc: string): {
+      surface: TextEditorView;
+      view: EditorView;
+      onApply: ReturnType<typeof vi.fn>;
+      onSave: ReturnType<typeof vi.fn>;
+    } {
+      vi.useRealTimers();
+      const parent = document.createElement("div");
+      document.body.append(parent);
+      const onApply = vi.fn();
+      const onSave = vi.fn();
+      const surface = codeMirrorView(parent)({ onChange: vi.fn(), onApply, onSave }, doc);
+      const view = EditorView.findFromDOM(parent);
+      if (view === null) {
+        throw new Error("The editor did not mount");
+      }
+      return { surface, view, onApply, onSave };
+    }
+
+    /** Presses a key on the live surface; a Mod- binding goes in both spellings, since only one of them is bound on any given platform. */
+    function press(view: EditorView, key: string, keyCode: number, mod = false): void {
+      for (const modifier of mod ? [{ ctrlKey: true }, { metaKey: true }] : [{}]) {
+        view.contentDOM.dispatchEvent(
+          new KeyboardEvent("keydown", { key, keyCode, bubbles: true, ...modifier }),
+        );
+      }
+    }
+
+    it("applies the program on Mod-Enter", () => {
+      const { view, onApply } = mount("// mine");
+
+      press(view, "Enter", 13, true);
+
+      expect(onApply).toHaveBeenCalledOnce();
+      // Bound ahead of the default keymap, whose own Mod-Enter opens a line.
+      expect(view.state.doc.toString()).toBe("// mine");
+    });
+
+    it("saves the program on Mod-s, rather than the page", () => {
+      const { view, onSave } = mount("// mine");
+
+      press(view, "s", 83, true);
+
+      expect(onSave).toHaveBeenCalledOnce();
+      expect(view.state.doc.toString()).toBe("// mine");
+    });
+
+    it("indents by four spaces on Tab instead of moving focus on", () => {
+      const { surface, view } = mount("boom();");
+      surface.focus();
+
+      press(view, "Tab", 9);
+
+      expect(view.state.doc.toString()).toBe("    boom();");
+      expect(document.activeElement).toBe(view.contentDOM);
+    });
+
+    it("lets Escape out of the editor, so Tab is not a keyboard trap", () => {
+      const { surface, view } = mount("boom();");
+      surface.focus();
+
+      press(view, "Escape", 27);
+
+      // On the wrapper, from where the next Tab continues out of the editor.
+      expect(document.activeElement).toBe(view.dom);
+      expect(view.state.doc.toString()).toBe("boom();");
+    });
+
+    it("focus() puts the caret back in the editing surface", () => {
+      const { surface, view } = mount("boom();");
+
+      surface.focus();
+
+      expect(document.activeElement).toBe(view.contentDOM);
+    });
   });
 
   describe("the error mark", () => {
