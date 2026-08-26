@@ -77,7 +77,7 @@
   top: calc(100% + 8px);
   left: 28px;
   z-index: 40;
-  width: 396px;
+  width: 522px;
   max-height: calc(100vh - (var(--ds-bar-h) + var(--ds-ctl-h)) / 2 - 8px - 16px);
   padding: 12px;
   overflow: hidden auto;
@@ -91,9 +91,10 @@
   display: none;
 }
 
+/* Eight tiles a row; `.taskmenu`'s width is those eight plus seven gaps and its own padding. */
 .taskmenu-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 7px;
   margin: 6px 0 0;
 }

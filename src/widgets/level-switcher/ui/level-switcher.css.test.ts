@@ -1,8 +1,9 @@
 /**
  * Whether the level popover can be reached at the smallest window the game
- * promises to fit. Left uncapped, the popover overhangs a short window with
- * no error and no failing test elsewhere, so its height ceiling and scroll
- * behavior are pinned here directly.
+ * promises to fit, and whether its tiles still stand eight to a row. Left
+ * uncapped, the popover overhangs a short window with no error and no failing
+ * test elsewhere, so its height ceiling, scroll behavior, and the width its
+ * column count depends on are pinned here directly.
  */
 
 import { describe, expect, it } from "vitest";
@@ -17,6 +18,14 @@ const GAP = 8;
 
 /** The air the ceiling leaves under the popover, for its shadow. */
 const MARGIN = 16;
+
+/** Tiles a row, which `.taskmenu`'s width is cut to hold. */
+const COLUMNS = 8;
+
+/** Reads a rule's declaration as a number of pixels. */
+function pixels(selector: string, property: string): number {
+  return Number.parseFloat(declaration(ruleBody(selector), property, selector));
+}
 
 describe("the level popover's ceiling", () => {
   it("is measured from its own top edge, not from the whole viewport", () => {
@@ -38,5 +47,24 @@ describe("the level popover's ceiling", () => {
     // `hidden auto`, not `auto`: a lone `overflow-y` would hang a needless
     // horizontal scrollbar on a grid that only narrows around one.
     expect(declaration(ruleBody(".taskmenu"), "overflow", ".taskmenu")).toBe("hidden auto");
+  });
+});
+
+describe("the level popover's tile grid", () => {
+  it("stands its tiles eight to a row", () => {
+    expect(declaration(ruleBody(".taskmenu-grid"), "grid-template-columns", ".taskmenu-grid")).toBe(
+      `repeat(${String(COLUMNS)}, 1fr)`,
+    );
+  });
+
+  it("is as wide as those eight tiles, near enough square, need", () => {
+    // `1fr` columns absorb any width, so nothing else would catch a popover
+    // cut too narrow: the tiles would just squeeze into slots.
+    const gaps = (COLUMNS - 1) * pixels(".taskmenu-grid", "gap");
+    const tile =
+      (pixels(".taskmenu", "width") - 2 * pixels(".taskmenu", "padding") - gaps) / COLUMNS;
+    const height = pixels(".tasklink", "height");
+    expect(tile).toBeGreaterThan(height);
+    expect(tile - height).toBeLessThan(4);
   });
 });
