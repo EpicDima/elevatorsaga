@@ -503,10 +503,11 @@ export class Elevator extends Movable<ElevatorEvents> {
       this.trigger("new_current_floor", this.currentFloor);
     }
 
-    const futureTruncFloorIfStopped = Math.trunc(this.getExactFutureFloorIfStopped());
+    const futureFloorIfStopped = this.getExactFutureFloorIfStopped();
+    const futureTruncFloorIfStopped = Math.trunc(futureFloorIfStopped);
     if (futureTruncFloorIfStopped !== this.previousTruncFutureFloorIfStopped) {
       // Assumes at most one floor is passed per update; a faster elevator could skip an event.
-      const floorBeingPassed = Math.round(this.getExactFutureFloorIfStopped());
+      const floorBeingPassed = Math.round(futureFloorIfStopped);
 
       // Not the destination floor, which the elevator stops at rather than passes.
       if (
