@@ -73,6 +73,16 @@ const SWEEPING_PROGRAM = `{
 /** Timeout for a case that runs a full suite; well above the slowest measured run under CI load. */
 const SUITE_TIMEOUT_MS = 30_000;
 
+/**
+ * Silences the engine's report of a thrown program, which the cases below
+ * provoke on purpose: it goes to the console, and a scored suite throws once
+ * per building per seed, so eighteen stack traces land in the run's output for
+ * every case that never asked to see one.
+ */
+function silenceThrownProgramLog(): void {
+  vi.spyOn(console, "log").mockImplementation(() => undefined);
+}
+
 /** Reads the averaged runs out of a suite result, throwing if it errored. */
 function expectRuns(result: FitnessSuiteResult): AveragedFitnessRun[] {
   if (!Array.isArray(result)) {
@@ -225,6 +235,7 @@ describe("calculateFitness", () => {
   });
 
   it("records the error when the code throws", () => {
+    silenceThrownProgramLog();
     const boom = new Error("boom");
     const codeObj: UserCodeObject = {
       init(): void {
@@ -291,6 +302,7 @@ describe("calculateFitness", () => {
   });
 
   it("stops simulating as soon as the code throws", () => {
+    silenceThrownProgramLog();
     const boom = new Error("boom");
     let updateCalls = 0;
     const codeObj: UserCodeObject = {
@@ -392,6 +404,7 @@ describe("doFitnessSuite", () => {
     ['""', ""],
     ["NaN", "NaN"],
   ])("reports a program that threw %s as an error", (thrown, reported) => {
+    silenceThrownProgramLog();
     // Every one of these was scored as a successful run, because the test that
     // decided it was the truthiness of the thrown value. The report then
     // carried the thrown value as a metric -- `error: 0` averaged alongside the
