@@ -53,14 +53,7 @@ function hostileStorage(): Storage {
   };
 }
 
-/**
- * Runs something with a global that throws on the merest look, then puts the
- * global back.
- *
- * @param name - The global to make unreadable.
- * @param body - What to run while it is.
- * @returns Whatever `body` returned.
- */
+/** Runs something with a global that throws on the merest look, then puts the global back. */
 function whileUnreadable<T>(name: "localStorage" | "navigator", body: () => T): T {
   const original = Object.getOwnPropertyDescriptor(globalThis, name);
   Object.defineProperty(globalThis, name, {
@@ -206,8 +199,7 @@ describe("browserLocaleSources", () => {
   });
 
   it("leaves out a storage it is not allowed to touch", () => {
-    // Reading the global itself throws here, before any method is called —
-    // which is exactly what a browser with site data blocked does.
+    // Reading the global itself throws, before any method is called.
     const sources = whileUnreadable("localStorage", browserLocaleSources);
 
     expect(sources.storage).toBeUndefined();

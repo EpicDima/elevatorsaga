@@ -32,9 +32,7 @@ describe("PLURAL_CATEGORIES", () => {
 });
 
 describe("selectPlural", () => {
-  // The four Russian categories, and the numbers that make `count === 1 ? a : b`
-  // wrong: 2 is not 1 and is not "many" either, and 21 is "one" despite being
-  // plural in English.
+  // The four Russian categories: 21 is "one" despite being plural in English.
   it.each([
     [1, "one"],
     [21, "one"],
@@ -56,17 +54,13 @@ describe("selectPlural", () => {
   });
 
   it("follows the digits that will be printed, not the number", () => {
-    // 21 is "one" as it stands (21 секунда) and "other" once a decimal is shown
-    // (21,0 секунды). The formatter options travel with the count for exactly
-    // this reason.
+    // 21 is "one" (21 секунда) but "other" once a decimal is shown (21,0 секунды).
     expect(selectPlural("ru", 21)).toBe("one");
     expect(selectPlural("ru", decimal(21, 1))).toBe("other");
   });
 
   it("counts a quantity written without formatting options", () => {
-    // `Quantity.format` is optional, so `{ value }` on its own is a legal count
-    // even though every helper here fills it in. It has to mean what a bare
-    // number means: the digits as they stand, and the category they deserve.
+    // `{ value }` alone is a legal count and must mean what a bare number means.
     expect(selectPlural("ru", { value: 21 })).toBe("one");
     expect(selectPlural("ru", { value: 5 })).toBe("many");
   });
@@ -91,8 +85,7 @@ describe("formatNumber", () => {
   });
 
   it("keeps a unit on the same line as its number", () => {
-    // CLDR's Russian pattern is "{0} с" with an ordinary space, which would be
-    // free to break; the game's own English "60s" is unaffected.
+    // CLDR's Russian pattern is "{0} с" with an ordinary, breakable space.
     expect(formatNumber("en", 60, { style: "unit", unit: "second", unitDisplay: "narrow" })).toBe(
       "60s",
     );
@@ -110,30 +103,22 @@ describe("quantity helpers", () => {
   });
 
   it("keeps every digit of a number somebody typed", () => {
-    // The default is three decimals, which quietly rewrites the two numbers
-    // below. They reach the screen from the address bar, where the player put
-    // them, and a bar that rounds them is describing a different run.
+    // The default of three decimals would quietly round a value the player typed into the address bar.
     expect(formatValue("en", exact(0.0625))).toBe("0.0625");
     expect(formatValue("en", exact(9.9999))).toBe("9.9999");
     expect(formatValue("ru", exact(0.0625))).toBe("0,0625");
-    // Nothing is padded on the way: an integer is still an integer, and a
-    // thousand is still grouped.
     expect(formatValue("en", exact(8))).toBe("8");
     expect(formatValue("en", exact(2675))).toBe("2,675");
   });
 
   it("chooses the plural form the digits it will print deserve", () => {
-    // 1,0004 is not «1 пассажир»: what makes a Russian noun singular here is
-    // the digits on screen, and asking for all of them changes which they are.
+    // 1,0004 is not «1 пассажир»: showing every digit changes what's on screen.
     expect(selectPlural("ru", exact(1.0004))).toBe("other");
     expect(selectPlural("ru", 1.0004)).toBe("one");
     expect(selectPlural("ru", exact(1))).toBe("one");
   });
 
   it("renders a fraction of one as a percentage", () => {
-    // The statistics panel holds load factors, which are 0 to 1 and belong on
-    // screen as percentages; whole ones, because a third decimal place of how
-    // full a lift was is noise.
     expect(formatValue("en", percent(0.485))).toBe("49%");
     expect(formatValue("en", percent(0))).toBe("0%");
     expect(formatValue("en", percent(1))).toBe("100%");
@@ -141,9 +126,7 @@ describe("quantity helpers", () => {
   });
 
   it("puts the space before a Russian percent sign, and none in English", () => {
-    // The reason a call site asks for a percentage instead of multiplying by a
-    // hundred itself. The space CLDR gives Russian here is already
-    // non-breaking, which is why this is not on the list `formatNumber` patches.
+    // CLDR's percent space is already non-breaking, unlike its unit space.
     expect(formatValue("ru", percent(0.721))).toBe(`72${NBSP}%`);
     expect(formatValue("ru", percent(0.5694, 1))).toBe(`56,9${NBSP}%`);
   });
@@ -182,9 +165,7 @@ describe("formatValue", () => {
 
 describe("formatValueParts", () => {
   it("hands back the digits and the unit apart, with the gap on the unit's side", () => {
-    // The gap belongs to the unit because that is what gets styled: the
-    // statistics tiles set the unit a size down, and a space left on the
-    // digits' side would be set at the digits' size.
+    // The gap belongs to the unit, since that's the part the stats tiles style down a size.
     expect(formatValueParts("ru", seconds(3.9, 1))).toEqual({
       number: "3,9",
       unit: `${NBSP}с`,
@@ -193,8 +174,6 @@ describe("formatValueParts", () => {
   });
 
   it("counts a percent sign as the unit, in either locale's punctuation", () => {
-    // Russian writes «23 %» with a space and English writes "23%" without one,
-    // and neither of those is this module's decision to make.
     expect(formatValueParts("ru", percent(0.23))).toEqual({ number: "23", unit: `${NBSP}%` });
     expect(formatValueParts("en", percent(0.23))).toEqual({ number: "23", unit: "%" });
   });
@@ -210,8 +189,6 @@ describe("formatValueParts", () => {
   });
 
   it("splits exactly what formatValue joins, for every quantity the panel draws", () => {
-    // The invariant that keeps this from being a second, divergent way to
-    // render a number: the two halves put back together are the one string.
     const values = [seconds(0), seconds(61.44, 1), percent(0), percent(1), decimal(0.5, 2), 0, 21];
     for (const locale of LOCALES) {
       for (const value of values) {
@@ -224,8 +201,6 @@ describe("formatValueParts", () => {
   });
 
   it("leaves no ordinary space for a line to break the unit off at", () => {
-    // The reason formatNumber closes that gap in the first place: "1,5 с" split
-    // across two lines is not a duration any more.
     for (const locale of LOCALES) {
       expect(formatValueParts(locale, seconds(1.5, 1)).unit, locale).not.toContain(" ");
     }
@@ -234,9 +209,7 @@ describe("formatValueParts", () => {
 
 describe("formatList", () => {
   it("ends a Russian list with a word, so a comma cannot be read as a decimal", () => {
-    // The reason this function exists. «6, 9» is how six point nine is written
-    // in Russian, so a list joined with ", " is ambiguous exactly where the
-    // sandbox uses it -- and the sentence around it goes on to say «1,5».
+    // «6, 9» is how six point nine is written in Russian, so ", " would be ambiguous.
     expect(formatList("ru", ["6", "9"])).toBe("6 и 9");
     expect(formatList("ru", ["4", "5", "6"])).toBe("4, 5 и 6");
   });
@@ -247,9 +220,6 @@ describe("formatList", () => {
   });
 
   it("adds nothing to a list with nothing to separate", () => {
-    // The sandbox's ordinary case: one capacity, cycled over every car. It has
-    // to come out as the bare number, with no punctuation waiting for a second
-    // item that is not coming.
     for (const locale of LOCALES) {
       expect(formatList(locale, ["4"]), locale).toBe("4");
       expect(formatList(locale, []), locale).toBe("");
@@ -257,8 +227,6 @@ describe("formatList", () => {
   });
 
   it("leaves the items exactly as they were handed over", () => {
-    // They arrive already rendered, markup and all, and this is the last thing
-    // between them and the page.
     expect(formatList("en", ["<span class='emphasis-color'>6</span>", "<b>9</b>"])).toBe(
       "<span class='emphasis-color'>6</span> and <b>9</b>",
     );
@@ -286,8 +254,6 @@ describe("interpolate", () => {
   });
 
   it("leaves a placeholder it was given nothing for", () => {
-    // Better a visible {floor} than a sentence with a hole in it; the types
-    // keep this out of the game's own call sites.
     expect(interpolate("en", "Go to floor {floor}", {})).toBe("Go to floor {floor}");
   });
 

@@ -1,116 +1,13 @@
-/**
- * Русский каталог / the Russian catalog.
- *
- * Typed as `MessageCatalog<"ru">`, so it is checked against the English one
- * key by key: a missing message is a compile error, an invented one is a
- * compile error, and a counted message that forgets `few` or `many` is a
- * compile error too. `catalog.test.ts` adds what the type system cannot see —
- * that the `{placeholders}` match, that no plain key smuggles in markup, and
- * that the code in the `.code` blocks is byte for byte the English code with
- * only its comments translated.
- *
- * ## Glossary
- *
- * Fixed vocabulary; the same English word is the same Russian word everywhere,
- * and the one word that is not says so in its own row. The first eight were
- * given with the level, the rest are chosen here and written down so the next
- * translator does not have to guess:
- *
- * | English            | Русский              |
- * | ------------------ | -------------------- |
- * | elevator           | лифт                 |
- * | car (elevator car) | кабина               |
- * | floor              | этаж                 |
- * | level              | уровень              |
- * | tutorial level     | учебный уровень      |
- * | lesson             | урок                 |
- * | user, passenger    | пассажир             |
- * | load factor        | загрузка             |
- * | destination queue  | очередь этажей       |
- * | wait time          | время ожидания       |
- * | delivery time      | время доставки       |
- * | transported        | перевезено           |
- * | building           | здание, в дорожке — дом |
- * | code, program      | код, программа       |
- * | editor             | редактор             |
- * | event              | событие              |
- * | listener, handler  | обработчик           |
- * | to trigger (event) | срабатывать          |
- * | to register (on)   | подписать            |
- * | to remove (off)    | снять                |
- * | elevator move      | перемещение          |
- * | indicator          | индикатор            |
- * | callback           | колбэк               |
- * | fitness            | эффективность        |
- * | scenario           | сценарий             |
- * | worker             | воркер               |
- * | sandbox            | песочница            |
- * | local storage      | локальное хранилище  |
- * | developer tools    | инструменты разработчика |
- * | simulation speed   | скорость симуляции   |
- * | seed               | сид                  |
- * | run                | прогон               |
- * | new draw           | новый сид            |
- *
- * «Кабина» is the moving box and «лифт» the thing player code holds a handle
- * on, which is the distinction the English draws between "car" and "elevator" —
- * it needs "car" because "elevator" is the API object. Russian could say «лифт»
- * throughout and lose nothing a player needed, so the two are kept apart only
- * where the English keeps them apart: the prose about a car's own movement.
- *
- * «Здание» is the game's word for a building and «дом» the learning track's,
- * which is the one place the table above is not a single word. Not variety: the
- * hints of a level and the `//` comments of the program the player is editing
- * have to name the thing on screen with the same word, and they do —
- * `tutorial.level1.hint1.html` asks «Сколько всего этажей в этом доме?» about
- * the building `tutorial.level1.startingCode.code` calls «этот дом», which is
- * also the line `e2e/tutorial.spec.ts` looks for to tell a Russian editor from
- * an English one. «Дом» is the shorter, plainer word, and the track points at a
- * building the player is watching rather than describing buildings in general,
- * which is what everything outside `tutorial.*` does: the help page, the
- * level descriptions, the errors about a floor number and the accessible
- * name of the building view all keep «здание».
- *
- * «Сид» rather than «зерно»: it is what Russian-speaking players of every game
- * that has one already call it, and the word they will search for.
- *
- * English "new draw" keeps a lottery metaphor that Russian has no noun for.
- * «Розыгрыш» is a prize draw, a sporting fixture or a practical joke, and never
- * the act of drawing a fresh random value; «жеребьёвка» is the drawing of lots
- * between named participants, which is not this either. So the Russian names the
- * outcome instead of the metaphor — «новый сид» — which is also what the link
- * actually produces, and loses nothing a player needed.
- *
- * ## Rules followed here
- *
- * - **Code is never translated.** Method names, event names, signatures,
- *   property names and literal values stay exactly as player code spells them:
- *   `goToFloor`, `"up_button_pressed"`, `"stopped"`, `init`, `update`. Only
- *   prose, labels and the comments inside example code are Russian. Where a
- *   literal string value is quoted, it keeps its ASCII quotes — `"up"` is a
- *   value, not a quotation.
- * - **Typography.** «Ёлочки» for quotation, em dash with spaces around it — like
- *   this — and ё written wherever it belongs. The non-breaking space between a
- *   number and its unit comes from `Intl` (see `formatNumber`), not from here.
- * - **Register.** Buttons are short and imperative: Старт, Пауза, Заново.
- *   Level descriptions speak to the player directly — «Перевезите…» — with
- *   no bureaucratic nouns («осуществите транспортировку» is exactly what this
- *   file is written to avoid).
- * - **Numerals.** The counted phrases are grammatical in the sentence they are
- *   built into, which is not always the dictionary form. Nominative would be
- *   1 пассажир, 2 пассажира, 5 пассажиров, 1,5 пассажира; after «Перевезите»
- *   the noun is in the accusative, and for an animate noun that means
- *   1 пассажира, 2 пассажира, 5 пассажиров. Seconds appear in two cases and so
- *   need two entries: «за 30 секунд» (accusative) and «дольше 30 секунд»
- *   (genitive), which differ in the singular — «за 21 секунду» against «дольше
- *   21 секунды».
- */
-
 import type { MessageCatalog } from "./catalog.ts";
 
-/** Every message the game can show, in Russian. */
+/**
+ * The Russian catalog, checked against `MessageCatalog<"ru">` key by key.
+ * Code is never translated, only prose and the comments inside example code;
+ * `catalog.test.ts` checks placeholders and that `.code` blocks stay byte for
+ * byte the same as the English code.
+ */
 export const RU_MESSAGES: MessageCatalog<"ru"> = {
-  // ------------------------------------------------------------------- игра
+  // The game screen (index.html).
 
   "page.title": "Elevator Saga — игра про программирование лифтов",
   "page.description":
@@ -133,84 +30,38 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "page.stats.transportedPerSec": "Перевезено/с",
   "page.stats.transportedPerSecTitle":
     "Все доставленные к этому моменту, делённые на время прогона, так что это среднее за весь прогон, а не скорость прямо сейчас",
-  // Ни то ни другое не время ожидания, как бы ни назывались ключи: обе цифры
-  // считаются от появления пассажира до того момента, как он вышел из кабины на
-  // своём этаже, так что поездка входит в них наравне с ожиданием. Слово то же,
-  // что и в строке выше: пассажира перевозят, и вот сколько это заняло.
-  //
-  // Слова «время» в подписи нет, хотя цифра — время. Панель статистики стоит
-  // теперь полосой под зданием, а не карточкой в 240 px сбоку от него, и на
-  // экране 1040×600 плитке достаётся 128 px под подпись. «Сред. время доставки»
-  // просило 153, «Макс. время доставки» — 155, и обе подписи обрезались до
-  // «СРЕД. ВРЕМЯ ДОС…» и «МАКС. ВРЕМЯ ДОС…», то есть до неразличимости. Без
-  // «времени» — 107 и 109 против тех же 128; запас больше, чем у английских
-  // подписей (121 из 128 у самой длинной). Ничего не потеряно: рядом с цифрой
-  // стоит «с». Замерено в Chromium на собранной странице.
   "page.stats.avgWaitTime": "Сред. доставка",
   "page.stats.avgWaitTimeTitle":
     "Весь путь — от появления пассажира в здании до выхода на нужном ему этаже, — усреднённый по тем, кого уже довезли, так что поездка входит сюда наравне с ожиданием",
-  // А вот это — то самое время ожидания: отсчёт останавливается, когда за
-  // пассажиром приехали, а разницу с «Сред. временем доставки» показывает
-  // строка ниже. Три строки подряд читаются как сумма: целое, а под ним обе его
-  // половины. «Ожидание кабины», а не «время ожидания»: по глоссарию кабина —
-  // это движущийся ящик, которого и ждут, а строка при этом остаётся короткой.
-  // 21 знак против 20 у соседей — колонка в 240 px это держит, замерено в
-  // Chromium на собранной странице.
   "page.stats.avgPickupTime": "Сред. ожидание кабины",
   "page.stats.avgPickupTimeTitle":
     "Отсчёт идёт от появления пассажира до того момента, как его забрала кабина, а строка под ней — это остальная часть пути",
-  // Поездка — третий из трёх отрезков, которыми лифтовое дело меряет здание:
-  // ожидание, поездка, весь путь. Строка стоит под ожиданием, а не под «Сред.
-  // временем доставки», которое их обоих в себя включает: так две половины
-  // оказываются рядом и видно, что они складываются в третью. «Поездка», а не
-  // «время в пути», — так это называет строка выше, объясняя, чего в ней нет.
-  //
-  // 19 знаков против 21 у самой длинной строки панели, так что колонка в 240 px
-  // держит её тем же запасом, что и соседей.
   "page.stats.avgRideTime": "Сред. время поездки",
   "page.stats.avgRideTimeTitle":
     "Отсчёт идёт от того момента, как кабина забрала пассажира, до того, как он вышел на своём этаже, так что эта строка и ожидание над ней вместе дают время доставки",
-  // Пара к «Сред. доставке» — то же слово и та же причина его укоротить,
-  // расписанная там. «Макс.», а не «Худшее»: это не ожидание, а весь путь (см.
-  // выше), и цифра действительно максимум — `world.ts` берёт её через
-  // `Math.max` по всем, кто ещё в пути.
   "page.stats.maxWaitTime": "Макс. доставка",
   "page.stats.maxWaitTimeTitle":
     "Самый долгий путь одного пассажира: он растёт, пока кто-то ещё в пути, и обратно уже не опускается",
   "page.stats.moves": "Перемещения",
   "page.stats.movesTitle":
     "Перемещение засчитывается каждый раз, когда кабина проходит середину пути от одного этажа до соседнего",
-  // Под перемещениями, потому что читают их друг против друга: длинный рейс —
-  // это много перемещений и одна остановка, а программа, которая едет на каждый
-  // загоревшийся вызов, набирает много остановок при малом числе перемещений.
-  // Это то самое `S`, из которого считают время кругового рейса, когда
-  // подбирают лифты для настоящего дома.
   "page.stats.stops": "Остановки",
   "page.stats.stopsTitle":
     "Остановка засчитывается каждый раз, когда кабина замирает на этаже и открывает двери, так что кабина, отправленная на этаж, где она и так стоит, добавляет ещё одну",
-  // И `P` рядом с ним. Считаются оба конца пути, так что это не то число
-  // вошедших на остановку, которое назвал бы для того же дома лифтовик; ценно
-  // здесь направление, в котором цифра движется, а оно у них общее.
   "page.stats.peoplePerStop": "Людей на остановку",
   "page.stats.peoplePerStopTitle":
     "Все, кто вошёл или вышел, поделённые на остановки из строки выше, так что открытые двери там, где никого нет, эту цифру снижают",
-  // «Загрузка» — по глоссарию, и без «фактора»: это самая короткая строка в
-  // панели (14 знаков), и место здесь дорого. Цифру легче всего понять
-  // наоборот, поэтому подсказка и справка объясняют её длиннее обычного.
   "page.stats.avgLoad": "Сред. загрузка",
   "page.stats.avgLoadTitle":
     "Насколько полными были кабины — в среднем по тем же перемещениям, что считаются выше, так что стоящая кабина в цифру не попадает вовсе",
 
-  // ----------------------------------------------------------------- здание
+  // The building view.
 
   "game.floor.callUp": "Вызвать лифт вверх с этажа {floor}",
   "game.floor.callDown": "Вызвать лифт вниз с этажа {floor}",
   "game.elevator.label": "Лифт {number}",
   "game.elevator.floorButton": "Ехать на этаж {floor}",
-  // Всплывающие карточки над кабиной и этажом: widgets/building-stage.
-  // src/widgets/building-stage/lib/hover-card-text.ts. У движка нет
-  // постоянного флага «двери открыты», только мгновенные события, поэтому
-  // строка состояния — всегда одно из этих трёх.
+  // The elevator's state line always says exactly one of these three.
   "game.buildingStage.elevatorState.movingUp": "Едет вверх",
   "game.buildingStage.elevatorState.movingDown": "Едет вниз",
   "game.buildingStage.elevatorState.stopped": "Стоит",
@@ -226,88 +77,37 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "game.buildingStage.floorCard.longestWait": "Дольше всех ждёт: {time}",
   "game.buildingStage.floorCard.destinations.none": "Направления ещё не выбраны",
   "game.buildingStage.floorCard.destinations.some": "Едут на: {floors}",
-  // Новые показатели самой панели статистики: src/widgets/stats-panel.
-  // Остальные одиннадцать плиток используют "page.stats.*" напрямую — те же
-  // подписи, что уже показывают presentStats и метры полосы цели; у этих
-  // двух счётчиков нет прообраза в продакшене, потому что presentStats их
-  // никогда не считал. Подписи нарочно в настоящем времени и парой, чтобы
-  // читались как противоположности с одного взгляда, и по подсказке к каждой,
-  // как у всякой другой плитки панели в "page.stats.*".
   "game.statsPanel.waitingNow": "Ждут сейчас",
   "game.statsPanel.waitingNowTitle":
     "Сколько пассажиров прямо сейчас стоят на этажах и ещё не едут ни в одной кабине",
   "game.statsPanel.aboardNow": "Едут сейчас",
   "game.statsPanel.aboardNowTitle": "Сколько пассажиров прямо сейчас находятся в кабинах и едут",
-  // Текст сводки для «<details>» с девятью дополнительными плитками панели.
   "game.statsPanel.more": "Все показатели",
   "game.level.nav.label": "Уровни",
   "game.level.nav.link": "Уровень {number}",
   "game.levelSwitcher.prevLabel": "Предыдущий уровень",
   "game.levelSwitcher.nextLabel": "Следующий уровень",
-  // Заголовок блока уроков. Сама панель урока о дорожке не говорит ничего —
-  // она названа тем уровнем, который объясняет, — так что этот заголовок и
-  // плитки под ним и есть то место, где игрок видит, сколько дорожки пройдено.
   "game.levelSwitcher.tutorialBlockLabel": "Учебная дорожка",
-  // Заголовок блока и плитка внутри него названы по-разному нарочно. «Остальное» —
-  // это средний род существительного «остальной» в значении «всё прочее»: то, что
-  // не урок и не пронумерованный уровень. Сейчас там одна песочница, но назвать
-  // блок её именем — значит дважды написать одно слово и заранее пообещать, что
-  // ничего другого в блоке не появится.
   "game.levelSwitcher.otherBlockLabel": "Остальное",
   "game.levelSwitcher.sandboxLabel": "Песочница",
-  // Заголовок блока «Небоскрёб» — уровней, построенных на том, как в
-  // действительности управляют группой лифтов. Одно слово: оно стоит над сеткой
-  // нумерованных плиток в поповере шириной 396px, рядом с заголовками в одно и
-  // два слова.
   "game.levelSwitcher.skyscraperBlockLabel": "Небоскрёб",
   "game.levelSwitcher.skyscraperTileLabel": "Уровень небоскрёба {number}",
   "game.levelSwitcher.tutorialTileLabel": "Учебный уровень {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Учебный уровень {number}, пройден",
-  // Та же пара подписей для двух блоков, которые хранят медаль, а не отметку
-  // «пройден». Звёзды на плитке — иконка, они помечены aria-hidden, поэтому
-  // вслух читается вот эта подпись, и только когда медаль действительно взята:
-  // три пустые звезды — место под будущую награду, а не то, что стоит
-  // проговаривать. В {tier} подставляется название ранга из
-  // game.goalBar.tier.*, всегда в именительном падеже: оно стоит приложением
-  // через запятую, а приложение согласования по роду не требует — в отличие
-  // от сказуемого, где «взята бронза», но «взято золото».
+  // {tier} names a game.goalBar.tier.* rank in the nominative, as an
+  // appositive, so it needs no gender agreement (unlike a predicate, where
+  // "bronze" and "gold" take different verb endings).
   "game.levelSwitcher.levelTileEarnedLabel": "Уровень {number}, {tier}",
   "game.levelSwitcher.skyscraperTileEarnedLabel": "Уровень небоскрёба {number}, {tier}",
-  // Что написано на кнопке шириной 118px, когда играется урок. Подписи плиток
-  // выше сделаны для сетки, где состояние в конце — это и есть смысл подписи;
-  // на кнопке они не помещаются: «Учебный уровень 1» просит больше, чем 96px
-  // внутри неё, и вся учебная дорожка читалась бы как «Учебный уро...».
-  // Укоротить до «Уровень 1» нельзя: ровно так называется и первый уровень
-  // игры, а кнопка в шапке — единственное, что всё время говорит игроку, где
-  // он находится. Поэтому здесь «Урок» — то самое слово, которым дорожка зовёт
-  // свои уровни в справке («рядом со зданием стоит урок»), и короткое.
-  // Уровню и песочнице отдельный ключ не нужен: «Уровень {number}» и
-  // «Песочница» и так их имена.
   "game.levelSwitcher.tutorialTriggerLabel": "Урок {number}",
-  // Та же задача у блока «Небоскрёб» и тот же ответ. Подпись плитки выше —
-  // «Уровень небоскрёба 1» — на кнопке не помещается тем более, да и само
-  // название блока перестанет помещаться, как только уровней станет десять.
-  // «Башня» — короткое слово про то же здание; полностью «Небоскрёб» написано
-  // в заголовке над плитками, поэтому кнопке остаётся быть просто не
-  // «Уровнем {number}» и не «Уроком {number}».
   "game.levelSwitcher.skyscraperTriggerLabel": "Башня {number}",
-  // Ссылка «к строке» панели редактора: widgets/editor-pane. Указывает на
-  // строку, которую locateCodeError из src/ui/error-location.ts нашла для
-  // исключения игрока; кнопка, которая её несёт, скрыта, если строка не
-  // найдена.
+  // Hidden when locateCodeError finds nothing for the player's exception.
   "game.editorPane.gotoLine": "строка {line} →",
+  // {seed} is a token the player transcribes; it must render the same in every locale.
   "game.seed.label": "Сид",
-  // У поля нет своей подписи: «Сид» рядом с ним — это `<span>`, заголовок
-  // блока, а не `<label>`. Поэтому имя говорит и что в поле лежит, и что с ним
-  // можно сделать: строка ввода, которая по Enter перезапускает прогон, — не
-  // то, чем строка ввода бывает обычно.
   "game.seed.inputLabel": "Сид этого прогона — впишите другой, чтобы сыграть его",
   "game.seed.link": "Сид {seed}: вынести этот прогон в адресную строку",
   "game.seed.newDrawLink": "Сид {seed}: взять новый и начать заново",
-  // Поле показывает это само, через setCustomValidity, когда набранное не
-  // пережило бы адресную строку. Перечисляет символы, а не сообщает о «неверном
-  // формате»: игроку это исправлять, а собственное сообщение браузера про
-  // pattern не называет никакого формата.
   "game.seed.invalid":
     "В сиде — до 64 символов: латинские буквы, цифры, точки, дефисы и подчёркивания.",
   "game.seed.helpSummary": "что задаёт сид",
@@ -315,56 +115,28 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
     "Один и тот же сид приводит тех же пассажиров и в том же порядке — а если ещё и играть одинаково, то и весь прогон повторяется в точности: каждое движение лифта, прибытие и нажатие кнопки — один в один, независимо от частоты кадров браузера. Сид остаётся вашим — переживает и перезапуск, и перезагрузку, и переход на другой уровень, — пока вы не впишете другой или не бросите кубик.",
   "game.seed.console":
     "Сид {seed} — тот же самый прогон один в один, независимо от частоты кадров: {url}",
-  // Настройки: features/switch-theme. "Как в системе" — не запасной вариант,
-  // а исходный: пока тему не трогали, страница темнеет и светлеет вместе с
-  // системой (см. doc comment у presentThemeSwitch про prefersDark).
   "game.switchTheme.caption": "Тема",
   "game.switchTheme.system": "Как в системе",
   "game.switchTheme.light": "Светлая",
   "game.switchTheme.dark": "Тёмная",
-  // Настройки: features/switch-layout. Четыре режима переключают ту же
-  // раскладку, что и рабочая область (widgets/workspace-layout), но своим
-  // именем — LayoutModeId, не LayoutMode — потому что features не может
-  // импортировать widgets (см. doc comment у layout-switch.ts). Ключи
-  // "onlyCode"/"onlyGame", а не голое "code"/"game" ("code" совпало бы с
-  // зарезервированным суффиксом ".code" из catalog.test.ts, который требует
-  // побайтового совпадения между локалями — это подпись к примеру кода, а не
-  // к режиму раскладки).
+  // Named onlyCode/onlyGame, not code/game: a bare "code" key would collide
+  // with catalog.test.ts's reserved .code suffix.
   "game.switchLayout.caption": "Раскладка",
   "game.switchLayout.left": "Код слева",
   "game.switchLayout.right": "Код справа",
   "game.switchLayout.onlyCode": "Только код",
   "game.switchLayout.onlyGame": "Только здание",
-  // Собственные aria-label'ы widgets/workspace-layout: две панели, которые
-  // разделяет разделитель, и сам разделитель — у него нет собственной
-  // подписи, потому что это `role="separator"`, а не обычный элемент формы.
   "game.workspace.gamePane": "Симуляция",
   "game.workspace.codePane": "Редактор кода",
   "game.workspace.splitter": "Ширина редактора",
-  // Настройки: widgets/app-bar's settings-menu.ts — виджет, который собирает
-  // switch-theme, switch-layout, switch-language и manage-seed в одном попапе.
-  // docsOpenLabel и hotkeysOpenLabel называют две кнопки, которые открывают
-  // окна справки и горячих клавиш.
-  // aboutForkLabel/aboutOriginalLabel/aboutCopyright — единственный текст в
-  // блоке, который в остальном состоит из двух настоящих, зашитых адресов на
-  // GitHub: адреса — не дело переводчика.
   "game.appBar.docsOpenLabel": "Справка",
   "game.appBar.settingsLabel": "Настройки",
   "game.appBar.hotkeysOpenLabel": "Горячие клавиши",
   "game.appBar.aboutCaption": "Об игре",
   "game.appBar.aboutForkLabel": "Этот форк",
   "game.appBar.aboutOriginalLabel": "Оригинал",
-  // Единственная ссылка из игры на licenses.txt — файл с уведомлениями,
-  // который сборка кладёт в dist/; почему это имя лицензии, а не отдельная
-  // строка блока, объяснено в собственном комментарии settings-menu.ts.
   "game.appBar.aboutCopyright.html":
     'Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, <a href="licenses.txt">MIT</a>.',
-  // Горячие клавиши: своё окно features/hotkeys-help, `<dialog class="keys">`.
-  // Каждое сочетание с Mod записано двумя <kbd>, соединёнными «+» (тот же
-  // приём, что и в documentation.html через <kbd data-mod-key>, подпись
-  // которому в рантайме даёт src/ui/shortcuts.ts's labelModifierKeys).
-  // labelModifierKeys сама подставляет нужную подпись под каждого посетителя,
-  // поэтому отдельного абзаца про Windows и Linux не нужно.
   "game.hotkeys.title": "Горячие клавиши",
   "game.hotkeys.closeTitle": "Закрыть окно",
   "game.hotkeys.close": "Закрыть",
@@ -373,18 +145,13 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "game.hotkeys.switchLayout": "Сменить раскладку",
   "game.hotkeys.openDocs": "Справка",
   "game.hotkeys.openSettings": "Настройки",
-  // Справка: окно features/docs-reference, `<dialog class="docs">` — обвязка
-  // вокруг рассказа и справочника API, а не их содержимое.
   "game.docs.title": "Справка",
   "game.docs.searchPlaceholder": "Поиск: goToFloor, ожидание, кнопка…",
   "game.docs.clearSearch": "Стереть запрос",
   "game.docs.closeTitle": "Закрыть справку",
   "game.docs.close": "Закрыть",
   "game.docs.empty": "Ничего не нашлось",
-  // Рассказ «как играть»: раздел за разделом, у каждого — заголовок и текст.
-  // Четыре шага whatToDo — отдельные ключи, а не один с разметкой <ol> целиком:
-  // список рисует шаблон, а не переводчик; suffix .html остаётся только у
-  // step3, потому что лишь в нём есть <b>, у остальных шагов разметки нет.
+  // step3 alone carries .html: it has an inline <b>, the other steps do not.
   "game.docs.guide.whatGame.heading": "Что это за игра",
   "game.docs.guide.whatGame.body":
     "В здании ездят лифты, а на этажах ждут люди: каждый пришёл на свой этаж и хочет попасть на другой. Кнопки они жмут сами. Лифтами не управляет никто — ими управляет программа, которую пишете вы. Мышью лифт не подвинуть, и в этом вся игра: единственный способ довезти людей — объяснить зданию правило, по которому оно поедет само.",
@@ -409,10 +176,6 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "game.docs.guide.tutorialLevels.heading": "Первые уровни — с объяснением",
   "game.docs.guide.tutorialLevels.body":
     "У учебных уровней рядом со зданием стоит урок: шаг за шагом, что происходит, каким событием это видно из программы и как выглядит ответ на него. Подсказки открываются по одной, а в последней лежит рабочая программа и кнопка, которая её копирует.",
-  // Скелет программы, с которого начинается любой код, и единственный абзац,
-  // называющий elevator/elevators/floor/floors перед тем, как справочник
-  // разбирает их по одному. Он стоит в окне справки между рассказом и строками
-  // API.
   "game.docs.intro.heading": "Из чего состоит программа",
   "game.docs.intro.example.code": `{
   init: function (elevators, floors) {
@@ -424,12 +187,6 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
 }`,
   "game.docs.lead.html":
     "<code>elevator</code> — это лифт: все они лежат в <code>elevators</code>. <code>floor</code> — этаж, они в <code>floors</code>. Любую строку ниже можно раскрыть: под ней подробности и пример.",
-  // Справочник API: структурную таблицу (какая sig какой группе принадлежит и в
-  // каком порядке) хранит entities/api-reference/model/reference.ts; каждая
-  // тройка ниже — краткое описание, подробности и пример одной строки <details
-  // class="api">. В floorNum.more «floors.length - 1» сжато до
-  // «floors.length-1», чтобы не нарушать собственное правило этого каталога
-  // «дефис — не тире».
   "game.apiRef.elevator.groupLabel": "Лифт",
   "game.apiRef.floor.groupLabel": "Этаж",
   "game.apiRef.elevator.goToFloor.short": "Поставить этаж в очередь лифта.",
@@ -563,98 +320,42 @@ elevator.goingDownIndicator(false);`,
   "game.apiRef.floor.downButtonPressed.code": `floor.on("up_button_pressed down_button_pressed", () => {
   elevators[0].goToFloor(floor.floorNum());
 });`,
-  // Регулятор скорости. Стрелки говорят, что станет с прогоном, а не что станет
-  // с числом: «Медленнее», а не «Уменьшить скорость симуляции». Обе подписи
-  // заодно висят у кнопок в title, где целое предложение читалось бы как абзац.
-  // Имя всей группы — у обёртки, чтобы попавший на стрелку читатель сперва
-  // услышал, к чему она относится.
   "game.timeScale.label": "Скорость прогона",
   "game.timeScale.decrease": "Медленнее",
   "game.timeScale.increase": "Быстрее",
   "game.timeScale.value": "{value}×",
   "game.timeScale.valueTitle": "Скорость прогона: {value}",
-  // Последняя ступень регулятора, за 20×: прогон досчитывается до итога, и на
-  // экране при этом не рисуется ничего. Знак бесконечности, а не сокращение, и
-  // знак умножения при нём тот же, что у остальных ступеней, — иначе «∞»
-  // выпадает из ряда «6× 10× 20×» и читается как что-то другое. Подсказка —
-  // единственное место, где слово «мгновенно» вообще написано, поэтому она же
-  // и предупреждает: смотреть будет не на что.
   "game.timeScale.instant": "∞×",
   "game.timeScale.instantTitle": "Мгновенно: прогон досчитывается сразу до итога",
-  // Кнопки прогона: их две, и главная говорит три разные вещи. «Запустить» до
-  // первого тика и после последнего, «Пауза» пока идёт, «Продолжить» когда
-  // прогон стоит на середине, — то есть на кнопке всегда написано то, что
-  // произойдёт, а не то, в каком состоянии прогон сейчас.
+  // The label always names what happens next: Start, Pause or Resume.
   "game.button.start": "Запустить",
   "game.button.pause": "Пауза",
   "game.button.resume": "Продолжить",
-  // Висит в title главной кнопки, и только когда прогон уже закончился: там
-  // «Запустить» означает выбросить итог, который игрок ещё читает, — больше
-  // нигде на странице оно этого не значит.
   "game.button.startAgainTitle": "Пустить прогон заново",
-  // Вторая кнопка. Она выбрасывает прогон с экрана и начинает тот же уровень
-  // заново с тем кодом, который сейчас в редакторе, — это и делала прежняя
-  // «Применить»; названа по результату, а не по механизму, потому что код
-  // теперь применяется при каждом запуске и нажимать «Применить» больше не за
-  // чем. Её title договаривает то, на что в подписи нет места, и он же
-  // остаётся единственным именем кнопки, когда шапка сузилась и подпись
-  // спряталась.
-  //
-  // «Код» в двух последних — потому что они одни в ряду действуют на редактор,
-  // а не на симуляцию: «Сбросить» рядом с «Заново» прочли бы как ещё один
-  // способ перезапустить прогон.
   "game.button.startOver": "Заново",
   "game.button.startOverTitle": "Начать прогон с самого начала",
   "game.button.resetCode": "Сбросить код",
   "game.button.undoResetCode": "Вернуть код",
-  // Подсказки к этим двум договаривают то, на что в подписи не хватает места, —
-  // какой именно код вернётся. «Сбросить код» само по себе не отличает исходную
-  // программу уровня от той, что была минуту назад, а кнопки стоят рядом и
-  // отменяют друг друга.
   "game.button.resetCodeTitle": "Вернуть в этот слот исходный код уровня",
   "game.button.undoResetCodeTitle": "Вернуть код, который был в слоте до сброса",
-  // Что написано на главной кнопке, пока идёт просчёт, — вместо «Запустить».
-  // «Прогоняем…» вторит «Считаем эффективность…» у fitness.measuring: глагол в
-  // настоящем времени и многоточие, единственная другая кнопка игры,
-  // подменяющая свою подпись на время работы. Подписи «Прогнать мгновенно»
-  // больше нет: кнопка, на которой она стояла, убрана, а просят просчёт теперь
-  // последней ступенью регулятора скорости (game.timeScale.instant).
   "game.button.runningInstantly": "Прогоняем…",
   "game.feedback.success.title": "Получилось!",
   "game.feedback.success.message": "Уровень пройден",
   "game.feedback.failure.title": "Уровень провален",
   "game.feedback.failure.message": "Может быть, программу стоит доработать?",
-  // Взятая медаль — вслух, потому что звёзды на карточке это иконка с
-  // aria-hidden, а ни заголовок над ними, ни подсказка под ними (она про
-  // следующую звезду) не называют ту, что уже получена. Форма как у
-  // game.goalBar.trigger.titleEarned и по той же причине: после двоеточия
-  // название ранга из game.goalBar.tier.* встаёт как есть, в именительном.
+  // {tier} is a game.goalBar.tier.* name.
   "game.feedback.tierEarned": "Звёзды уровня: {tier}",
   "game.feedback.next": "Следующий уровень",
-  // Кнопка, закрывающая карточку итога, и только это. «Понятно» — то, что
-  // говорит игрок, а не то, что делает кнопка: «Закрыть» описывало бы механику,
-  // а слова вроде «Заново» обещали бы перезапуск, который живёт в шапке, и
-  // второго способа его пообещать быть не должно.
   "game.feedback.dismiss": "Понятно",
-  // Строка под сообщением: чего не хватило до следующей звезды. Для каждого
-  // ранга своя фраза, а не одна с подстановкой названия, — «до серебра» и «до
-  // золота» стоят в родительном падеже, а game.goalBar.tier.* даёт
-  // именительный. В {needs} подставляются невыполненные требования, разделённые
-  // formatList; каждое из них — game.feedback.more.need.html, где рядом с
-  // требованием стоит то, что вышло на самом деле. Без второго числа строка
-  // читалась бы как упрёк, а не подсказка.
+  // {needs} is a formatList of game.feedback.more.need.html entries.
   "game.feedback.more.silver.html": "До серебра: {needs}",
   "game.feedback.more.gold.html": "До золота: {needs}",
   "game.feedback.more.need.html": "{req} (сейчас {now})",
   "game.codeStatus": "Ошибка в вашей программе:",
 
-  // Полоса цели уровня и всплывающий список требований по рангам:
-  // `widgets/goal-bar`. Подписи основных счётчиков берутся прямо из
-  // "page.stats.*" в коде, без дублирования здесь — «maxPickupTime» это
-  // единственная величина, которую панель статистики не показывает, поэтому
-  // только для неё нужен отдельный ключ.
-  // Параллельно page.stats.avgPickupTime «Сред. ожидание кабины» — та же
-  // величина, но максимум, а не среднее.
+  // The only goal-bar caption not copied from page.stats.*, since the stats
+  // panel has no maxPickupTime of its own; compare page.stats.avgPickupTime
+  // «Сред. ожидание кабины» — same metric, but the max, not the average.
   "game.goalBar.caption.maxPickupTime": "Макс. ожидание кабины",
   "game.goalBar.unit.seconds": " с",
   "game.goalBar.unit.floors": " эт.",
@@ -662,20 +363,18 @@ elevator.goingDownIndicator(false);`,
   "game.goalBar.tier.silver": "Серебро",
   "game.goalBar.tier.gold": "Золото",
   "game.goalBar.trigger.titleNone": "Звёзды уровня: пока ни одной. Открыть требования",
-  // Название ранга подставляется в {tier} прямо, с заглавной буквы, а не фразой
-  // вроде «взято {tier}»: «взято» не согласуется с «бронза» (нужно «взята»),
-  // хотя согласуется с «серебро»/«золото».
+  // {tier} substitutes directly, capitalized, not as «взято {tier}»: «взято»
+  // doesn't agree with «бронза» (needs «взята»), though it agrees with
+  // «серебро»/«золото».
   "game.goalBar.trigger.titleEarned": "Звёзды уровня: {tier}. Открыть требования",
-  // Родительный множественный «этажей» неизменен после «не больше» вне
-  // зависимости от числа.
+  // Genitive plural «этажей» stays fixed after «не больше» regardless of count.
   "game.goalBar.floorBudget.html": {
     one: "{count} этажей",
     few: "{count} этажей",
     many: "{count} этажей",
     other: "{count} этажей",
   },
-  // Полное склонение, в отличие от floorBudget.html: здесь по умолчанию выбрана
-  // грамматически правильная форма.
+  // Unlike floorBudget.html, this one declines fully.
   "game.goalBar.stopBudget.html": {
     one: "{count} остановки",
     few: "{count} остановок",
@@ -684,29 +383,21 @@ elevator.goingDownIndicator(false);`,
   },
   "game.goalBar.req.transportedCounter.html": "перевезти {people}",
   "game.goalBar.req.elapsedTime.html": "уложиться в {time}",
-  // «Никого не доставлять дольше {time}», а не «никто не ждёт дольше {time}»:
-  // maxWaitTime/avgWaitTime измеряют время от появления до доставки, а не
-  // ожидание — см. собственные комментарии page.stats.avgWaitTime и
-  // page.stats.maxWaitTime.
+  // maxWaitTime/avgWaitTime measure spawn-to-delivery time, not queueing time.
   "game.goalBar.req.maxWaitTime.html": "никого не доставлять дольше {time}",
-  // См. обоснование maxWaitTime выше, здесь не повторяется дословно.
   "game.goalBar.req.avgWaitTime.html": "доставлять в среднем не дольше {time}",
   "game.goalBar.req.moveCount.html": "лифты проезжают не больше {floors}",
   "game.goalBar.req.stopCount.html": "лифты останавливаются не больше {stops}",
   "game.goalBar.req.avgLoadFactorOnMove.html": "лифты заполнены на {percent} и выше",
-  // Родительный единственного «человека», не множественного: число с двумя
-  // знаками после запятой грамматически дробное (форма other в русском), а
-  // дробные числа требуют родительного единственного.
+  // Genitive singular «человека»: a two-decimal number is grammatically
+  // fractional (the `other` form), and fractions take the genitive singular.
   "game.goalBar.req.transportedPerSec.html": "не меньше {rate} человека в секунду",
-  // То же обоснование про родительный единственный; расходится с родительным
-  // множественным собственной подписи page.stats.peoplePerStop «Людей на
-  // остановку» — там нет управляющего числа.
   "game.goalBar.req.avgPeoplePerStop.html": "не меньше {rate} человека на остановку",
   "game.goalBar.req.maxPickupTime.html": "никого не забирать дольше {time}",
   "game.goalBar.req.avgPickupTime.html": "забирать в среднем не дольше {time}",
   "game.goalBar.req.avgRideTime.html": "везти в среднем не дольше {time}",
 
-  // --------------------------------------------------------------- редактор
+  // The code editor.
 
   "editor.label": "Программа для лифтов",
   "editor.storageRefused":
@@ -714,11 +405,6 @@ elevator.goingDownIndicator(false);`,
   "editor.confirmReset": "Точно сбросить код до стандартной реализации?",
   "editor.confirmUndoReset": "Вернуть код, который был до сброса?",
   "editor.slot.tablist.label": "Слоты кода",
-  // Видимая подпись слота и подсказка к нему. Голая цифра ничего не говорит о
-  // том, что будет по нажатию, поэтому существительное написано прямо на кнопке
-  // — его видит зрячий игрок и слышит незрячий, а не отдельный `aria-label`
-  // вместо цифры. Подсказка объясняет, что это за три штуки: черновики, а не
-  // версии и не попытки, чтобы никто не ждал от них истории изменений.
   "editor.slot.tab.label": "Код {number}",
   "editor.slot.tab.title": "Черновик {number}",
   "editor.defaultCode.code": `{
@@ -737,60 +423,45 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // ----------------------------------------------------------------- уровни
+  // Level goal descriptions.
 
   "level.transportWithinTime.html": "Перевезите {people} за {time} или быстрее",
-  // Не «ждёт», а «доставка не длится»: ограничение в этих трёх фразах — это
-  // World.maxWaitTime, а он останавливается на этаже пассажира, а не у дверей
-  // кабины. Тот, кто прочитает его как время ожидания, будет оптимизировать
-  // посадку и проиграет прогон на поездке. Управление у «дольше» прежнее,
-  // родительный падеж, так что формы level.waitLimit.html не меняются.
+  // "Delivery doesn't take longer", not "wait": the limit is World.maxWaitTime,
+  // measured from spawn to delivery, not to boarding.
   "level.transportWithMaxWait.html":
     "Перевезите {people}, и пусть доставка каждого не длится дольше {waitTime}",
   "level.transportWithinTimeWithMaxWait.html":
     "Перевезите {people} за {time} или быстрее, и пусть доставка каждого не длится дольше {waitTime}",
   "level.transportWithinMoves.html": "Перевезите {people}, уложившись в {moves}",
-  // «Уложившись в» уже управляет ходами (винительный падеж, формы
-  // level.moveLimit.html), поэтому вторая половина фразы присоединяется
-  // ровно так же, как во фразе со временем: запятая и «и пусть».
   "level.transportWithinMovesWithMaxWait.html":
     "Перевезите {people}, уложившись в {moves}, и пусть доставка каждого не длится дольше {waitTime}",
-  // Винительный падеж после «Перевезите»; у одушевлённого существительного он
-  // совпадает с родительным: 1 пассажира, 5 пассажиров.
+  // Accusative after «Перевезите»; for an animate noun it matches the
+  // genitive: 1 пассажира, 5 пассажиров.
   "level.people.html": {
     one: "<span class='emphasis-color'>{count}</span> пассажира",
     few: "<span class='emphasis-color'>{count}</span> пассажира",
     many: "<span class='emphasis-color'>{count}</span> пассажиров",
     other: "<span class='emphasis-color'>{count}</span> пассажира",
   },
-  // Винительный падеж после «за»: за 21 секунду, за 23 секунды, за 30 секунд.
+  // Accusative after «за»: за 21 секунду, за 23 секунды, за 30 секунд.
   "level.timeLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> секунду",
     few: "<span class='emphasis-color'>{count}</span> секунды",
     many: "<span class='emphasis-color'>{count}</span> секунд",
     other: "<span class='emphasis-color'>{count}</span> секунды",
   },
-  // Родительный падеж после «дольше»: дольше 21 секунды, дольше 30 секунд.
-  //
-  // На экране, впрочем, всегда оказывается только форма other. Все три места,
-  // где собирается эта фраза (src/game/levels.ts), передают сюда
-  // decimal(maxWaitTime, 1), а число с десятыми в русском всегда попадает в
-  // other: лимиты уровней — 21 и 45 секунд — читаются как «дольше 21,0 секунды»
-  // и «дольше 45,0 секунды», а не «дольше 21 секунды» и «дольше 45 секунд».
-  // Формы one, few и many всё равно остаются: их требует тип, они правильные, и
-  // целого числа сюда просто никто не передаёт.
+  // Genitive after «дольше»: дольше 21 секунды, дольше 30 секунд. Only the
+  // `other` form ever renders: every call site passes a number with decimals,
+  // which Russian always resolves to `other`.
   "level.waitLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> секунды",
     few: "<span class='emphasis-color'>{count}</span> секунд",
     many: "<span class='emphasis-color'>{count}</span> секунд",
     other: "<span class='emphasis-color'>{count}</span> секунды",
   },
-  // Винительный падеж после «уложившись в»: в 21 перемещение, в 24 перемещения,
-  // в 60 перемещений. Слово «лифта» отсюда убрано: счётчик складывает
-  // перемещения всех кабин здания, а не одной, и в единственном числе оно
-  // приписывало общий лимит одному лифту — а лифтов на этих уровнях от двух до
-  // шести. Панель, на которой игрок видит этот счёт, называет его тем же словом
-  // без уточнений — «Перемещения».
+  // Accusative after «уложившись в»: в 21 перемещение, в 60 перемещений. No
+  // «лифта» qualifier: this counts moves across every elevator in the
+  // building, not one car.
   "level.moveLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> перемещение",
     few: "<span class='emphasis-color'>{count}</span> перемещения",
@@ -811,10 +482,8 @@ elevator.goingDownIndicator(false);`,
     many: "<span class='emphasis-color'>{count}</span> лифтов",
     other: "<span class='emphasis-color'>{count}</span> лифта",
   },
-  // Русскому здесь ничего склонять не нужно: «вместимостью» одинаково подходит
-  // и одному лифту, и списку из четырёх. Форма всё равно нужна во всех четырёх
-  // категориях — этого требует тип, и это честнее, чем делать вид, что счёт
-  // здесь ни при чём.
+  // «Вместимостью» doesn't decline by count, but all four forms are still
+  // required by the type.
   "level.sandbox.capacityLabel": {
     one: "вместимостью",
     few: "вместимостью",
@@ -828,7 +497,7 @@ elevator.goingDownIndicator(false);`,
     other: "<span class='emphasis-color'>{count}</span> пассажира в секунду",
   },
 
-  // ------------------------------------------------------ подсказки в редакторе
+  // Editor autocomplete tooltips.
 
   "completion.events.on":
     "Подписать обработчик. Несколько имён событий через пробел подписывают его сразу на все, и тогда первым аргументом ему приходит имя сработавшего события.",
@@ -903,11 +572,10 @@ elevator.goingDownIndicator(false);`,
     // Ещё что-нибудь с лифтами и этажами
 }`,
 
-  // ------------------------------------------------------ оценка эффективности
+  // Fitness scoring.
 
   "fitness.measuring": "Считаем эффективность…",
-  // В каждой колонке — World.avgWaitTime одного сценария, поэтому строка
-  // называет его так же, как панель, а не так, как названо поле.
+  // Names avgWaitTime the way page.stats does, not the way the field is named.
   "fitness.results": "Эффективность, среднее время доставки: {results}",
   "fitness.result": "{scenario}: {value}",
   "fitness.unknownValue": "?",
@@ -915,29 +583,21 @@ elevator.goingDownIndicator(false);`,
   "fitness.workerTimeout":
     "Воркер оценки эффективности не закончил работу за {seconds} и был остановлен. Нет ли в вашей программе бесконечного цикла?",
   "fitness.workerFailed": "Воркер оценки эффективности завершился с ошибкой",
-  // Встречается только в консольной команде: программа, которая бесконечно
-  // выделяет память, съедает кучу потока, и Node завершает поток, не давая ему
-  // отчитаться. Своя формулировка, а не сообщение Node: там речь о размерах
-  // кучи и ни слова о программе.
+  // CLI-only: a worker that leaks memory is killed by Node before it can
+  // report, so this uses its own wording, not Node's heap-size message.
   "fitness.workerOutOfMemory":
     "Воркеру оценки эффективности не хватило памяти, и он был остановлен. Не копит ли ваша программа что-то с каждым пассажиром?",
   "fitness.scenario.small": "Маленький сценарий",
   "fitness.scenario.medium": "Средний сценарий",
   "fitness.scenario.large": "Большой сценарий",
 
-  // ---------------------------------------------------------------- ошибки
+  // Errors.
 
   "error.code.noInit": "В коде должна быть функция init",
   "error.code.noUpdate": "В коде должна быть функция update",
-  // {value} is whatever the player passed, and both of these frames have to
-  // stay grammatical for every shape of it: a quoted string, NaN, undefined, or
-  // one of the two nouns below. So the verb agrees with the subject and never
-  // with {value}, and {value} lands in the accusative, which for an inanimate
-  // masculine noun is spelled like the nominative. That is what «содержит
-  // массив» and «получил объект» rely on. An earlier wording, «В
-  // elevator.destinationQueue попало {value}», did not: «попало» is neuter and
-  // «массив» is masculine, so the one sentence a player sees when they put an
-  // array in the queue was ungrammatical.
+  // {value} can be a quoted string, NaN, undefined, or one of the two nouns
+  // below; the verb agrees with the subject and never with {value}, so the
+  // sentence stays grammatical for every shape it takes.
   "error.elevator.notAFloor":
     "elevator.{method} получил {value} — это не номер этажа. Нужно конечное число, а этажи в этом здании — от 0 до {topFloor}.",
   "error.elevator.queueNotAFloor":
@@ -949,10 +609,8 @@ elevator.goingDownIndicator(false);`,
   "error.thrown.noMessage": "Брошен {kind} без сообщения",
   "error.thrown.keys": "{kind} с ключами: {keys}",
 
-  // ---------------------------------------------------------- справка: основы
-  // Единственное сообщение справочных страниц, которое рисует сама игра: попап
-  // автодополнения вставляет его как заготовку. Остальной их текст лежит в
-  // `docs-ru.ts`, который не попадает в сборку.
+  // The only docs string the game itself renders; autocomplete inserts it as a
+  // skeleton. The rest of the docs live in docs-ru.ts, outside the build.
 
   "docs.basics.example.code": `{
     init: function(elevators, floors) {
@@ -965,29 +623,8 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // -------------------------------------------------------- учебная дорожка
-  // «Учебный уровень» — это уровень дорожки, «уровень N» — уровень игры;
-  // первый пишется с уточнением, чтобы игрок не спутал одно с другим.
-  //
-  // Здесь ничто не называет дорожку целиком. Панель названа тем уровнем,
-  // который объясняет, потому что восемь уроков, каждый из которых начинается
-  // с того, который он из восьми, ставят дорожку между игроком и уровнем перед
-  // ним. Где игрок на дорожке — говорит переключатель уровней в верхней
-  // панели: его кнопка читается как
-  // `game.levelSwitcher.tutorialTriggerLabel`, а блок за ней озаглавлен
-  // `game.levelSwitcher.tutorialBlockLabel`.
-  //
-  // В строках дорожки здание всюду называется домом — и в подсказках, и в
-  // комментариях программ; почему в дорожке «дом», а за её пределами «здание»,
-  // сказано в глоссарии в начале файла. Остальное по глоссарию: лифт, кабина,
-  // пассажир, загрузка, очередь этажей, обработчик, подписать, прогон.
-  //
-  // В ключах `.code` переведены только комментарии: сам код побайтово тот же,
-  // что и в английском каталоге, и это проверяет `catalog.test.ts`, а не
-  // честное слово. Слова в комментариях намеренно те же, что в подсказках
-  // этого же уровня: игрок читает программу в редакторе, а подсказки — рядом,
-  // в панели, и «этот дом», «круг», «объезд» должны в обоих местах означать
-  // одно и то же.
+  // Tutorial levels. «Дом» names the building here and in the .code
+  // comments, not «здание» as everywhere else — kept apart deliberately.
 
   "tutorial.level1.title": "Лифт, который никуда не едет",
   "tutorial.level1.goal":
@@ -1339,10 +976,9 @@ elevator.goingDownIndicator(false);`,
     update: function(dt, elevators, floors) {
     }
 }`,
-  // Ответ седьмого уровня слово в слово: выпускной уровень не просит ничего
-  // нового. Выписан целиком, а не подставлен ссылкой, чтобы у каждого уровня
-  // были одни и те же восемь ключей и переводчик не встречал исключений;
-  // равенство двух ответов держит `src/game/tutorial.test.ts`.
+  // Identical to level 7's answer, on purpose: the finale asks nothing new.
+  // Written out in full so every level keeps the same eight keys;
+  // src/game/tutorial.test.ts checks the two stay equal.
   "tutorial.level8.solutionCode.code": `{
     init: function(elevators, floors) {
         function pickElevator() {
@@ -1374,9 +1010,8 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Панель вокруг уровней и экран после последнего уровня. Строка сида,
-  // статистика и редактор — общие с остальной игрой и говорят здесь то же
-  // самое, что и везде.
+  // «Учебный уровень» (the track) and «уровень N» (the game) are named
+  // separately so a player cannot read one for the other.
 
   "tutorial.panel.hintSummary": "Подсказка {number}",
   "tutorial.panel.explanationSummary": "Почему так получается",
@@ -1390,22 +1025,9 @@ elevator.goingDownIndicator(false);`,
   "tutorial.finish.nextLevel": "Следующий учебный уровень",
   "tutorial.finish.toLevels": "Перейти к уровню 1",
 
-  // ----------------------------------------------------------- блок «Небоскрёб»
-  // src/game/skyscraper.ts и карточка, которую `widgets/level-briefing` рисует
-  // рядом со зданием. Английский каталог объясняет, почему на уровень здесь
-  // один ключ, а не восемь, как на учебной дорожке, и почему карточка есть
-  // только у трёх уровней блока — у тех, где механика встречается впервые.
-  //
-  // «Небоскрёб» — название блока и в русском тексте, и в английском: это слово,
-  // а не термин, и переводится обычным словом.
-  //
-  // Термины лифтовой отрасли переведены, а не оставлены латиницей: round-trip
-  // time — это «время кругового рейса», как его и называют по-русски в
-  // нормативке на лифты. Латиница в скобках рядом не нужна: игрок, которому
-  // понадобится оригинал, найдёт его в `docs/elevator-dispatch-research.md`,
-  // а тому, кому не понадобится, скобки только мешают читать абзац.
-
-  // Уровень 1.
+  // Skyscraper levels (src/game/skyscraper.ts): one key per level, no hints.
+  // Only sky2, sky8 and sky11 carry a briefing, where a mechanic first
+  // appears; "round-trip time" is «время кругового рейса» in Russian.
   "skyscraper.sky1.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1438,24 +1060,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровни со 2-го по 7-й идут парами: короткий уровень показывает профиль
-  // трафика, длинный по нему судит. Четыре из шести открываются одной и той же
-  // стартовой программой — той развозкой по одному поручению за раз, с которой
-  // начинается первый уровень, — и это повтор нарочный, а не недосмотр: одна и
-  // та же программа промахивается впритирку на утреннем пике, проваливается на
-  // вечернем и ведёт себя третьим образом в обед, а игрок, который правит одни
-  // и те же тридцать строк четыре раза, видит, что изменился ритм здания, а не
-  // код. Между этими четырьмя ключами отличается только комментарий `//` —
-  // единственная часть значения `.code`, которая переводится.
-
-  // Уровень 2. Утренний пик, взятый в размере, за которым можно уследить: все
-  // пассажиры рейса появляются в холле, поэтому интересно не то, какую кабину
-  // послать, а то, когда её отпустить.
-  //
-  // Одна из двух карточек блока, и она вводит профили трафика сразу для
-  // уровней 2—7, а не для одного этого. Поэтому абзац кончается вечерним пиком
-  // и обедом, которых сам уровень не играет: у тех уровней карточки нет, и
-  // сказать игроку, что у толпы есть форма и что она меняется, больше негде.
   "skyscraper.sky2.title": "Все начинают в холле",
   "skyscraper.sky2.briefing.html":
     "Десять этажей, две кабины и здание, которое только что открыло двери. Каждый следующий уровень задаёт толпе свой ритм, а этот — <em>утренний пик</em>: пока идёт рейс, каждый пассажир появляется в холле и каждый едет вверх. Кнопки на этажах не горят, поэтому у вопроса «кто вызвал?» один ответ, и выбор кабины под вызов не решает почти ничего. Решает обратный путь. Кабина возвращается в холл пустой, что бы вы ни делали, так что единственное число, которое вы можете изменить, — сколько человек она увезла наверх. А программа, с которой вы начинаете, отправляет кабину в путь, едва первый пассажир нажал кнопку. Дальше ритм разворачивается: <em>вечерний пик</em>, когда всё здание рвётся на улицу, и <em>обед</em>, который идёт в обе стороны сразу.",
@@ -1492,9 +1096,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровень 3. То же утро в башне и первый уровень блока с серебром и золотом.
-  // Назван по часу, а не по механике, потому что механика тут со второго
-  // уровня, а нового — то, что её спрашивают в полный рост.
   "skyscraper.sky3.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1546,9 +1147,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровень 4. То же утро наоборот. Назван по самому развороту: стартовая
-  // программа не стала неправильной как-то по-новому — это та же привычка в
-  // здании, где привычка поменяла сторону.
   "skyscraper.sky4.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1581,9 +1179,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровень 5. Вечер в полный рост и единственный уровень блока, который судят
-  // по часам и по самому долгому ожиданию, а не по пройденным этажам: вечерний
-  // пик плох не тем, что мотает расстояние, а тем, что забывает человека.
   "skyscraper.sky5.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1635,8 +1230,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровень 6. Оба пика сразу. Короткий: девять этажей, пять мест в кабине и
-  // первое здание блока, где кабине есть куда деться с пользой в обе стороны.
   "skyscraper.sky6.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1669,9 +1262,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровень 7. Последний из уровней на трафике и тот, ради которого писался
-  // весь блок: когда спрос идёт в обе стороны, круговой рейс с первого уровня
-  // можно заставить везти кого-нибудь всю дорогу.
   "skyscraper.sky7.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1704,20 +1294,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровни с 8-го по 10-й — зонированные здания, в которых кабина достаёт уже
-  // не до каждого этажа. Это первые уровни блока, где программа может сделать
-  // кое-что похуже, чем плохо отыграть.
-
-  // Уровень 8. Вторая карточка блока и вторая его механика: здание, в котором
-  // не все кабины обслуживают одни и те же этажи. Десять этажей и две кабины,
-  // одна на нижнюю половину, другая на верхнюю, — в размере, при котором видно,
-  // как пассажир стоит перед открытыми дверями и остаётся стоять.
-  //
-  // Стартовая программа — развозка с третьего уровня, в которой не изменено
-  // ничего, кроме `TODO`, и здесь она не просто плохо считается, а
-  // останавливает здание. Вызов, отданный кабине, которая этот этаж не
-  // обслуживает, зажигает лампу, которую уже ничто не погасит, а этаж с горящей
-  // лампой второй раз не зовёт.
   "skyscraper.sky8.title": "Не всякая кабина едет всюду",
   "skyscraper.sky8.briefing.html":
     "Десять этажей, и две кабины больше не делают одну и ту же работу: одна обслуживает холл и этажи с 1-го по 4-й, другая — холл и этажи с 5-го по 9-й. Настоящие башни устроены именно так, и причина — арифметика: кабина, которая останавливается на каждом этаже высокого здания, весь день только и делает, что останавливается, поэтому этажи делят на <em>зоны</em> и каждому банку кабин отдают свою. Попросите кабину о чужом этаже — машина не станет спорить: доедет, откроет двери, и никто не сядет. Хуже того, вызов останется висеть. Лампа на этаже уже горит, поэтому кнопка, которая позвала бы другую кабину, при повторном нажатии не делает ничего, и этот этаж будет ждать до конца рейса. <code>elevator.servedFloors()</code> — список этажей, которые кабина действительно обслуживает, и с него теперь начинается всякий выбор кабины.",
@@ -1774,11 +1350,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровень 9. Вечерний час пик в шестнадцатиэтажной башне, разделённой на два
-  // банка по две кабины. Уровень открывается ответом восьмого, то есть сразу с
-  // бронзой, и всё, что выше бронзы, — про того, кто ждал дольше всех: кабина
-  // нижнего банка, пустая в холле, ничем не поможет двенадцатому этажу, какая
-  // бы очередь там ни собралась.
   "skyscraper.sky9.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1838,11 +1409,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровень 10. Тот же вечер и последний уровень блока: пятнадцать этажей, у
-  // которых банки перекрываются на этажах с 6-го по 8-й, так что у трёх этажей
-  // здания обслуживание двойное, а у остальных — половинное. Стартовая
-  // программа берёт ту кабину, чья очередь, а на общем этаже это подбрасывание
-  // монеты; золото просит ту из двух, что обойдётся дешевле.
   "skyscraper.sky10.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1902,22 +1468,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровни с 11-го по 13-й — последняя группа, и та, где у здания вовсе не
-  // остаётся кнопок вызова. Три шага: глагол, выбор, группировка. На
-  // одиннадцатом программа учится закрепить кабину за поездкой и отправить её,
-  // на двенадцатом начинает иметь значение, какую именно кабину, а на
-  // тринадцатом одна кабина берёт сразу несколько поездок — ради чего всё это и
-  // придумано.
-
-  // Уровень 11. Назначение по этажу, вниз и в малом масштабе: десять этажей,
-  // две кабины по шесть человек и никакой возможности сесть в кабину, не
-  // закреплённую за твоей поездкой.
-  //
-  // Третья карточка блока. Стартовая программа закрепляет всё правильно и не
-  // отправляет никуда ничего — ровно та ошибка, к которой механика и
-  // подталкивает: панель у каждого этажа заполняется поездками с пометкой
-  // «ответили», пока обе кабины пустыми стоят в холле. Кто прочитал панель, тот
-  // поставил диагноз, не читая программы.
   "skyscraper.sky11.title": "Никто не жмёт «вверх» и «вниз»",
   "skyscraper.sky11.briefing.html":
     "Кнопок вызова на этажах больше нет. Вместо «вверх» и «вниз» пассажир набирает нужный этаж на панели у дверей и ждёт ту кабину, которую ему пообещала система, — это <em>назначение по этажу</em>, и на нём работает любая башня, построенная в этом веке. Программа слышит <code>destination_requested</code> с этажом, который кто-то назвал, и отвечает вызовом <code>elevator.takeRequest(from, to)</code>: он закрепляет кабину за этой поездкой, и эти люди сядут в неё и ни в какую другую. Закрепить — значит пообещать кабину, а не отправить её куда-нибудь: отправлять её по-прежнему нужно самому — через <code>goToFloor</code> или через <code>destinationQueue</code>, а следом <code>checkDestinationQueue()</code>. А этаж, чья поездка закреплена, больше не просит — ему, с его точки зрения, уже ответили, — так что невыполненное обещание хуже, чем никакого.",
@@ -1945,11 +1495,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровень 12. Четырнадцать этажей и три кабины в обед, и первый уровень, где
-  // выбор кабины и есть весь счёт. Карточки нет: механика — одиннадцатого.
-  // Стартовая программа — ответ одиннадцатого, закрепить и отправить по кругу, —
-  // сама по себе берёт бронзу и тратит почти весь бюджет на то, чтобы гнать
-  // кабину через всё здание, потому что была её очередь.
   "skyscraper.sky12.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1975,12 +1520,6 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // Уровень 13. Утренний час пик в шестнадцатиэтажной башне и последний уровень
-  // блока. Стартовая программа — ответ двенадцатого: берёт ближайшую кабину, в
-  // которой есть место, и дальше этого одна поездка за раз не заходит. Все
-  // пассажиры рейса стоят в одном холле, так что панель этажа — это список,
-  // куда едет очередь, а кабину, закреплённую за одной из этих поездок, можно
-  // закрепить и за остальными по дороге.
   "skyscraper.sky13.startingCode.code": `{
     init: function(elevators, floors) {
         function insertStop(elevator, floorNum) {

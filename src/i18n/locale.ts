@@ -1,72 +1,43 @@
 /**
- * The locales the game speaks.
- *
- * Its own module because everything else in `src/i18n/` needs it and it needs
- * nothing back: the catalogs, the formatters and the detection all name a
- * locale, so keeping the type anywhere larger would turn half the imports here
- * into cycles.
- *
- * A locale is spelled the way BCP 47 spells it, which is also the way `Intl`
- * and `<html lang>` want it, so the same value can be handed to all three
- * without a lookup table per consumer. Adding a locale means adding a member
- * here, a catalog file, and nothing else.
+ * The locales the game speaks. Its own module because everything else in
+ * `src/i18n/` needs it and it needs nothing back, which keeps those imports
+ * from becoming cycles. Spelled the way BCP 47, `Intl` and `<html lang>` all
+ * want it, so the same value works for all three without a lookup table.
  */
 
 /** A locale the game has a complete catalog for. */
 export type Locale = "en" | "ru";
 
-/**
- * Every locale, in the order a language picker should offer them.
- *
- * English first because it is the reference locale, then alphabetically by tag.
- */
+/** Every locale, in the order a language picker should offer them: English first, then alphabetically. */
 export const LOCALES: readonly Locale[] = ["en", "ru"];
 
 /**
- * The locale used when nothing else can be determined.
- *
- * Also the reference locale: its catalog is the one every other catalog is
- * type-checked against, so a key can never exist in a translation and be
- * missing from English. And the fallback locale, which is why it is typed as
- * the tag it is rather than widened to {@link Locale}: the code that renders
- * with it renders `EN_MESSAGES`, a `MessageCatalog<"en">` with English's two
- * plural forms, and a `Locale` here would ask that catalog to have every
- * form of every language the game speaks.
+ * The locale used when nothing else can be determined, and the reference
+ * locale every other catalog is type-checked against. Typed as its own tag
+ * rather than widened to {@link Locale}, since the fallback always renders
+ * `EN_MESSAGES` specifically, with English's own two plural forms.
  */
 export const DEFAULT_LOCALE = "en" satisfies Locale;
 
 /**
- * What each locale calls itself.
- *
- * Endonyms, deliberately outside the catalogs: a language picker shows every
- * option at once, and an option a reader cannot read is no use to the reader
- * who needs it most. "Русский" has to say Русский even while the interface is
- * still in English.
+ * What each locale calls itself. Endonyms, kept outside the catalogs: a
+ * language picker shows every option at once, and "Русский" has to say
+ * Русский even while the interface is still in English.
  */
 export const LOCALE_NAMES: Readonly<Record<Locale, string>> = {
   en: "English",
   ru: "Русский",
 };
 
-/**
- * Whether a string names a locale the game has a catalog for.
- *
- * @param value - Anything that might be a locale tag.
- * @returns Whether it is one, narrowing the type when it is.
- */
+/** Whether a string names a locale the game has a catalog for. */
 export function isLocale(value: string): value is Locale {
   return (LOCALES as readonly string[]).includes(value);
 }
 
 /**
- * The value `<html lang>` should carry for a locale.
- *
- * Identical to the locale tag today, and a function rather than an identity so
- * that the day a locale needs a region subtag — `pt-BR`, `zh-Hans` — there is
- * one place to say so instead of one per call site.
- *
- * @param locale - The locale being displayed.
- * @returns The language tag for the document element.
+ * The value `<html lang>` should carry for a locale. Identical to the tag
+ * today, and a function rather than an identity so a future region subtag
+ * (`pt-BR`, `zh-Hans`) has one place to be added instead of one per call site.
  */
 export function htmlLang(locale: Locale): string {
   return locale;

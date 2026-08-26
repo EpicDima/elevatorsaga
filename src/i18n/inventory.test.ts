@@ -1,57 +1,9 @@
 /**
- * `docs/i18n-inventory.md`, against the catalog and the tree it describes.
- *
- * The inventory is the map of `src/i18n/`: every key, what it says, and what
- * reads it. Until this file, nothing in the repository read it — `en.ts` names
- * it in a comment and that is all — and it rotted the way an unread document
- * does. The version the rebuild in `4a58d85` replaced printed a total of 209
- * for a catalog that held 210, and carried 237 `file.ts:123` pins, 95 of
- * which now point at a line other than the one they were written against.
- * Those numbers are counted off `git show a5010f2`, not taken on report; the
- * document prints the command for the last of them. All of it compiled, all of
- * it passed, and only the reader was told something untrue.
- *
- * The document specifies its own guard, in _What guards what_, and this file is
- * it. The six checks below are that list, in its order, and they are the whole
- * of what is machine-checkable about a document made mostly of prose:
- *
- * 1. every backticked token shaped like a message key is a real key;
- * 2. every key either English catalog holds is named, bar the learning track's
- *    per-level keys — its prose and its two programs alike — which the document
- *    covers by their shape;
- * 3. the counts it prints are the counts the catalog has;
- * 4. every backticked `src/…` path exists on disk;
- * 5. no `file.ts:123` pin below the section that bans them;
- * 6. the learning track's table quotes each level title as the catalog words
- *    it, and has a row for every level.
- *
- * What this deliberately does **not** check, because an over-claimed guard is
- * worse than a small one, and because a reader who thinks the tables are
- * verified will trust the wrong column:
- *
- * - the **English** column of _The strings_. It is deliberately abridged —
- *   whitespace collapsed, values cut and marked `…`, markup dropped — so it
- *   cannot be compared with the catalog by equality, and comparing a prefix
- *   would pass on text that was truncated before the part that changed. The
- *   learning track's titles are the exception check 6 makes, and they are one
- *   because they are quoted whole.
- * - the **Notes** column, the _What reads them_ column, and every prose claim
- *   about which module calls what. A row can be right about its key and wrong
- *   about everything beside it, and nothing here would know.
- * - the counts in the section headings (`— 18 `game.*` keys`). Those count what
- *   a section lists rather than what the catalog holds — `src/ui/templates.ts`
- *   reads 18 of the 26 `game.*` keys — so there is nothing in the catalog to
- *   compare them against.
- * - the 93 and 95 in _Where the strings are_. They come from a grep over the
- *   whole tree, not from the catalog, and reproducing that grep here would
- *   make this suite fail whenever an unrelated file is mid-edit.
- * - paths outside `src/`. The document says why: a message key such as
- *   `docs.play.start.html` is shaped like a file name and is not one, and
- *   `licenses.txt` exists only after a build.
- *
- * Read with `?raw` rather than `node:fs` so that the document is a module
- * dependency of this test: Vitest re-runs the file when the document changes,
- * which is the moment the check is worth anything.
+ * Checks `docs/i18n-inventory.md` against the catalog and the tree it
+ * describes: every key it names is real, every real key is named or covered
+ * by shape, its counts match the catalog, and its paths and titles are
+ * current. Imported with `?raw` so Vitest reruns this file whenever the
+ * document changes.
  */
 
 import { existsSync } from "node:fs";
@@ -68,41 +20,25 @@ import { EN_MESSAGES } from "./en.ts";
 /** The repository root, from this file's own location. */
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
-/**
- * Every key the reference locale defines, the game's messages then the pages'.
- *
- * Two files, one inventory: which of them a key is declared in is a fact about
- * the build (`docs-en.ts` says which and why), and the document is a map of the
- * messages rather than of the modules.
- */
+/** Every key the reference locale defines, the game's messages then the pages'. */
 const KEYS: readonly string[] = [...Object.keys(EN_MESSAGES), ...Object.keys(EN_DOCS_MESSAGES)];
 
 /** The same keys, for membership tests. */
 const KEY_SET: ReadonlySet<string> = new Set(KEYS);
 
-/**
- * A key's first dotted segment.
- *
- * @param key - A message key, or something shaped like one.
- * @returns Everything before the first dot, or the whole string if it has none.
- */
+/** A key's first dotted segment. */
 function prefixOf(key: string): string {
   const dot = key.indexOf(".");
   return dot === -1 ? key : key.slice(0, dot);
 }
 
-/** The nine first segments the catalog uses: `docs`, `page`, `game`, … */
+/** The first segments the catalog uses: `docs`, `page`, `game`, … */
 const PREFIXES: ReadonlySet<string> = new Set(KEYS.map(prefixOf));
 
 /**
- * The content of every code span and fenced block in the document.
- *
- * A run of backticks opens a span and the next run of the same length closes
- * it, which is what CommonMark says and is what lets ``t(`…`)`` — a span
- * containing backticks — be read as one span rather than as two broken ones.
- * That distinction is load-bearing here: the document writes a key it means as
- * a span of its own and a key it is only describing the shape of inside a
- * larger expression, and this is what tells the two apart.
+ * The content of every code span and fenced block in the document. A run of
+ * backticks opens a span and the next run of the same length closes it, per
+ * CommonMark, so ``t(`…`)`` reads as one span rather than two broken ones.
  */
 const CODE_SPANS: readonly string[] = [...inventorySource.matchAll(/(`+)([\s\S]*?)\1(?!`)/g)].map(
   (match) => match[2] ?? "",
@@ -115,49 +51,28 @@ const SPAN_SET: ReadonlySet<string> = new Set(CODE_SPANS);
 const KEY_SHAPE = /^[a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9*]+)+$/;
 
 /**
- * The spans the document offers as message keys.
- *
- * The document's own rule, quoted: "dotted, and with a first segment that is
- * one of the catalog's prefixes". The prefix requirement is what keeps
- * `documentation.ru.html`, `elevator.goToFloor` and `package.json` out of a
- * check about messages.
+ * The spans the document offers as message keys: dotted, with a first
+ * segment that is one of the catalog's prefixes. That requirement keeps
+ * `documentation.ru.html`, `elevator.goToFloor` and `package.json` out.
  */
 const KEY_SHAPED_SPANS: readonly string[] = [
   ...new Set(CODE_SPANS.filter((span) => KEY_SHAPE.test(span) && PREFIXES.has(prefixOf(span)))),
 ];
 
-/**
- * A span standing for a group of keys rather than for one: `docs.*`.
- *
- * @param span - A key-shaped span.
- * @returns Whether it is a wildcard.
- */
+/** A span standing for a group of keys rather than for one: `docs.*`. */
 function isGroupWildcard(span: string): boolean {
   return span.endsWith(".*");
 }
 
-/**
- * A span standing for the learning track's per-level keys: `tutorial.levelN.goal`.
- *
- * The `N` is the level number and the `*` a whole level's eight keys; neither is a
- * key, and the document says so where it uses them.
- *
- * @param span - A key-shaped span.
- * @returns Whether it is one of those shapes.
- */
+/** A span standing for the learning track's per-level keys: `tutorial.levelN.goal`. */
 function isLevelShape(span: string): boolean {
   return /^tutorial\.level(?:N|\*)(?:\.|$)/.test(span);
 }
 
 /**
- * The eight suffixes the document says every level owns, spelled as it spells
- * them: `tutorial.levelN.hint1.html` in full, `.hint2.html` abbreviated.
- *
- * The last two are the level's two programs, which are messages because their
- * comments are addressed to the player. They are exempted from the naming check
- * for the same reason the other six are — the document covers the track by
- * shape rather than by sixty-four rows — and so they have to be spelled out
- * here, or the exemption would cover keys the document never mentions.
+ * The suffixes the document says every level owns, spelled as it spells them:
+ * `tutorial.levelN.hint1.html` in full, `.hint2.html` abbreviated. Spelled out
+ * here so the exemption below covers exactly these keys and no others.
  */
 const LEVEL_SUFFIXES = [
   "title",
@@ -171,12 +86,9 @@ const LEVEL_SUFFIXES = [
 ];
 
 /**
- * The keys the document covers by shape instead of by row.
- *
- * Built from `tutorialLevels`, so the exemption is exactly as wide as the track
- * really is. A ninth level's eight keys would be exempted from the naming check
- * here — and caught two tests down instead, where the `tutorial.*` count the
- * document prints stops matching the catalog.
+ * The keys the document covers by shape instead of by row. Built from
+ * `tutorialLevels`, so the exemption is exactly as wide as the track really
+ * is; a ninth level would be caught instead by the count check below.
  */
 const LEVEL_KEYS: ReadonlySet<string> = new Set(
   tutorialLevels.flatMap((_, index) =>
@@ -186,16 +98,8 @@ const LEVEL_KEYS: ReadonlySet<string> = new Set(
 
 /**
  * `src/` spans that are deliberately not paths, with what each one is.
- *
- * Handled by name rather than by loosening check 4 to something they slip
- * through: each of the five is a real reason, and a reason that stops applying
- * should show up as a failing test rather than as a rule that quietly covers
- * less than it says.
- *
- * There is no sixth entry for `src/i18n/inventory.test.ts`. The rebuild named
- * it as the file that ought to exist — the one reference in this document's
- * whole history to a source file that was not in the tree — and writing it is
- * what made that reference true. An excuse would have kept it false.
+ * Handled by name, not by loosening the path check, so a reason that stops
+ * applying shows up as a failing test rather than a rule quietly covering less.
  */
 const NON_PATHS: ReadonlyMap<string, string> = new Map([
   ["src/app/app.ts:207", "the first rotted pin _How this file is anchored_ exhibits"],
@@ -210,39 +114,20 @@ const NON_PATHS: ReadonlyMap<string, string> = new Map([
 ]);
 
 /**
- * A `file.ts:123` reference, which is the notation this document bans.
- *
- * The extension list is closed on purpose: `docs.play.start.html` followed by a
- * colon and a digit would otherwise read as a pin, and messages get quoted
- * beside numbers all through the tables.
+ * A `file.ts:123` reference, which is the notation this document bans. The
+ * extension list is closed on purpose: `docs.play.start.html` followed by a
+ * colon and a digit would otherwise read as a pin.
  */
 const LINE_PIN = /[\w.-]+\.(?:ts|tsx|js|css|html|json|md|txt):\d+/g;
 
-/**
- * The name of the notation, not a use of it.
- *
- * `file.ts:123` is how both rules that forbid pins spell what they forbid — one
- * in _How this file is anchored_, one in check 5 below it — so the exact
- * spelling is exempt and nothing else is. `file.ts:124` in either place would
- * be read as a pin and fail.
- */
+/** The name of the notation itself, exempted from the ban; `file.ts:124` would not be. */
 const PIN_NOTATION = "file.ts:123";
 
 /**
  * The learning track's table of titles, as level number against quoted title.
- *
- * This is the one column of prose in the document that can be compared by
- * equality, and it is worth saying why, since the header above rules the
- * English column out for the opposite reason. That column is abridged on
- * purpose — whitespace collapsed, values cut and marked `…` — so no comparison
- * with the catalog is available. These titles are not abridged: each is a
- * whole `tutorial.levelN.title` copied across, so either it matches or it has
- * rotted.
- *
- * One had. The row for level 6 read "The elevator that lies to passengers" where
- * the catalog says "lies to its passengers", and it had sat there since the
- * table was written, through a guard specified as five checks and every one of
- * them passing. Nothing here read the column, so nothing could have noticed.
+ * Unlike the document's other prose columns, each title is a whole
+ * `tutorial.levelN.title` copied across rather than abridged, so it can be
+ * compared with the catalog by equality.
  */
 const QUOTED_TITLES: ReadonlyMap<string, string> = new Map(
   [
@@ -259,25 +144,15 @@ const ANCHOR_END = inventorySource.indexOf("\n## ", ANCHOR_START + 1);
 /** Every pin in the document, the notation's own two spellings aside. */
 const PINS = [...inventorySource.matchAll(LINE_PIN)].filter((match) => match[0] !== PIN_NOTATION);
 
-/**
- * The 1-based line a character offset falls on, so a failure names a line.
- *
- * @param offset - An index into the document.
- * @returns Its line number.
- */
+/** The 1-based line a character offset falls on, so a failure names a line. */
 function lineOf(offset: number): number {
   return inventorySource.slice(0, offset).split("\n").length;
 }
 
 /**
- * A number the document prints in prose, and the pattern that finds it.
- *
- * The document's own statement of check 3 covers the table in _Where the
- * strings are_ and nothing else, which would leave three of the four places it
- * prints the catalog size free to rot — and a wrong total is the specific
- * failure that prompted the rebuild. Each pattern has to match exactly once: a
- * reword that moves the number is a failure here, not a silent pass, because a
- * pattern matching nothing is a check that has stopped checking.
+ * A number the document prints in prose, and the pattern that finds it. Each
+ * pattern must match exactly once, so a reword that moves the number fails
+ * here rather than silently passing.
  */
 interface PrintedCount {
   /** What the number is, for the failure message. */
@@ -419,10 +294,7 @@ describe("the tutorial titles the inventory quotes", () => {
   });
 
   it("gives every level in the catalog a row", () => {
-    // The other direction, and the one that matters when the track grows: a
-    // ninth level's title would otherwise be absent from the table rather than
-    // wrong in it, and a check that only walks the rows cannot see a row that
-    // was never written.
+    // Catches the row a growing track never wrote, not just one worded wrong.
     const missing = KEYS.filter(
       (key) => /^tutorial\.level\d+\.title$/.test(key) && !QUOTED_TITLES.has(key),
     );

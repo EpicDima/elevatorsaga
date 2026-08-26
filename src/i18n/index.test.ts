@@ -28,10 +28,8 @@ describe("CATALOG_LOADERS", () => {
   });
 
   it("fetches the catalog the translations are then rendered from", async () => {
-    // Not an identity check on a constant any more: the catalog arrives when
-    // its chunk does, so what there is to check is that the one that arrives is
-    // the one in `ru.ts` -- rendered through `t`, which is the only way anyone
-    // reads it.
+    // Checked by rendering through `t`, not by identity, since the catalog
+    // arrives whenever its chunk does.
     await loadLocale("ru");
 
     expect(isLocaleLoaded("ru")).toBe(true);
@@ -39,25 +37,13 @@ describe("CATALOG_LOADERS", () => {
   });
 
   it("has the default locale ready without loading anything", () => {
-    // The reason English is bundled rather than split: `t` is synchronous and
-    // is called from error paths, so something has to be renderable before any
-    // fetch has finished.
+    // English is bundled, not split, since `t` is synchronous and called from error paths.
     expect(isLocaleLoaded(DEFAULT_LOCALE)).toBe(true);
   });
 });
 
 describe("a locale whose catalog has not arrived yet", () => {
-  /**
-   * The i18n module with nothing but English loaded.
-   *
-   * A module graph of its own, because the Vitest setup file loads every
-   * catalog into the one this file imported at the top -- which is what keeps
-   * the tests below, and in a dozen other files, able to name a language on one
-   * line and assert on the next. This is where the state those tests are spared
-   * is exercised on purpose.
-   *
-   * @returns A freshly evaluated `./index.ts`.
-   */
+  /** The i18n module with nothing but English loaded, in a module graph of its own. */
   async function unloadedI18n(): Promise<typeof import("./index.ts")> {
     vi.resetModules();
     return await import("./index.ts");
@@ -65,8 +51,6 @@ describe("a locale whose catalog has not arrived yet", () => {
 
   afterEach(() => {
     vi.doUnmock("./ru.ts");
-    // The fresh graph is the one that was just told to speak Russian; leaving
-    // it in the registry would hand it to the next dynamic import in this file.
     vi.resetModules();
   });
 
@@ -75,17 +59,12 @@ describe("a locale whose catalog has not arrived yet", () => {
 
     i18n.setLocale("ru");
 
-    // The guarantee the whole design is for: whatever else is true, a player
-    // never reads `game.button.start`.
     expect(i18n.isLocaleLoaded("ru")).toBe(false);
     expect(i18n.t("game.button.start")).toBe("Start");
     expect(i18n.translateIn("ru", "game.button.start")).toBe("Start");
   });
 
   it("keeps the numbers in the language the words came out in", async () => {
-    // Half a sentence in English and its decimal comma in Russian is a worse
-    // answer than a whole sentence in English, so formatting follows the
-    // catalog rather than the choice.
     const i18n = await unloadedI18n();
 
     i18n.setLocale("ru");
@@ -95,8 +74,6 @@ describe("a locale whose catalog has not arrived yet", () => {
   });
 
   it("still remembers what the player chose", async () => {
-    // Which is what the picker shows as selected, what a link carries and what
-    // the fitness worker is told -- none of which depend on the fetch.
     const i18n = await unloadedI18n();
 
     i18n.setLocale("ru");
@@ -129,9 +106,8 @@ describe("a locale whose catalog has not arrived yet", () => {
   });
 
   it("stays in English when the catalog cannot be fetched", async () => {
-    // A dropped response or a half-deployed build. The load resolves either
-    // way: a rejection here would travel to the fitness worker, which has no
-    // one to report it to and a player waiting on a benchmark.
+    // The load resolves either way: a rejection would reach the fitness
+    // worker, which has no one to report it to.
     vi.doMock("./ru.ts", () => {
       throw new Error("Failed to fetch dynamically imported module");
     });
@@ -144,8 +120,7 @@ describe("a locale whose catalog has not arrived yet", () => {
     i18n.setLocale("ru");
     expect(i18n.t("game.button.start")).toBe("Start");
     expect(warn).toHaveBeenCalled();
-    // And the language is not written off for the session: the next attempt is
-    // a new fetch rather than the failure served again from the cache.
+    // The next attempt is a new fetch, not the cached failure served again.
     expect(i18n.loadLocale("ru")).not.toBe(failed);
   });
 });
@@ -173,9 +148,6 @@ describe("the active locale", () => {
   });
 
   it("carries into the punctuation between listed items", () => {
-    // A locale that has not been loaded renders in English, so this also says
-    // the switch has to be complete: half a Russian sentence joined by "and"
-    // is the failure a bare ", " was chosen to avoid in the first place.
     expect(formatList(["6", "9"])).toBe("6 and 9");
     setLocale("ru");
     expect(formatList(["6", "9"])).toBe("6 и 9");
@@ -190,8 +162,6 @@ describe("the active locale", () => {
 
 describe("translateIn", () => {
   it("renders a named locale without changing the active one", () => {
-    // What a language picker needs: every language's own name, in that
-    // language, while the interface is still in another.
     expect(translateIn("ru", "game.button.pause")).toBe("Пауза");
     expect(getLocale()).toBe("en");
     expect(t("game.button.pause")).toBe("Pause");
@@ -213,8 +183,6 @@ describe("locale identity", () => {
   });
 
   it("knows what <html lang> should say", () => {
-    // The one thing the wiring has to set besides the text itself: assistive
-    // technology and the browser's own hyphenation both read it.
     expect(htmlLang("en")).toBe("en");
     expect(htmlLang("ru")).toBe("ru");
   });

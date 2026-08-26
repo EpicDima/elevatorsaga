@@ -1,18 +1,14 @@
 /**
- * The reference page's Russian text: this is what `documentation.ru.html` says.
- *
- * Typed as `DocsCatalog`, so it is checked against the English one key by key,
- * exactly as `ru.ts` is checked against `en.ts`. Why the reference page's text
- * is kept out of the message catalog is explained in `docs-en.ts`, which also
- * says how the page is built from it; the glossary this translation keeps to is
- * in `ru.ts`.
+ * The reference pages' Russian text. Typed as `DocsCatalog`, checked against
+ * the English catalog key by key, the same way `ru.ts` is checked against
+ * `en.ts`.
  */
 
 import type { DocsCatalog } from "./docs-en.ts";
 
 /** Everything the reference pages say, in Russian. */
 export const RU_DOCS_MESSAGES: DocsCatalog = {
-  // ------------------------------------------------------- справка: страница
+  // Справка: страница.
 
   "docs.page.title": "Elevator Saga — справка и документация по API",
   "docs.page.description": "Справка и документация по API для Elevator Saga.",
@@ -20,7 +16,7 @@ export const RU_DOCS_MESSAGES: DocsCatalog = {
   "docs.nav.label": "Игра",
   "docs.nav.back": "Вернуться к игре",
 
-  // ----------------------------------------------------------- справка: игра
+  // Справка: игра.
 
   "docs.about.heading": "Об игре",
   "docs.about.p1.html":
@@ -28,9 +24,6 @@ export const RU_DOCS_MESSAGES: DocsCatalog = {
   "docs.about.p2.html":
     "Цель — возить пассажиров эффективно.<br /> Чем лучше это получается, тем дальше вы продвигаетесь по всё более сложным уровням.<br /> Пройти все уровни под силу только самым лучшим программам.",
   "docs.play.heading": "Как играть",
-  // «Дорожка», а не «трек»: слово стоит рядом с заголовком блока в меню
-  // уровней («Учебная дорожка»), и читатель должен узнать в тексте тот самый
-  // блок.
   "docs.play.track.html":
     'Если вы никогда не писали таких программ, начните с <a href="index.html#level=tutorial-1">учебной дорожки</a> — в меню уровней наверху страницы её уроки собраны под заголовком <span class="emphasis-color">Учебная дорожка</span>. Это восемь небольших зданий, которые знакомят с этим API по одной ошибке за раз: в каждом выдаётся программа, которая проигрывает, и нужно найти в ней единственную ошибку — рядом есть подсказки и разбор того, что на самом деле происходило в прогоне.',
   "docs.play.start.html":
@@ -42,14 +35,11 @@ export const RU_DOCS_MESSAGES: DocsCatalog = {
   "docs.play.debugging.html":
     'Если в программе ошибка, попробуйте разобраться с ней через инструменты разработчика в браузере. Чтобы начать с чистого листа, нажмите кнопку <span class="emphasis-color">Сбросить код</span>: код вернётся к рабочей, но совсем простой реализации, а рядом появится кнопка <span class="emphasis-color">Вернуть код</span> — она будет там, пока есть что возвращать.<br /> Если у вас есть любимый текстовый редактор, например <a href="https://www.sublimetext.com/">Sublime Text</a>, пишите код в нём и вставляйте в редактор игры.<br /> Код сам сохраняется в локальном хранилище браузера, так что не переживайте — он не пропадёт, если вы случайно закроете браузер.',
 
-  // ---------------------------------------------------------- справка: основы
+  // Справка: основы.
 
   "docs.basics.heading": "Основы",
   "docs.basics.declare.html":
     'Ваш код должен объявлять объект, в котором есть хотя бы две функции — <span class="emphasis-color">init</span> и <span class="emphasis-color">update</span>. Вот так:',
-  // Пример, который разбирает этот раздел, — `docs.basics.example.code`, он
-  // в `ru.ts`: попап автодополнения вставляет тот же текст, поэтому это
-  // сообщение едет вместе с игрой.
   "docs.basics.called.html":
     'Эти функции игра вызывает по ходу уровня.<br /> <span class="emphasis-color">init</span> вызывается один раз, на первом кадре прогона, а не в момент, когда вы применили код; <span class="emphasis-color">update</span> — на том же шаге и на каждом следующем шаге симуляции — 100 раз в игровую секунду, по расписанию, привязанному к игровому времени, а не к тому, как часто рисует браузер. Поэтому <span class="emphasis-color">dt</span> всегда одно и то же значение, а два прогона с одним и тем же сидом и одинаковыми действиями проходят одну и ту же последовательность шагов — независимо от того, быстрый браузер или медленный. Обеим передаются одни и те же два массива — все лифты здания и все его этажи, — так что <span class="emphasis-color">elevators.length</span> и есть число кабин, которыми вы распоряжаетесь; между вызовами эти массивы не подменяются. Обе функции вызываются на объекте, который вы объявили, так что <span class="emphasis-color">this</span> внутри них — этот самый объект: всё, что программе нужно помнить от кадра к кадру, можно хранить на <span class="emphasis-color">this</span>, а не во внешней переменной. Это верно, пока они написаны через <span class="emphasis-color">function</span>: стрелочная функция сохраняет <span class="emphasis-color">this</span> того места, где её написали, а здесь это страница, а не ваш объект.',
   "docs.basics.initPurpose.html":
@@ -57,7 +47,7 @@ export const RU_DOCS_MESSAGES: DocsCatalog = {
   "docs.basics.noLibraries.html":
     'Раньше игра подключала jQuery и lodash, поэтому в старых решениях с вики часто встречаются <span class="emphasis-color">$</span> и <span class="emphasis-color">_</span>. Ни та, ни другая библиотека больше не подключается, и вашей программе они недоступны: решение с ними упадёт с ошибкой <span class="emphasis-color">$ is not defined</span> или <span class="emphasis-color">_ is not defined</span>. Почти всё, ради чего они здесь были нужны, — <span class="emphasis-color">_.filter</span>, <span class="emphasis-color">_.map</span>, <span class="emphasis-color">_.each</span> и им подобные — есть у самих массивов (<span class="emphasis-color">filter</span>, <span class="emphasis-color">map</span>, <span class="emphasis-color">forEach</span>) в любом браузере, который потянет эту игру. Исключение — <span class="emphasis-color">_.min</span> и <span class="emphasis-color">_.max</span>: <span class="emphasis-color">Math.min</span> методом массива не является и принимает аргументы по одному, а не массивом, поэтому вместо <span class="emphasis-color">_.min(floorNums)</span> придётся писать <span class="emphasis-color">Math.min(...floorNums)</span>. Заодно следите за пустым массивом: <span class="emphasis-color">Math.min()</span> без единого аргумента возвращает <span class="emphasis-color">Infinity</span>, а не этаж, и <span class="emphasis-color">goToFloor</span> такое значение не примет, так что случай пустого <span class="emphasis-color">getPressedFloors()</span> придётся разобрать отдельно.',
 
-  // -------------------------------------------------------- справка: примеры
+  // Справка: примеры.
 
   "docs.examples.heading": "Примеры кода",
   "docs.examples.control.heading": "Как управлять лифтом",
@@ -77,7 +67,7 @@ export const RU_DOCS_MESSAGES: DocsCatalog = {
   "docs.examples.events.perElevator.html":
     'У каждого лифта свои события, поэтому обработчик, подписанный на один лифт, слышит только его: в здании из четырёх лифтов обработчик придётся подписать четыре раза, и короче всего это записывается как <span class="emphasis-color">elevators.forEach(function(elevator) { ... })</span>. Если же все обработчики словно управляют одним и тем же, последним лифтом, искать надо не в лифтах, а в цикле, который их подписывал. <span class="emphasis-color">for (var i = 0; i &lt; elevators.length; i++) { var elevator = elevators[i]; elevator.on("idle", function() { elevator.goToFloor(0); }); }</span> подписывает каждый обработчик на свой лифт, но <span class="emphasis-color">var</span> заводит одну-единственную переменную <span class="emphasis-color">elevator</span> на всю функцию, а срабатывают обработчики позже, когда цикл давно закончился, — и к этому моменту в ней лежит лифт, на котором цикл остановился, им они все и управляют. <span class="emphasis-color">let</span> и <span class="emphasis-color">const</span> заводят на каждой итерации свою переменную, поэтому <span class="emphasis-color">for (const elevator of elevators)</span> и <span class="emphasis-color">forEach</span> делают то, чего ждёшь от варианта с <span class="emphasis-color">var</span>, но не получаешь. С этажами всё устроено так же — и с любой другой переменной, которую обработчик захватывает в замыкание внутри цикла.',
 
-  // ---------------------------------------------------------- справка: API
+  // Справка: API.
 
   "docs.api.heading": "Документация по API",
   "docs.table.method": "Метод",

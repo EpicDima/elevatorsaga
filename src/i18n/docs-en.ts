@@ -1,51 +1,28 @@
 /**
- * The reference page's English text: this is what `documentation.html` says.
- *
- * Not a copy of the page — the page is built from it. `src/docs-page/render.ts`
- * renders one file per locale at build time, so these messages are the only
- * place this prose exists and a new language is another catalog rather than
- * another HTML file.
- *
- * Hence a module of its own rather than a section of `en.ts`. A key in
- * `EN_MESSAGES` is downloaded by every player — the catalog is statically
- * imported by everything that calls `t()`, so it lands whole in the entry
- * chunk — and this text is read by the build and by nothing the browser runs.
- * Nothing outside the build and the tests imports this file, so none of it
- * reaches a bundle.
- *
- * `docs.basics.example.code` is the exception that stays in `en.ts`: the
- * completion popup inserts it.
- *
- * The suffix rules are `en.ts`'s, and `catalog.test.ts` enforces them here too:
- * `.html` is trusted markup, `.code` is example code whose comments alone are
- * translated, anything else is plain text.
+ * The reference pages' English text, and the only place that prose exists:
+ * `src/docs-page/render.ts` builds a page per locale from it. Its own module
+ * rather than a section of `en.ts`, since nothing the browser runs reads it, so
+ * none of it reaches a bundle the way `EN_MESSAGES` does.
  */
 
 /** Everything the reference pages say, in English. */
 export const EN_DOCS_MESSAGES = {
-  // ---------------------------------------------------- the help page: shell
-  // documentation.html.
-
+  // The help page: shell of documentation.html.
   "docs.page.title": "Elevator Saga - help and API documentation",
   "docs.page.description": "Help and API documentation for Elevator Saga.",
   "docs.page.tagline": "Help and API documentation",
   "docs.nav.label": "Game",
   "docs.nav.back": "Back to the game",
 
-  // ------------------------------------------------- the help page: the game
-
+  // The help page: the game.
   "docs.about.heading": "About the game",
   "docs.about.p1.html":
     'This is a game of programming!<br /> Your task is to program the movement of elevators, by writing a program in <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide">JavaScript</a>.',
   "docs.about.p2.html":
     "The goal is to transport people in an efficient manner.<br /> Depending on how well you do it, you can progress through the ever more difficult levels.<br /> Only the very best programs will be able to complete all the levels.",
   "docs.play.heading": "How to play",
-  // The first thing under "How to play", because a reader who has arrived here
-  // not knowing the API has already found the one page that assumes they do.
-  // The address is written out rather than assembled from `tutorialLevels`: the
-  // reference pages are static HTML with no script of their own, so the same
-  // text has to be spellable by hand into both of them. `src/page.test.ts`
-  // holds the pages and this key to the first level's real id.
+  // The address is written out by hand, not assembled from `tutorialLevels`:
+  // the reference pages are static HTML with no script of their own.
   "docs.play.track.html":
     'If you have never written one of these programs before, start on the <a href="index.html#level=tutorial-1">learning track</a>, which the game also lists under <span class="emphasis-color">Learning track</span> in the level menu at the top of the page. It is eight small buildings that introduce this API one mistake at a time: each hands you a program that loses, and asks you to find the one thing wrong with it, with hints and an explanation of what the run was actually doing.',
   "docs.play.start.html":
@@ -57,14 +34,11 @@ export const EN_DOCS_MESSAGES = {
   "docs.play.debugging.html":
     'If your program contains an error, you can use the developer tools in your web browser to try and debug it. If you want to start over with the code, press the <span class="emphasis-color">Reset code</span> button. This will revert the code to a working but simplistic implementation, and an <span class="emphasis-color">Undo reset</span> button appears beside it for as long as there is something to bring back.<br /> If you have a favorite text editor, such as <a href="https://www.sublimetext.com/">Sublime Text</a>, feel free to edit the code there and paste it into the game editor.<br /> Your code is automatically saved in your local storage, so don\'t worry - it doesn\'t disappear if you accidentally close the browser.',
 
-  // ----------------------------------------------- the help page: the basics
-
+  // The help page: the basics.
   "docs.basics.heading": "Basics",
   "docs.basics.declare.html":
     'Your code must declare an object containing at least two functions called <span class="emphasis-color">init</span> and <span class="emphasis-color">update</span>. Like this:',
-  // The example this section walks through is `docs.basics.example.code`, in
-  // `en.ts`: the completion popup inserts the same text, so that one message
-  // ships with the game.
+  // The example here, docs.basics.example.code, lives in en.ts: the completion popup inserts it too.
   "docs.basics.called.html":
     'These functions will then be called by the game during the level.<br /> <span class="emphasis-color">init</span> runs once, on the first frame of the run rather than at the moment you apply your code, and <span class="emphasis-color">update</span> runs on that same frame and on every simulated step after it — 100 times per game second, on a fixed schedule tied to game time rather than to how often the browser draws. That means <span class="emphasis-color">dt</span> is always the same value, and two runs of the same seed and the same play take the exact same sequence of steps whether the browser is fast or slow. Both functions are handed the same two arrays — one holding every elevator in the building, one holding every floor — so <span class="emphasis-color">elevators.length</span> is how many cars you have to work with, and neither array is replaced between calls. Both are called on the object you declared, so <span class="emphasis-color">this</span> inside them is that object: anything your program needs to remember from one frame to the next can live on <span class="emphasis-color">this</span> instead of in a variable outside. That holds as long as you write them with <span class="emphasis-color">function</span> — an arrow function keeps the <span class="emphasis-color">this</span> of wherever it was written, which here is the page rather than your object.',
   "docs.basics.initPurpose.html":
@@ -72,8 +46,7 @@ export const EN_DOCS_MESSAGES = {
   "docs.basics.noLibraries.html":
     'The game used to load jQuery and lodash, so older solutions you find on the wiki often call <span class="emphasis-color">$</span> or <span class="emphasis-color">_</span>. Neither is loaded any more and neither is in scope for your program: a solution that uses them will fail with <span class="emphasis-color">$ is not defined</span> or <span class="emphasis-color">_ is not defined</span>. Most of what they were used for here — <span class="emphasis-color">_.filter</span>, <span class="emphasis-color">_.map</span>, <span class="emphasis-color">_.each</span> and friends — is a built-in array method (<span class="emphasis-color">filter</span>, <span class="emphasis-color">map</span>, <span class="emphasis-color">forEach</span>) in every browser that can run this game. <span class="emphasis-color">_.min</span> and <span class="emphasis-color">_.max</span> are the exception: <span class="emphasis-color">Math.min</span> is not an array method, and it takes its arguments one at a time rather than an array, so <span class="emphasis-color">_.min(floorNums)</span> has to become <span class="emphasis-color">Math.min(...floorNums)</span>. Watch the empty array while you are at it: <span class="emphasis-color">Math.min()</span> with nothing to compare is <span class="emphasis-color">Infinity</span> rather than a floor, and <span class="emphasis-color">goToFloor</span> refuses it, so an empty <span class="emphasis-color">getPressedFloors()</span> needs an answer of its own.',
 
-  // ---------------------------------------------- the help page: the examples
-
+  // The help page: the examples.
   "docs.examples.heading": "Code examples",
   "docs.examples.control.heading": "How to control an elevator",
   "docs.examples.goToFloor":
@@ -92,8 +65,7 @@ export const EN_DOCS_MESSAGES = {
   "docs.examples.events.perElevator.html":
     'Every elevator has its own events, so a handler registered on one elevator only ever hears that elevator: a building with four of them needs the handler registered four times, and <span class="emphasis-color">elevators.forEach(function(elevator) { ... })</span> is the short way to write that. If everything your handlers do seems to happen to the last elevator instead, the loop that registered them is the place to look, not the elevators. <span class="emphasis-color">for (var i = 0; i &lt; elevators.length; i++) { var elevator = elevators[i]; elevator.on("idle", function() { elevator.goToFloor(0); }); }</span> registers each handler on the right elevator, but <span class="emphasis-color">var</span> gives the whole function a single <span class="emphasis-color">elevator</span> binding, and every handler runs later, after the loop has finished — by then that one binding holds the elevator the loop ended on, and that is the elevator all of them drive. <span class="emphasis-color">let</span> and <span class="emphasis-color">const</span> give each iteration a binding of its own, so <span class="emphasis-color">for (const elevator of elevators)</span> and <span class="emphasis-color">forEach</span> do what the <span class="emphasis-color">var</span> version looks like it does. Floors work the same way, and so does anything else a handler closes over in a loop.',
 
-  // --------------------------------------------- the help page: the reference
-
+  // The help page: the reference.
   "docs.api.heading": "API documentation",
   "docs.table.method": "Method",
   "docs.table.property": "Property",
@@ -260,10 +232,8 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
 export type DocsMessageKey = keyof typeof EN_DOCS_MESSAGES;
 
 /**
- * A complete translation of the reference pages.
- *
- * The counterpart to `MessageCatalog` for text no locale renders: plain strings
- * throughout, since a page that says the same thing to one reader and to many
- * has nothing to pluralize.
+ * A complete translation of the reference pages. Plain strings throughout,
+ * unlike `MessageCatalog`: a page says the same thing to one reader and to
+ * many, so there is nothing to pluralize.
  */
 export type DocsCatalog = Readonly<Record<DocsMessageKey, string>>;

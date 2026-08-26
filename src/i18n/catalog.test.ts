@@ -13,12 +13,8 @@ type Entry = string | Readonly<Record<string, string>>;
 
 /**
  * Every catalog behind its loosest type, so the tests can walk them by string
- * key. The strict types are what {@link translate} is checked against; here the
- * point is to look for what the types cannot see.
- *
- * A locale's messages come in two files -- the game's, and the reference pages'
- * (`docs-en.ts` says why they are apart) -- and every rule below applies to
- * both, so each locale is read here as the one set of strings it publishes.
+ * key and look for what the strict types cannot see. A locale's messages come
+ * in two files — the game's and the reference pages' — read here as one set.
  */
 const CATALOGS: Readonly<Record<Locale, Readonly<Record<string, Entry>>>> = {
   en: { ...EN_MESSAGES, ...EN_DOCS_MESSAGES },
@@ -50,23 +46,9 @@ function tags(text: string): readonly string[] {
 }
 
 /**
- * An example code block with every `//` comment emptied of its words.
- *
- * Emptied rather than removed, and that is the whole of what this helper is for.
- * Removing a comment removes the evidence that it was there: strip `// …` off
- * `elevator.goToFloor(0); // …` and what is left is the line the other locale
- * has anyway, so a comment written into one language and not the other passed a
- * comparison of the stripped text unseen. Only a comment on a line of its own
- * was ever caught, and only incidentally — by the line it added.
- *
- * Keeping the two slashes where they stood makes the comparison one about the
- * comments as well as the code: both locales must open a comment on the same
- * line at the same column, or neither may. Nothing weakens, since the code
- * either side of the slashes is compared exactly as before.
- *
- * @param code - An example program.
- * @returns The same program with every comment reduced to the `//` that opened
- * it.
+ * An example code block with every `//` comment emptied of its words, rather
+ * than removed: removing one would erase the evidence it was there, letting a
+ * comment added to only one locale slip past a comparison of the bare code.
  */
 function withEmptiedComments(code: string): string {
   return code
@@ -90,16 +72,13 @@ function entry(locale: Locale, key: string): Entry {
 
 describe("catalog shape", () => {
   it("has the same keys in every locale", () => {
-    // The types already refuse a catalog with a key missing or a key too many.
-    // This says so out loud, and catches the day someone loosens them.
+    // Catches the day someone loosens the types that already forbid this.
     for (const locale of LOCALES) {
       expect(Object.keys(CATALOGS[locale]).sort()).toEqual([...KEYS].sort());
     }
   });
 
   it("keeps the keys in one order, so two catalogs can be read side by side", () => {
-    // File by file, since a file is what a translator reads down. This also
-    // holds each message to the file its English original lives in.
     expect(Object.keys(RU_MESSAGES)).toEqual(Object.keys(EN_MESSAGES));
     expect(Object.keys(RU_DOCS_MESSAGES)).toEqual(Object.keys(EN_DOCS_MESSAGES));
   });
@@ -135,10 +114,7 @@ describe("catalog shape", () => {
   });
 
   it("asks every locale for the same parameters", () => {
-    // A translation that drops {waitTime} silently loses a number from the
-    // sentence, and a translation that invents {waitTme} silently prints the
-    // braces. Neither is visible to the compiler, which only knows the English
-    // placeholders.
+    // A dropped or misspelled placeholder is invisible to the compiler, which only knows English's.
     for (const key of KEYS.filter((candidate) => !candidate.endsWith(".code"))) {
       const expected = placeholders(forms(entry("en", key)));
       expect(placeholders(forms(entry("ru", key))), key).toEqual(expected);
@@ -148,8 +124,7 @@ describe("catalog shape", () => {
 
 describe("catalog markup", () => {
   it("keeps markup to the keys that admit to it", () => {
-    // A `.html` suffix is a promise to the call site that the string is safe to
-    // put in innerHTML, and a plain key is a promise that it is not needed.
+    // A `.html` suffix promises the call site the string is safe for innerHTML; a plain key promises it isn't needed.
     for (const locale of LOCALES) {
       for (const key of KEYS.filter((candidate) => !candidate.endsWith(".html"))) {
         for (const text of forms(entry(locale, key))) {
@@ -160,10 +135,7 @@ describe("catalog markup", () => {
   });
 
   it("opens and closes the same tags in every locale", () => {
-    // Every form of a message wraps the same things in the same elements —
-    // Russian has four forms where English has two, and all six mark up the
-    // count identically. A dropped `</span>` would leak into the rest of the
-    // sentence, and no type can see it.
+    // A dropped `</span>` in any of Russian's four forms would leak into the rest of the sentence.
     for (const key of HTML_KEYS) {
       const english = forms(entry("en", key));
       const expected = tags(english[0] ?? "");
@@ -179,15 +151,9 @@ describe("catalog markup", () => {
 
 describe("example code", () => {
   it("is the same code in every locale, with its comments in the same places", () => {
-    // The rule the translation follows: prose is translated, code never is. An
-    // example whose identifiers were translated would not run.
-    //
-    // Where the comments sit is part of the same statement rather than a second
-    // one. A translation that adds a remark of its own, or drops one it did not
-    // know what to do with, hands the two languages different programs — the
-    // Russian reader is shown a line the English reader is not, or told less
-    // than they were promised — and it does it without touching a line of code,
-    // which is exactly the edit a check on the code alone cannot see.
+    // A translation that adds or drops a comment gives the two languages
+    // different programs without touching a line of code — invisible to a
+    // check on the code alone.
     for (const key of CODE_KEYS) {
       const english = entry("en", key);
       const russian = entry("ru", key);
@@ -230,8 +196,6 @@ describe("Russian typography", () => {
   });
 
   it("spells ё", () => {
-    // The catalog writes ё wherever it belongs, so the words that are only
-    // ever spelled with one must never turn up without it.
     const YO_LESS =
       /(?<![а-яё])(еще|ее|нее|идет|ждет|берет|живет|встает|подъем|черный|тяжелый)(?![а-яё])/i;
     for (const [key, text] of prose) {
@@ -269,8 +233,7 @@ describe("translate", () => {
     ).toBe("Занято: 3/15");
   });
 
-  // The reason this module exists. All four Russian categories, from the same
-  // key, with the nominative phrase the sandbox level shows.
+  // All four Russian categories, from one key, in the sandbox level's nominative phrase.
   it.each([
     [1, "1</span> пассажир в секунду"],
     [2, "2</span> пассажира в секунду"],
@@ -291,9 +254,7 @@ describe("translate", () => {
   });
 
   it("declines the noun the sentence needs, not the noun the key suggests", () => {
-    // Accusative after «Перевезите», genitive after «дольше»: the same English
-    // word needs different Russian in different sentences, which is why the
-    // phrases are messages of their own rather than one shared noun.
+    // Accusative after «Перевезите», genitive after «дольше»: the same English word needs different Russian cases.
     expect(translate("ru", RU_MESSAGES, "level.people.html", { count: 1 })).toContain("пассажира");
     expect(translate("ru", RU_MESSAGES, "level.timeLimit.html", { count: 21 })).toContain(
       "секунду",
@@ -309,10 +270,7 @@ describe("translate", () => {
   });
 
   it("falls back to the 'other' form when the one the count asks for is missing", () => {
-    // Which categories a locale has is not something the lookup can know, so
-    // every form is optional in the shape it reads; `other` is the one category
-    // every language has, and so the one answer it can always fall back on. A
-    // Russian entry that lost its `many` still has to say something for 5.
+    // A Russian entry that lost its `many` still has to say something for 5.
     const withoutMany = {
       ...RU_MESSAGES,
       "level.people.html": { one: "одна форма", few: "другая форма", other: "запасная форма" },
@@ -322,9 +280,7 @@ describe("translate", () => {
   });
 
   it("builds a level description exactly as the game builds it today", () => {
-    // Byte for byte what src/game/levels.ts renders, markup included: the
-    // wiring agent can swap the template for this call and change nothing on
-    // screen.
+    // Byte for byte what src/game/levels.ts renders, markup included.
     const description = translate("en", EN_MESSAGES, "level.transportWithinTime.html", {
       people: translate("en", EN_MESSAGES, "level.people.html", { count: 23 }),
       time: translate("en", EN_MESSAGES, "level.timeLimit.html", { count: 30 }),
