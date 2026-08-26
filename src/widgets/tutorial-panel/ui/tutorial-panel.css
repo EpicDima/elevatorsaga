@@ -130,8 +130,9 @@
     transform 120ms ease;
 }
 
+/* `--ds-n-3` rather than `--ds-raised`, which is 1.03 against the light theme's code block: no step at all. */
 .tutorialcopycode:hover {
-  background-color: var(--ds-raised);
+  background-color: var(--ds-n-3);
   color: var(--ds-text);
 }
 
