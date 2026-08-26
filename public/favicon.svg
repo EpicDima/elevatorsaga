@@ -2,10 +2,12 @@
   The app bar's own mark (buildAppBarSkeleton in src/widgets/app-bar/ui/app-bar.ts),
   coordinates unchanged; src/page.test.ts compares the two shape for shape.
 
-  The accent is written out because a file under public/ is copied by the build
-  without ever meeting src/shared/styles/tokens.css. It is the dark theme's
-  ds-accent, brass that reads against a light tab strip and a dark one alike, and
-  the ground behind it stays transparent so the frame is the outermost thing drawn.
+  Both colors are written out because a file under public/ is copied by the build
+  without ever meeting src/shared/styles/tokens.css: the dark theme's ds-accent
+  over its ds-bg, so the mark reads the same on a light tab strip and a dark one.
+
+  The ground is the frame's own fill rather than a rect behind it, so it stops at
+  the stroke's center line and the brass edge stays the outermost thing drawn.
 
   No double hyphen anywhere in this comment: XML forbids one inside a comment, and
   a browser that meets one refuses the whole file and falls back to a blank glyph.
@@ -18,7 +20,7 @@
     width="18"
     height="19"
     rx="2.5"
-    fill="none"
+    fill="#131519"
     stroke="#e8a33f"
     stroke-width="1.5"
   />
