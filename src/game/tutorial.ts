@@ -28,7 +28,7 @@ export interface TutorialLevel {
   readonly condition: LevelCondition;
   /** Always `WINNING_IS_GOLD`: the track grades nothing, and its progress is a cleared flag rather than a medal. Present so a track level stays a {@link "./levels.ts"!Level}. */
   readonly tiers: LevelTierRequirements;
-  /** The seed this level is played on, pinned so the mistake reliably loses and the fix reliably wins. */
+  /** The seed the mistake reliably loses and the fix reliably wins on; played until the player picks one of their own. */
   readonly seed: RandomSeed;
   /** The program the editor opens with; contains the mistake to find. */
   readonly startingCode: string;

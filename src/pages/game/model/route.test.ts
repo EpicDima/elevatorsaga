@@ -898,49 +898,34 @@ describe("resolveRoute seed on the learning track", () => {
 });
 
 describe("resolveRoute seed in chapter two", () => {
-  it("refuses a seed on every level of the chapter, however good the seed is", () => {
-    // Not a validation failure — `42` is accepted everywhere else. Here the stake is the
-    // medal: thresholds are measured against one pinned crowd, so a silver earned on an
-    // unmeasured stream wouldn't be the same silver.
+  it("keeps a seed on every level of the chapter", () => {
+    // The seed is the player's here too; the level's own is a fallback the app applies when
+    // the player has none, so the router has nothing to refuse.
     chapter2Levels.forEach((_level, index) => {
       const hash = `#level=2-${String(index + 1)},seed=42`;
-      expect(route(hash).seed, hash).toBeNull();
-      expect(route(hash).refusedKeys, hash).toContain("seed");
+      expect(route(hash).seed, hash).toBe("42");
+      expect(route(hash).refusedKeys, hash).toEqual([]);
     });
   });
 
-  it("says where the seed went rather than that it was wrong", () => {
-    route("#level=2-1,seed=42");
-    expect(console.warn).toHaveBeenCalledWith(
-      `Ignoring seed "42": this level plays its own pinned seed`,
-    );
-  });
-
-  it("leaves the seed alone on every route it is the player's to choose", () => {
-    // Scoped to this chapter and nothing else, the track included.
+  it("keeps the seed on every route alike", () => {
     expect(route("#level=4,seed=42").seed).toBe("42");
     expect(route("#level=sandbox,seed=42").seed).toBe("42");
     expect(route("#level=tutorial-5,seed=42").seed).toBe("42");
   });
 
-  it("refuses the seed on an address the block could not read either", () => {
-    // Both refusals at once, in the order the url wrote them: `2-99` is still chapter two, so
-    // the seed is still not the player's to choose there.
+  it("refuses only what it could not read either way", () => {
+    // `2-99` names no level, so that key is refused; the seed beside it still isn't.
     const params = route("#level=2-99,seed=42");
     expect(params.chapter2Index).toBe(0);
-    expect(params.seed).toBeNull();
-    expect(params.refusedKeys).toEqual([LEVEL_KEY, "seed"]);
+    expect(params.seed).toBe("42");
+    expect(params.refusedKeys).toEqual([LEVEL_KEY]);
   });
 
-  it("keeps quiet on a chapter two address that names no seed", () => {
+  it("keeps quiet on a chapter two address, seed or no seed", () => {
     route("#level=2-1");
+    route("#level=2-1,seed=42");
     expect(console.warn).not.toHaveBeenCalled();
-  });
-
-  it("refuses the seed to what its absence gives, so the url can drop it", () => {
-    const refused = route("#level=2-1,seed=42");
-    const absent = route("#level=2-1");
-    expect({ ...refused, refusedKeys: [] }).toEqual(absent);
   });
 });
 

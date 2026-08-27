@@ -500,11 +500,8 @@ export class App {
     }
   }
 
-  /** The seed of a run and its URL, read off the world (not {@link #seed}); `null` in chapter two, whose seed is the level's. */
+  /** The seed of a run and its URL, read off the world (not {@link #seed}), so every kind of run has one. */
   #seedLink(world: World, chapter1Index: number | null): SeedLinkData | null {
-    if (this.#chapter2 !== undefined) {
-      return null;
-    }
     if (world.seed === null) {
       // Only reachable for a world built with a ready-made random stream; the app never does that.
       return null;
@@ -536,21 +533,17 @@ export class App {
 
   /**
    * The seed the next run is built from, and whether the level supplied it rather than the
-   * player. Chapter two always plays its own; everywhere else the player's seed comes first,
-   * and a track level falls back to its own so a first lesson isn't a coin flip.
+   * player. The player's own comes first — the URL's `#seed=`, then the one remembered from
+   * last visit — and the two blocks that pin a seed fall back to theirs when there is none.
    */
   #seedForRun(): { seed: RandomSeed | undefined; fromLevel: boolean } {
-    const chapter2Seed = this.#chapter2?.level.seed;
-    if (chapter2Seed !== undefined) {
-      return { seed: chapter2Seed, fromLevel: true };
-    }
     const playerSeed = this.#seed ?? readStoredSeed(this.#storage);
     if (playerSeed !== undefined) {
       return { seed: playerSeed, fromLevel: false };
     }
-    // `undefined` off the track as well as on it, where it means a fresh draw.
-    const trackSeed = this.#tutorial?.level.seed;
-    return { seed: trackSeed, fromLevel: trackSeed !== undefined };
+    // `undefined` outside those blocks, where it asks for a fresh draw.
+    const levelSeed = this.#tutorial?.level.seed ?? this.#chapter2?.level.seed;
+    return { seed: levelSeed, fromLevel: levelSeed !== undefined };
   }
 
   /** Remembers a seed as this player's own, for the next run and the next visit. */

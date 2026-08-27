@@ -27,10 +27,7 @@ function seedNewDrawTemplate(name: string): string {
   return markup`<button type="button" class="ghost seednewdraw" title="${name}" aria-label="${name}">${raw(spriteIconMarkup("dice"))}</button>`;
 }
 
-/**
- * The settings popover's seed block, or nothing when `data` is `null` (a
- * chapter two level, or a world built with a ready-made random stream).
- */
+/** The settings popover's seed block, or nothing when `data` is `null` (a world built with a ready-made random stream). */
 export function seedPanelTemplate(data: SeedLinkData | null): string {
   if (data === null) {
     return "";

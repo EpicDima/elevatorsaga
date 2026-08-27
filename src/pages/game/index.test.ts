@@ -1417,32 +1417,51 @@ describe("App chapter two", () => {
     expect(app.world?.elevators.map((elevator) => elevator.maxUsers)).toEqual([8, 8, 8]);
   });
 
-  it("builds a level on its own pinned seed, over the url's and the player's alike", () => {
-    // A silver threshold here is calibrated against one specific run, so the level's
-    // seed must outrank the url's and the player's, set here to different values.
-    const storage = new MemoryStorage();
-    const { app } = setUp(INERT_CODE, storage);
-    app.handleRoute(...routeFor("#level=2,seed=issue-61"));
-    expect(app.world?.seed).toBe("issue-61");
-    storage.setItem(SEED_STORAGE_KEY, "issue-62");
-    expect(readStoredSeed(storage)).toBe("issue-62");
+  it("builds a level on its own pinned seed when the player has none", () => {
+    // The run its medal thresholds were calibrated against, and what a player who has
+    // chosen no seed is measured on.
+    const { app } = setUp();
 
     app.startChapter2Level(0);
 
     expect(app.world?.seed).toBe(levelAt(0).seed);
   });
 
-  it("offers no seed line, and leaves the player's remembered seed alone", () => {
+  it("plays the seed the url names over the level's own", () => {
+    const { app } = setUp();
+
+    app.handleRoute(...routeFor("#level=2-1,seed=issue-61"));
+
+    expect(app.world?.seed).toBe("issue-61");
+  });
+
+  it("plays the seed the player already had over the level's own", () => {
     const storage = new MemoryStorage();
     storage.setItem(SEED_STORAGE_KEY, "issue-61");
     const { app } = setUp(INERT_CODE, storage);
 
     app.startChapter2Level(0);
 
-    expect(app.world?.seed).toBe(levelAt(0).seed);
-    expect(app.currentSeedLink).toBeNull();
-    expect(console.log).not.toHaveBeenCalled();
-    expect(readStoredSeed(storage)).toBe("issue-61");
+    expect(app.world?.seed).toBe("issue-61");
+  });
+
+  it("offers the seed line and prints it, as a numbered level does", () => {
+    const { app } = setUp();
+
+    app.handleRoute(...routeFor("#level=2-1"));
+
+    expect(app.currentSeedLink?.seed).toBe(String(levelAt(0).seed));
+    expect(app.currentSeedLink?.url).toBe(`#level=2-1,seed=${String(levelAt(0).seed)}`);
+    expect(console.log).toHaveBeenCalledOnce();
+  });
+
+  it("leaves the player's remembered seed alone when the level supplied one", () => {
+    const storage = new MemoryStorage();
+    const { app } = setUp(INERT_CODE, storage);
+
+    app.startChapter2Level(0);
+
+    expect(readStoredSeed(storage)).toBeUndefined();
   });
 
   it("refuses a position that does not name a level", () => {

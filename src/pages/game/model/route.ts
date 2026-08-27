@@ -33,12 +33,7 @@ export interface RouteParams {
   readonly timeScale: number;
   /** Whether to hide everything except the world. */
   readonly fullscreen: boolean;
-  /**
-   * The seed the world draws its passengers from, or `null` to let the world draw its own.
-   *
-   * Always `null` while {@link chapter2Index} is set; those levels play the seed pinned to
-   * their own entry.
-   */
+  /** The seed the world draws its passengers from, or `null` to let the world draw its own. */
   readonly seed: string | null;
   /**
    * The keys the URL named that the router could not use, in the order they were read.
@@ -215,12 +210,9 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
     chapter2Index,
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
     fullscreen: readFlag(query, "fullscreen"),
-    // Refused rather than honored in chapter two alone: its medals are measured against one
-    // pinned crowd. The track takes a seed like any other level, and falls back to its own.
-    seed:
-      chapter2Index !== null
-        ? refuseSeedInChapter2(query, refuse)
-        : resolveSeed(query.get("seed"), refuse),
+    // Read the same on every route: a level with a seed of its own falls back to it rather
+    // than overriding the player, which is the app's business and not the router's.
+    seed: resolveSeed(query.get("seed"), refuse),
     refusedKeys,
   };
 }
@@ -241,16 +233,6 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
     return null;
   }
   return value;
-}
-
-/** Drops a `seed` on a chapter two level, which plays its own, and warns why. */
-function refuseSeedInChapter2(query: RouteQuery, refuse: Refuse): null {
-  const value = query.get("seed");
-  if (value !== undefined) {
-    console.warn(`Ignoring seed "${value}": this level plays its own pinned seed`);
-    refuse("seed");
-  }
-  return null;
 }
 
 /** Whether a `level` parameter asks for the sandbox, case-insensitively. */

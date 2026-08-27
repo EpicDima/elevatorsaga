@@ -1,4 +1,4 @@
-/** Chapter two: levels modeled on real elevator dispatch strategies, each played on a pinned seed. */
+/** Chapter two: levels modeled on real elevator dispatch strategies, each with a seed of its own. */
 
 import { t } from "../i18n/index.ts";
 import {
@@ -30,7 +30,7 @@ export interface Chapter2Level {
   readonly condition: LevelCondition;
   /** Silver and gold on top of the win/lose {@link condition}; `WINNING_IS_GOLD` on the demo levels, where clearing is the whole achievement. */
   readonly tiers: LevelTierRequirements;
-  /** The seed this level is played on, pinned unlike levels 1-19. */
+  /** The seed the {@link tiers} were calibrated on; played until the player picks one of their own. */
   readonly seed: RandomSeed;
   /** The program the editor opens with; required here since every level tests a mechanic chapter one doesn't. */
   readonly startingCode: string;

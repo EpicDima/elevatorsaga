@@ -30,15 +30,16 @@ is scored by the same rules.
   evening peaks and the lunch hour, cars that serve only part of the building, and buildings whose
   passengers name the floor they want instead of pressing a call button. They are `#level=2-1` to
   `#level=2-13`, counted from one like chapter one's, and sit in their own block in the menu, because chapter one is the
-  original's and a decade of published solutions is scored against them. Each pins its own seed, so
-  a medal means the same thing to two players.
+  original's and a decade of published solutions is scored against them. Each pins a seed of its
+  own — the one its medal thresholds were calibrated on, and the one it is played on until you
+  choose another.
 - **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the settings
   menu and printed to the console as the run starts. Following the seed link, or writing `#seed=…` yourself,
   brings the same people back in the same order to every restart — enough to compare two programs
-  on one problem instead of on two different ones. A second link drops the seed again when you are
-  done with it. The whole run repeats, not only the passengers: player code and physics advance in
-  fixed ticks rather than in whatever a frame was worth, so the cars end up in the same places at
-  the same times whatever the display is doing.
+  on one problem instead of on two different ones. A **new draw** button beside the seed starts
+  again on a fresh crowd when you are done with that one. The whole run repeats, not only the
+  passengers: player code and physics advance in fixed ticks rather than in whatever a frame was
+  worth, so the cars end up in the same places at the same times whatever the display is doing.
 - **A sandbox building.** `#level=sandbox` takes `floors`, `elevators`, `capacities` and
   `spawnrate`, so you can build the case your program is failing on rather than looking for a
   shipped level that resembles it. See [URL parameters](url-parameters.md).
