@@ -1,9 +1,10 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
 
-  // `config:js-app` is the recommended set plus exact pinning, which is the
-  // shape package.json already has.
-  extends: ["config:js-app", ":configMigration"],
+  // The two pin presets match package.json's dependency blocks by name, which is
+  // the shape it already has. `config:js-app` would pin by wildcard instead, and
+  // reach past npm to rewrite `actions/checkout@v7` and `node-version: "24"`.
+  extends: ["config:recommended", ":pinDependencies", ":pinDevDependencies", ":configMigration"],
 
   timezone: "Europe/Moscow",
   schedule: ["before 9am on monday"],
