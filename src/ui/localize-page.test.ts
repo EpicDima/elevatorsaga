@@ -197,7 +197,7 @@ describe("localizePage", () => {
       const content = (property: string): string | null | undefined =>
         page.querySelector(`meta[property="${property}"]`)?.getAttribute("content");
       expect(page.querySelector('meta[name="description"]')?.getAttribute("content")).toBe(
-        "Elevator Saga в новом оформлении: напишите на JavaScript программу, которая эффективно возит пассажиров. Обучающий трек, уровни про то, как работают настоящие лифтовые системы, песочница любого размера и повторяемые запуски.",
+        "Elevator Saga в новом оформлении: напишите на JavaScript программу, которая эффективно возит пассажиров. Обновлённая версия оригинальной игры: больше уровней, обучающий трек, песочница и повторяемые запуски.",
       );
       expect(content("og:title")).toBe(page.title);
       expect(content("og:image:alt")).toBe(
