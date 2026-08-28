@@ -16,7 +16,7 @@ test("serves the help page, whole, at its own address", async ({ page }) => {
   // Visited directly: nothing in the game links here any more, so only this file notices if it disappears.
   await page.goto("/documentation.html");
 
-  await expect(page).toHaveTitle(/help and API documentation/i);
+  await expect(page).toHaveTitle(/API reference/i);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Help and API documentation");
 
   // Not blank, and not a shell that failed to load its content: the prose, the

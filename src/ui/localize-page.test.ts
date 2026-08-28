@@ -168,7 +168,7 @@ describe("localizePage", () => {
 
       localizePage(page, USER_AGENTS.windows);
 
-      expect(page.title).toBe("Elevator Saga — игра про программирование лифтов");
+      expect(page.title).toBe("Elevator Saga — игра про программирование лифтов, редизайн");
       expect(page.documentElement.lang).toBe("ru");
       expect(textOf(page.querySelector(".skip-link"))).toBe("Перейти к редактору кода");
       // The game's name is not translated; page.brand holds the same string in both catalogs.
@@ -197,7 +197,7 @@ describe("localizePage", () => {
       const content = (property: string): string | null | undefined =>
         page.querySelector(`meta[property="${property}"]`)?.getAttribute("content");
       expect(page.querySelector('meta[name="description"]')?.getAttribute("content")).toBe(
-        "Elevator Saga — игра про программирование: напишите на JavaScript программу, которая эффективно возит пассажиров.",
+        "Elevator Saga в новом оформлении: напишите на JavaScript программу, которая эффективно возит пассажиров. 19 уровней, обучающий трек, песочница любого размера и повторяемые запуски.",
       );
       expect(content("og:title")).toBe(page.title);
       expect(content("og:image:alt")).toBe(

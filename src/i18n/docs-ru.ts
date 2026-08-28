@@ -10,8 +10,10 @@ import type { DocsCatalog } from "./docs-en.ts";
 export const RU_DOCS_MESSAGES: DocsCatalog = {
   // Справка: страница.
 
-  "docs.page.title": "Elevator Saga — справка и документация по API",
-  "docs.page.description": "Справка и документация по API для Elevator Saga.",
+  "docs.page.title": "Elevator Saga — справочник по API, справка и примеры кода",
+  "docs.page.description":
+    "Все методы, свойства и события, которые обновлённая Elevator Saga даёт вашей программе, " +
+    "с примером для каждого, а также как играть и как считается каждый показатель.",
   "docs.page.tagline": "Справка и документация по API",
   "docs.nav.label": "Игра",
   "docs.nav.back": "Вернуться к игре",

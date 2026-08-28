@@ -8,8 +8,13 @@
 /** Everything the reference pages say, in English. */
 export const EN_DOCS_MESSAGES = {
   // The help page: shell of documentation.html.
-  "docs.page.title": "Elevator Saga - help and API documentation",
-  "docs.page.description": "Help and API documentation for Elevator Saga.",
+  // Named apart from the original's help page for the reason `page.title` is; the tagline
+  // below, which is the page's own heading, keeps the wording a reader arriving from the
+  // game expects to see.
+  "docs.page.title": "Elevator Saga - API reference, help and code examples",
+  "docs.page.description":
+    "Every method, property and event the redesigned Elevator Saga gives your program, with a " +
+    "worked example for each, plus how to play and how each statistic is counted.",
   "docs.page.tagline": "Help and API documentation",
   "docs.nav.label": "Game",
   "docs.nav.back": "Back to the game",

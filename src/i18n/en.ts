@@ -8,9 +8,13 @@ import type { PluralForms } from "./format.ts";
 export const EN_MESSAGES = {
   // The game screen (index.html).
 
-  "page.title": "Elevator Saga - the elevator programming game",
+  // Named apart from the original's page, which is worded identically to the line this
+  // replaced: two pages under one title are one page to a search engine, and the older
+  // one wins. What is said instead is what this version actually is.
+  "page.title": "Elevator Saga - the elevator programming game, redesigned",
   "page.description":
-    "Elevator Saga is a programming game: write JavaScript to transport people efficiently.",
+    "Elevator Saga, redesigned: write JavaScript to move people through a building efficiently. " +
+    "19 levels, a learning track, a sandbox building of your own size, and runs you can repeat.",
   "page.imageAlt":
     "Four elevators carrying people between six floors, with the JavaScript program driving them in the editor below.",
   "page.skipLink": "Skip to the code editor",

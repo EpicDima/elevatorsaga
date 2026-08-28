@@ -9,9 +9,10 @@ import type { MessageCatalog } from "./catalog.ts";
 export const RU_MESSAGES: MessageCatalog<"ru"> = {
   // The game screen (index.html).
 
-  "page.title": "Elevator Saga — игра про программирование лифтов",
+  "page.title": "Elevator Saga — игра про программирование лифтов, редизайн",
   "page.description":
-    "Elevator Saga — игра про программирование: напишите на JavaScript программу, которая эффективно возит пассажиров.",
+    "Elevator Saga в новом оформлении: напишите на JavaScript программу, которая эффективно возит " +
+    "пассажиров. 19 уровней, обучающий трек, песочница любого размера и повторяемые запуски.",
   "page.imageAlt":
     "Четыре лифта возят пассажиров между шестью этажами, а ниже, в редакторе, — управляющая ими программа на JavaScript.",
   "page.skipLink": "Перейти к редактору кода",
