@@ -191,6 +191,18 @@
     -->
     <header>
       <h1 data-i18n="page.brand">Elevator Saga</h1>
+      <!--
+        Said in the markup because a crawler that runs no JavaScript otherwise
+        reads a page whose body is empty: the heading above is a name, and
+        every other word here is written by the bundle. It goes with the header
+        when the app bar replaces it, so it costs the reader a flash at most.
+      -->
+      <p data-i18n="page.tagline">
+        A programming game: you write JavaScript that drives a building's elevators, and the
+        passengers keep arriving whether your program is ready for them or not. This is Elevator
+        Saga redesigned - 19 levels, a learning track that starts from an empty editor, a sandbox
+        building of your own size, and runs you can repeat exactly.
+      </p>
     </header>
 
     <!--

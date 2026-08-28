@@ -157,6 +157,17 @@ describe("index.html", () => {
     expect(data["inLanguage"]).toEqual([...LOCALES]);
   });
 
+  it("says in prose what it is, for a reader that runs nothing", () => {
+    // Every other word of the running page is written by the bundle, so without this paragraph
+    // the body a crawler is served holds a name and not one sentence. It sits inside <header>
+    // because src/main.ts replaces that element whole with the app bar: a reader sees it for a
+    // frame at most, and taking it away again costs no code.
+    const tagline = page.querySelector("header > p[data-i18n]");
+    expect(tagline?.getAttribute("data-i18n")).toBe("page.tagline");
+    // Long enough to be prose: a stub left here would pass every check but this one.
+    expect(EN_MESSAGES["page.tagline"].length).toBeGreaterThan(200);
+  });
+
   it.each(FIRST_PAINT)(
     "paints the page in the %s palette before the stylesheet",
     (scheme, selector, palette) => {

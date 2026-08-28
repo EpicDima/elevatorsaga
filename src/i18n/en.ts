@@ -20,6 +20,14 @@ export const EN_MESSAGES = {
   "page.skipLink": "Skip to the code editor",
   // Not translated: this is the game's name.
   "page.brand": "Elevator Saga",
+  // The one paragraph of prose the shell carries. The app bar takes its place the moment
+  // the bundle runs, so a reader sees it only as a flash and a crawler that runs nothing
+  // sees the only words this page has.
+  "page.tagline":
+    "A programming game: you write JavaScript that drives a building's elevators, and the passengers " +
+    "keep arriving whether your program is ready for them or not. This is Elevator Saga redesigned - " +
+    "19 levels, a learning track that starts from an empty editor, a sandbox building of your own size, " +
+    "and runs you can repeat exactly.",
   "page.language.label": "Language",
   "page.noscript":
     "Your browser does not appear to support JavaScript. This page contains a browser-based programming game implemented in JavaScript.",
