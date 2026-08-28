@@ -61,6 +61,18 @@ test("serves the image its link preview promises", async ({ page }) => {
   expect((await response.body()).byteLength).toBeGreaterThan(10_000);
 });
 
+test("serves a shell with prose in it and none of the notes around it", async ({ page }) => {
+  await page.goto("/");
+
+  // The file as it is served, not the document the bundle has since rewritten: this is what a
+  // crawler that runs no JavaScript is given, and all it will ever have of this page.
+  const shell = (await (await fetchReference(page, "/index.html")).text()).replace(/\s+/g, " ");
+
+  expect(shell).toContain("A programming game: you write JavaScript that drives");
+  // index.html explains itself at length to whoever edits it; vite.config.ts keeps that out.
+  expect(shell).not.toContain("<!--");
+});
+
 test("serves robots.txt, and a sitemap whose every page is really there", async ({ page }) => {
   // Nothing links to either file, so a build that stopped emitting them would go unnoticed
   // everywhere else; and a sitemap listing an address that 404s is worse than no sitemap.

@@ -6,7 +6,7 @@ import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
 
 import pageSource from "../index.html?raw";
-import viteConfig from "../vite.config.ts";
+import viteConfig, { stripComments } from "../vite.config.ts";
 import { docsPageFile, renderDocsPage } from "./docs-page/render.ts";
 import { Elevator } from "./game/elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
@@ -457,6 +457,48 @@ const BUILD_INPUTS: readonly string[] = (() => {
   }
   return Object.values(input);
 })();
+
+/**
+ * The pass the build makes over each finished page. Whether it runs at all is a
+ * question only the built site answers, and `e2e/metadata.spec.ts` asks it
+ * there; what it does when it runs is this.
+ */
+describe("the comments the build takes out", () => {
+  /** A page with its comment nodes removed, serialized so two pages can be compared. */
+  function withoutCommentNodes(html: string): string {
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    const walker = parsed.createTreeWalker(parsed, NodeFilter.SHOW_COMMENT);
+    const comments: Node[] = [];
+    while (walker.nextNode() !== null) comments.push(walker.currentNode);
+    for (const comment of comments) comment.parentNode?.removeChild(comment);
+    // Collapsed, since a comment removed from the source leaves the line it sat on behind.
+    return parsed.documentElement.outerHTML.replace(/\s+/g, " ");
+  }
+
+  it("takes every one of the shell's out, and changes nothing else about it", () => {
+    const stripped = stripComments(pageSource);
+    expect(stripped).not.toContain("<!--");
+    // Same elements, same attributes, same text, same order: only the notes are gone.
+    expect(withoutCommentNodes(stripped)).toBe(withoutCommentNodes(pageSource));
+    // And they are most of the file, which is why this is worth a plugin at all.
+    expect(stripped.length).toBeLessThan(pageSource.length / 2);
+  });
+
+  it("hands back a page that has none byte for byte", () => {
+    for (const { file, language } of DOCUMENTATION_PAGES) {
+      const rendered = renderDocsPage(language);
+      expect(stripComments(rendered), file).toBe(rendered);
+    }
+  });
+
+  it("leaves what only looks like a comment inside a script alone", () => {
+    const html = `<body><script>const marker = "<!-- kept -->";</script><!-- gone --><p>text</p></body>`;
+    const stripped = stripComments(html);
+    expect(stripped).toContain(`"<!-- kept -->"`);
+    expect(stripped).not.toContain("<!-- gone -->");
+    expect(stripped).toContain("<p>text</p>");
+  });
+});
 
 describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   const docs = reference.document;

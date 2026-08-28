@@ -172,6 +172,57 @@ function crawlerFiles(): Plugin {
   };
 }
 
+/** Regions whose contents are text: a `<!--` inside one starts no comment. */
+const VERBATIM = /<(script|style|pre|textarea)\b[^>]*>[\s\S]*?<\/\1>/gi;
+
+/** An HTML comment, however many lines it runs to. */
+const COMMENT = /<!--[\s\S]*?-->/g;
+
+/** The blank lines removing one leaves behind. */
+const BLANK_LINES = /\n(?:[ \t]*\n)+/g;
+
+/**
+ * Drops every comment from a page, leaving what {@link VERBATIM} covers
+ * untouched. Exported for `src/page.test.ts`, which holds it to changing
+ * nothing else about the page.
+ *
+ * @param html The page as it is written.
+ * @returns The page as the build writes it out.
+ */
+export function stripComments(html: string): string {
+  const strip = (markup: string): string => {
+    const stripped = markup.replace(COMMENT, "");
+    // Only where something went, so a page without comments comes back byte for byte.
+    return stripped === markup ? markup : stripped.replace(BLANK_LINES, "\n");
+  };
+  let out = "";
+  let read = 0;
+  for (const match of html.matchAll(VERBATIM)) {
+    out += strip(html.slice(read, match.index)) + match[0];
+    read = match.index + match[0].length;
+  }
+  return out + strip(html.slice(read));
+}
+
+/**
+ * `index.html` explains itself at length to whoever edits it, and those comments
+ * are two thirds of the file a crawler fetches. This takes them out of the build
+ * and leaves the source, and the dev server, as they are.
+ *
+ * @returns The plugin.
+ */
+function commentFreePages(): Plugin {
+  return {
+    name: "elevator-saga-comment-free-pages",
+    apply: "build",
+    transformIndexHtml: {
+      // After Vite's own pass, so the tags it injects are covered too.
+      order: "post",
+      handler: stripComments,
+    },
+  };
+}
+
 /**
  * The reference pages, which exist as no file: `src/docs-page/render.ts` builds
  * each from the catalogs at `src/i18n/docs-*.ts`.
@@ -220,7 +271,7 @@ function referencePages(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [licenseNotices(), crawlerFiles(), referencePages()],
+  plugins: [licenseNotices(), crawlerFiles(), commentFreePages(), referencePages()],
   resolve: {
     // Mirrors tsconfig.json's path aliases; Vite/esbuild/Vitest never read tsconfig.
     alias: [
