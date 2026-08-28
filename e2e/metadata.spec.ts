@@ -1,14 +1,15 @@
 /**
- * The favicon and the link preview: files the pages only name, so whether
- * `dist/` really contains them is a question only the built site answers.
- * Whether the favicon is a drawing or a parse error is a question only a
- * browser answers; the last test here asks it.
+ * The favicon, the link preview and the two files crawlers ask for: things the
+ * pages only name or nothing names at all, so whether `dist/` really contains
+ * them is a question only the built site answers. Whether the favicon is a
+ * drawing or a parse error is a question only a browser answers; one of the
+ * tests here asks it.
  */
 
 import type { APIResponse, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-import { PREVIEW_IMAGE, siteUrl } from "#shared/lib/site.ts";
+import { PREVIEW_IMAGE, SITEMAP_FILE, siteUrl } from "#shared/lib/site.ts";
 
 /** Fetches a URL a page refers to, resolved against the page's own URL, not the site root. */
 async function fetchReference(page: Page, url: string): Promise<APIResponse> {
@@ -58,4 +59,27 @@ test("serves the image its link preview promises", async ({ page }) => {
   expect(response.headers()["content-type"]).toContain("image/png");
   // A rough floor for "big enough to actually be shown as a card image."
   expect((await response.body()).byteLength).toBeGreaterThan(10_000);
+});
+
+test("serves robots.txt, and a sitemap whose every page is really there", async ({ page }) => {
+  // Nothing links to either file, so a build that stopped emitting them would go unnoticed
+  // everywhere else; and a sitemap listing an address that 404s is worse than no sitemap.
+  await page.goto("/");
+
+  const robots = await fetchReference(page, "/robots.txt");
+  expect(robots.status()).toBe(200);
+  expect(await robots.text()).toContain(`Sitemap: ${siteUrl(SITEMAP_FILE)}`);
+
+  const sitemap = await fetchReference(page, `/${SITEMAP_FILE}`);
+  expect(sitemap.status()).toBe(200);
+  const listed = [...(await sitemap.text()).matchAll(/<loc>(.+?)<\/loc>/g)].map(
+    (match) => new URL(match[1] ?? "").pathname,
+  );
+  expect(listed).toEqual(["/", "/documentation.html", "/documentation.ru.html"]);
+
+  for (const path of listed) {
+    // By path against the server under test: whether the published site answers is not a
+    // question this run can ask.
+    expect((await fetchReference(page, path)).status(), path).toBe(200);
+  }
 });

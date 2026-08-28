@@ -7,6 +7,7 @@ import { defineConfig } from "vitest/config";
 import packageJson from "./package.json" with { type: "json" };
 import { docsPageFile, renderDocsPage } from "./src/docs-page/render.ts";
 import { LOCALES, type Locale } from "./src/i18n/locale.ts";
+import { renderRobots, renderSitemap, SITEMAP_FILE } from "./src/shared/lib/site.ts";
 
 /**
  * Notice file emitted into `dist/` for the bundled MIT/OFL-licensed
@@ -133,6 +134,45 @@ function licenseNotices(): Plugin {
 }
 
 /**
+ * `robots.txt` and the sitemap: the two files a crawler looks for that no page
+ * links to.
+ *
+ * Generated rather than kept in `public/` so the list of pages is the build's
+ * own list -- a language added to `LOCALES` brings its reference page into the
+ * sitemap without anyone remembering to add it.
+ *
+ * @returns The plugin.
+ */
+function crawlerFiles(): Plugin {
+  // The game is served as the root; every other page is a reference page.
+  const contents: Readonly<Record<string, () => string>> = {
+    [SITEMAP_FILE]: () => renderSitemap(["", ...LOCALES.map(docsPageFile)]),
+    "robots.txt": renderRobots,
+  };
+  return {
+    name: "elevator-saga-crawler-files",
+    generateBundle() {
+      for (const [fileName, render] of Object.entries(contents)) {
+        this.emitFile({ type: "asset", fileName, source: render() });
+      }
+    },
+    configureServer(server) {
+      for (const [fileName, render] of Object.entries(contents)) {
+        server.middlewares.use(`/${fileName}`, (_request, response) => {
+          response.setHeader(
+            "Content-Type",
+            fileName.endsWith(".xml")
+              ? "application/xml; charset=utf-8"
+              : "text/plain; charset=utf-8",
+          );
+          response.end(render());
+        });
+      }
+    },
+  };
+}
+
+/**
  * The reference pages, which exist as no file: `src/docs-page/render.ts` builds
  * each from the catalogs at `src/i18n/docs-*.ts`.
  *
@@ -180,7 +220,7 @@ function referencePages(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [licenseNotices(), referencePages()],
+  plugins: [licenseNotices(), crawlerFiles(), referencePages()],
   resolve: {
     // Mirrors tsconfig.json's path aliases; Vite/esbuild/Vitest never read tsconfig.
     alias: [
