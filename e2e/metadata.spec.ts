@@ -8,6 +8,8 @@
 import type { APIResponse, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { PREVIEW_IMAGE, siteUrl } from "#shared/lib/site.ts";
+
 /** Fetches a URL a page refers to, resolved against the page's own URL, not the site root. */
 async function fetchReference(page: Page, url: string): Promise<APIResponse> {
   return page.request.get(new URL(url, page.url()).toString());
@@ -47,9 +49,11 @@ test("serves the image its link preview promises", async ({ page }) => {
   await page.goto("/");
 
   const image = await page.locator("meta[property='og:image']").getAttribute("content");
-  expect(image).toBe("./images/screenshot.png");
+  expect(image).toBe(siteUrl(PREVIEW_IMAGE));
 
-  const response = await fetchReference(page, image ?? "");
+  // Fetched from the server under test by path, not from the address the tag names: whether the
+  // published site has the file is not a question this run can ask, or should hit the network to.
+  const response = await fetchReference(page, new URL(image ?? "").pathname);
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toContain("image/png");
   // A rough floor for "big enough to actually be shown as a card image."

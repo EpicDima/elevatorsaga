@@ -14,6 +14,7 @@ import { RU_DOCS_MESSAGES } from "#i18n/docs-ru.ts";
 import { EN_MESSAGES } from "#i18n/en.ts";
 import { DEFAULT_LOCALE, LOCALES, LOCALE_NAMES, type Locale } from "#i18n/locale.ts";
 import { RU_MESSAGES } from "#i18n/ru.ts";
+import { PREVIEW_IMAGE, siteUrl } from "#shared/lib/site.ts";
 import { iconMarkup } from "#shared/ui/icon.ts";
 
 import { DOCS_PAGE, type ApiTable, type Block } from "./structure.ts";
@@ -221,13 +222,14 @@ function renderBlock(locale: Locale, block: Block): string {
  * @returns The `<link rel="alternate">` tags, one per locale.
  */
 function alternateLinks(): string {
-  // `vite-ignore` because Vite treats every `<link href>` as an asset to resolve
-  // without looking at `rel`. Without it the build copies each page into
-  // `dist/assets/` under a hashed name and points these links at the copies,
-  // which is a second, unlinked site.
+  // Absolute because hreflang is only read that way, and because an absolute
+  // address is also what keeps Vite off them: it resolves every `<link href>`
+  // as an asset without looking at `rel`, and a relative one would be copied
+  // into `dist/assets/` under a hashed name and linked there -- a second,
+  // unlinked site.
   return LOCALES.map(
     (locale) =>
-      `    <link rel="alternate" hreflang="${locale}" href="${docsPageFile(locale)}" vite-ignore />`,
+      `    <link rel="alternate" hreflang="${locale}" href="${siteUrl(docsPageFile(locale))}" />`,
   ).join("\n");
 }
 
@@ -265,7 +267,14 @@ export function renderDocsPage(locale: Locale): string {
     <title>${t("docs.page.title")}</title>
     <meta name="description" content="${t("docs.page.description")}" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="${siteUrl(docsPageFile(locale))}" />
 ${alternateLinks()}
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="${siteUrl(docsPageFile(locale))}" />
+    <meta property="og:title" content="${t("docs.page.title")}" />
+    <meta property="og:description" content="${t("docs.page.description")}" />
+    <meta property="og:image" content="${siteUrl(PREVIEW_IMAGE)}" />
+    <meta name="twitter:card" content="summary_large_image" />
     <script type="module" src="/src/docs.ts"></script>
   </head>
   <body>

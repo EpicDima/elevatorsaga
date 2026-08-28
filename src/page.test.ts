@@ -29,6 +29,7 @@ import {
   globalCompletions,
 } from "./ui/completions.ts";
 import { readTheme, resolveTheme, THEME_STORAGE_KEY } from "#features/switch-theme/model/theme.ts";
+import { PREVIEW_IMAGE, siteUrl } from "#shared/lib/site.ts";
 import {
   DARK_PALETTE,
   declaration,
@@ -70,9 +71,16 @@ function metaContent(document: Document, name: string): string | null {
   return meta?.getAttribute("content") ?? null;
 }
 
-/** Anything loaded from another origin. */
+/**
+ * Anything loaded from another origin.
+ *
+ * `canonical` and `alternate` are excluded: both are absolute by definition and
+ * neither is fetched — they name where a page lives, which is the opposite of
+ * pulling bytes in from somewhere else.
+ */
 function thirdPartyResources(document: Document): Element[] {
-  return [...document.querySelectorAll("link[href], script[src], img[src]")].filter((node) =>
+  const fetched = "link[href]:not([rel='canonical']):not([rel='alternate']), script[src], img[src]";
+  return [...document.querySelectorAll(fetched)].filter((node) =>
     /^(https?:)?\/\//.test(node.getAttribute("href") ?? node.getAttribute("src") ?? ""),
   );
 }
@@ -321,11 +329,17 @@ describe("index.html", () => {
     expect(metaContent(page, "og:image:alt")).toBeTruthy();
     expect(metaContent(page, "twitter:card")).toBe("summary_large_image");
 
-    // Site-relative, since Vite rewrites a leading slash to base and the build runs from any
-    // directory.
-    const image = metaContent(page, "og:image") ?? "";
-    expect(image).toMatch(/^\/[^/]/);
-    expect(existsSync(join(ROOT, "public", image))).toBe(true);
+    // Absolute, as Open Graph asks: a client that resolves a relative one against a mirror
+    // shows that mirror's picture, or none at all.
+    expect(metaContent(page, "og:image")).toBe(siteUrl(PREVIEW_IMAGE));
+    expect(existsSync(join(ROOT, "public", PREVIEW_IMAGE))).toBe(true);
+  });
+
+  it("names the one address it is published at", () => {
+    // Absolute for the reason above, and pointing at the site rather than at whichever copy a
+    // crawler happened to fetch, which is the whole of what a canonical link says.
+    expect(page.querySelector("link[rel='canonical']")?.getAttribute("href")).toBe(siteUrl());
+    expect(metaContent(page, "og:url")).toBe(siteUrl());
   });
 
   it("has one landmark of each kind, and a single top-level heading", () => {
@@ -450,17 +464,27 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
 
   it("names every language it exists in, its own included", () => {
     // Both pages list both versions including themselves, so a crawler sees the pair either way.
+    // Absolute, which is the only form hreflang is read in — and, as it happens, the form Vite
+    // leaves alone rather than rewriting to a hashed path in dist/.
     const alternates = [...docs.querySelectorAll("link[rel='alternate']")].map((link) => [
       link.getAttribute("hreflang"),
       link.getAttribute("href"),
     ]);
-    expect(alternates).toEqual(Object.entries(TRANSLATIONS));
+    expect(alternates).toEqual(
+      Object.entries(TRANSLATIONS).map(([language, file]) => [language, siteUrl(file)]),
+    );
+  });
 
-    // vite-ignore stops the build from resolving the href as an asset: Vite treats every <link
-    // href> as one regardless of rel, and would rewrite an unmarked one to a hashed dist path.
-    for (const link of docs.querySelectorAll("link[rel='alternate']")) {
-      expect(link.hasAttribute("vite-ignore"), link.outerHTML).toBe(true);
-    }
+  it("names the one address it is published at, and describes itself for a chat client", () => {
+    expect(docs.querySelector("link[rel='canonical']")?.getAttribute("href")).toBe(
+      siteUrl(reference.file),
+    );
+    expect(metaContent(docs, "og:url")).toBe(siteUrl(reference.file));
+    expect(metaContent(docs, "og:title")).toBe(docs.title);
+    expect(metaContent(docs, "og:description")).toBe(metaContent(docs, "description"));
+    // The same picture the game offers, since the two are one site.
+    expect(metaContent(docs, "og:image")).toBe(metaContent(page, "og:image"));
+    expect(metaContent(docs, "twitter:card")).toBe("summary_large_image");
   });
 
   it("offers a reader a visible way to the other language", () => {

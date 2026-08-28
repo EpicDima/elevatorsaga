@@ -86,18 +86,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!--
-      The link preview, for chat clients and social sites. The image is
-      public/images/screenshot.png, the same picture the README uses, which Vite
-      copies to dist/images/ untouched.
-
-      Both URLs are site-relative on purpose. `vite.config.ts` sets `base: "./"`
-      so the build runs from whatever directory it is dropped into, and this game
-      has no canonical home to hard-code — the repository's own Pages URL is
-      unpublished and 404s today. Open Graph asks for absolute URLs and every
-      crawler worth naming resolves relative ones against the page instead, so a
-      relative URL is both the honest answer and the working one. Vite rewrites
-      the leading slash to the base at build time.
+      Which copy of this game is the original, for crawlers and chat clients.
+      The rest of the build is site-relative -- `base: "./"`, so `dist/` runs
+      from any directory -- and these cannot be: a relative URL names no
+      particular copy. src/page.test.ts holds them to #shared/lib/site.ts,
+      which the reference pages and the sitemap read the same origin from.
     -->
+    <link rel="canonical" href="https://elevatorsaga.epicdima.com/" />
+
+    <!--
+      The link preview. The image is public/images/screenshot.png, the same
+      picture the README uses, which Vite copies to dist/images/ untouched.
+    -->
+    <meta property="og:url" content="https://elevatorsaga.epicdima.com/" />
     <meta property="og:type" content="website" />
     <meta
       property="og:title"
@@ -109,7 +110,7 @@
       content="Elevator Saga is a programming game: write JavaScript to transport people efficiently."
       data-i18n-attr="content:page.description"
     />
-    <meta property="og:image" content="/images/screenshot.png" />
+    <meta property="og:image" content="https://elevatorsaga.epicdima.com/images/screenshot.png" />
     <meta
       property="og:image:alt"
       content="Four elevators carrying people between six floors, with the JavaScript program driving them in the editor below."
