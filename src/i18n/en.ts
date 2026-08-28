@@ -14,7 +14,7 @@ export const EN_MESSAGES = {
   "page.title": "Elevator Saga - the elevator programming game, redesigned",
   "page.description":
     "Elevator Saga, redesigned: write JavaScript to move people through a building efficiently. " +
-    "19 levels, a learning track, a sandbox building of your own size, and runs you can repeat.",
+    "40 levels in two chapters and a learning track, a sandbox of your own size, and runs you can repeat.",
   "page.imageAlt":
     "Four elevators carrying people between six floors, with the JavaScript program driving them in the editor below.",
   "page.skipLink": "Skip to the code editor",
@@ -26,8 +26,8 @@ export const EN_MESSAGES = {
   "page.tagline":
     "A programming game: you write JavaScript that drives a building's elevators, and the passengers " +
     "keep arriving whether your program is ready for them or not. This is Elevator Saga redesigned - " +
-    "19 levels, a learning track that starts from an empty editor, a sandbox building of your own size, " +
-    "and runs you can repeat exactly.",
+    "40 levels in two chapters and a learning track that starts from an empty editor, a sandbox " +
+    "building of your own size, and runs you can repeat exactly.",
   "page.language.label": "Language",
   "page.noscript":
     "Your browser does not appear to support JavaScript. This page contains a browser-based programming game implemented in JavaScript.",
