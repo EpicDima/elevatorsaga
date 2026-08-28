@@ -73,6 +73,18 @@ test("serves a shell with prose in it and none of the notes around it", async ({
   expect(shell).not.toContain("<!--");
 });
 
+test("serves the file Google verifies the site's owner by", async ({ page }) => {
+  // Nothing links to it and nothing imports it, so only this notices a build that stopped
+  // copying it -- and Search Console rechecks the file long after the day it was added, so
+  // losing it silently un-verifies the site and stops the reporting that came with it.
+  const response = await page.request.get("/googlee79b527f86e1502f.html");
+
+  expect(response.status()).toBe(200);
+  expect((await response.text()).trim()).toBe(
+    "google-site-verification: googlee79b527f86e1502f.html",
+  );
+});
+
 test("serves robots.txt, and a sitemap whose every page is really there", async ({ page }) => {
   // Nothing links to either file, so a build that stopped emitting them would go unnoticed
   // everywhere else; and a sitemap listing an address that 404s is worse than no sitemap.

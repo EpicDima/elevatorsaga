@@ -10,3 +10,8 @@ package-lock.json
 # Scratch. See the note in eslint.config.js: a throwaway script has to sit in
 # the repo root to resolve node_modules, and formatting one is beside the point.
 *.tmp.*
+
+# Google's proof that this domain is ours. Its one line is Google's to write,
+# not Prettier's -- it is an .html file that is not HTML, and reformatting it
+# un-verifies the site. A reissued token replaces this path.
+public/googlee79b527f86e1502f.html

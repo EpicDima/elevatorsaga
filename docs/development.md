@@ -193,7 +193,10 @@ brings its reference page into the sitemap with no one remembering to; the addre
 canonical link on every page and the link-preview tags all come from `src/shared/lib/site.ts`,
 which is the one file naming where the site lives. The same config strips the comments out of each
 page on the way to `dist/` — `index.html` explains itself at length, and those notes are two thirds
-of what a crawler downloads. `e2e/metadata.spec.ts` asks the built site for all of it.
+of what a crawler downloads. One file there is neither built nor formatted:
+`public/googlee79b527f86e1502f.html` is the line Google issued to prove the domain is ours, and it
+is in `.prettierignore` because it is an `.html` file that is not HTML — reformatting it would
+un-verify the site. `e2e/metadata.spec.ts` asks the built site for all of it.
 
 Two prerequisites are settings rather than files, so they have to be done by hand once:
 
