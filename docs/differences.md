@@ -90,7 +90,7 @@ is scored by the same rules.
   three programs measured on the same eighteen-floor building, the one that filled its cars best
   delivered the fewest people, at nearly twice the wait of the program whose cars were emptiest.
 - **A Russian API reference**, at
-  [documentation.ru.html](https://epicdima.github.io/elevatorsaga/documentation.ru.html).
+  [documentation.ru.html](https://elevatorsaga.epicdima.com/documentation.ru.html).
 
 ## Breaking changes for player code
 

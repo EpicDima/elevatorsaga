@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 
+import packageJson from "../../../package.json" with { type: "json" };
+
 import { renderRobots, renderSitemap, SITE_ORIGIN, SITEMAP_FILE, siteUrl } from "./site.ts";
 
 describe("SITE_ORIGIN", () => {
@@ -13,6 +15,12 @@ describe("SITE_ORIGIN", () => {
 
   it("is served over https, since a canonical link naming http would demote the site it names", () => {
     expect(SITE_ORIGIN.startsWith("https://")).toBe(true);
+  });
+
+  it("is the address the manifest gives out too", () => {
+    // The one place outside this module that names the site: package.json is read by tooling and
+    // by whoever opens the repository, and two answers there is one of them being wrong.
+    expect(packageJson.homepage).toBe(siteUrl());
   });
 });
 

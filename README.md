@@ -6,7 +6,7 @@
 A programming game: you get a building, a few elevators and a stream of impatient people, and the
 only control you have is a small JavaScript program.
 
-### [▶ Play it](https://epicdima.github.io/elevatorsaga/)
+### [▶ Play it](https://elevatorsaga.epicdima.com/)
 
 ![Level 5 in progress: four elevators carrying people between six floors, passengers waiting on
 the landings and riding in the cars, one of the riders marked yellow as the one behind the panel's
@@ -24,8 +24,8 @@ building of your own size you can leave running.
 Type in the editor beside the building and press **Start**. There is nothing to apply first: your
 code is saved to `localStorage` as you type, and every run reads whatever is in the editor at the
 moment it begins. The full API — every method, property and event, with examples — ships with the
-game, in [English](https://epicdima.github.io/elevatorsaga/documentation.html) and in
-[Russian](https://epicdima.github.io/elevatorsaga/documentation.ru.html), as is the interface.
+game, in [English](https://elevatorsaga.epicdima.com/documentation.html) and in
+[Russian](https://elevatorsaga.epicdima.com/documentation.ru.html), as is the interface.
 
 New to it? [The learning track](docs/learning-track.md) is eight small buildings that teach the same
 API one mistake at a time, before level 1 asks for it.

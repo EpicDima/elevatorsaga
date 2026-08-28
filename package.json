@@ -1,7 +1,7 @@
 {
   "name": "elevator-saga",
   "version": "2.0.0",
-  "description": "Elevator Saga - the elevator programming game. Write JavaScript to transport people efficiently.",
+  "description": "Elevator Saga, redesigned: write JavaScript to move people through a building efficiently.",
   "keywords": [
     "elevator",
     "elevator-saga",
@@ -14,7 +14,7 @@
     "simulation",
     "learning"
   ],
-  "homepage": "https://github.com/EpicDima/elevatorsaga#readme",
+  "homepage": "https://elevatorsaga.epicdima.com/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/EpicDima/elevatorsaga.git"

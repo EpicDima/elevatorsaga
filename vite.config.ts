@@ -67,6 +67,14 @@ function readLicenseText(name: string): string {
   return readFileSync(join(directory, file), "utf8").trim();
 }
 
+/**
+ * Where the code this was built from is, as a page rather than as something to
+ * clone: `repository.url` and not `homepage`, which is the game itself.
+ */
+function sourceUrl(): string {
+  return packageJson.repository.url.replace(/^git\+/, "").replace(/\.git$/, "");
+}
+
 /** Formats one titled, underlined block of the notice file. */
 function section(title: string, body: string): string {
   return `${title}\n${"=".repeat(title.length)}\n\n${body.trim()}\n`;
@@ -100,7 +108,7 @@ Development tooling -- Vite, TypeScript, Vitest, ESLint, Playwright -- is not
 listed. It builds and checks the site; none of it is copied into what is
 served from here.
 
-Source: ${packageJson.homepage.replace(/#.*$/, "")}`,
+Source: ${sourceUrl()}`,
     ),
     section("Elevator Saga", readFileSync("LICENSE.txt", "utf8")),
     // Already carries its own heading, in the same style.
