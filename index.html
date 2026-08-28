@@ -118,6 +118,44 @@
     />
     <meta name="twitter:card" content="summary_large_image" />
 
+    <!--
+      What kind of thing this page is, said in the vocabulary a search engine
+      reads rather than in prose it has to guess from. Not localized, unlike
+      everything above: a crawler is served this file, and this file is in
+      English. `isBasedOn` names the original game rather than competing with
+      it, which is also the true answer. src/page.test.ts holds the wording
+      here to the catalog and the addresses to #shared/lib/site.ts.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Elevator Saga",
+        "url": "https://elevatorsaga.epicdima.com/",
+        "description": "Elevator Saga, redesigned: write JavaScript to move people through a building efficiently. 19 levels, a learning track, a sandbox building of your own size, and runs you can repeat.",
+        "image": "https://elevatorsaga.epicdima.com/images/screenshot.png",
+        "inLanguage": ["en", "ru"],
+        "genre": "Programming game",
+        "applicationCategory": "GameApplication",
+        "gamePlatform": "Web browser",
+        "operatingSystem": "Any browser with JavaScript",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "license": "https://opensource.org/licenses/MIT",
+        "isBasedOn": "https://play.elevatorsaga.com/",
+        "sameAs": "https://github.com/EpicDima/elevatorsaga",
+        "author": {
+          "@type": "Person",
+          "name": "Magnus Wolffelt",
+          "url": "https://github.com/magwo"
+        }
+      }
+    </script>
+
     <script type="module" src="/src/main.ts"></script>
   </head>
   <!--

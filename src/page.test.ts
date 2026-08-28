@@ -19,6 +19,7 @@ import { EN_DOCS_MESSAGES, type DocsMessageKey } from "./i18n/docs-en.ts";
 import { RU_DOCS_MESSAGES } from "./i18n/docs-ru.ts";
 import { EN_MESSAGES } from "./i18n/en.ts";
 import { setLocale, DEFAULT_LOCALE } from "./i18n/index.ts";
+import { LOCALES } from "./i18n/locale.ts";
 import { RU_MESSAGES } from "./i18n/ru.ts";
 import {
   type ApiCompletion,
@@ -136,8 +137,24 @@ describe("index.html", () => {
     expect(scripts.map((script) => [script.type, script.getAttribute("src")])).toEqual([
       // No src, no type: either would defer the bootstrap script past first paint.
       ["", null],
+      // Data, not code: the browser never runs it, so where it sits costs nothing.
+      ["application/ld+json", null],
       ["module", "/src/main.ts"],
     ]);
+  });
+
+  it("says what kind of thing it is in the vocabulary a search engine reads", () => {
+    const source = page.querySelector('script[type="application/ld+json"]')?.textContent ?? "";
+    const data = JSON.parse(source) as Record<string, unknown>;
+
+    expect(data["@context"]).toBe("https://schema.org");
+    expect(data["@type"]).toBe("VideoGame");
+    // The same words the page shows, so the two cannot describe different games.
+    expect(data["name"]).toBe(EN_MESSAGES["page.brand"]);
+    expect(data["description"]).toBe(EN_MESSAGES["page.description"]);
+    expect(data["url"]).toBe(siteUrl());
+    expect(data["image"]).toBe(siteUrl(PREVIEW_IMAGE));
+    expect(data["inLanguage"]).toEqual([...LOCALES]);
   });
 
   it.each(FIRST_PAINT)(
