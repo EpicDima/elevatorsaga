@@ -187,6 +187,14 @@ red, and the cost of that is every link to the game. Serving from a domain rathe
 `epicdima.github.io/elevatorsaga/` changes nothing in the bundle: `vite.config.ts` sets
 `base: "./"`, so the pages reference their assets relatively and work at either depth.
 
+What the crawlers are given is built too. `robots.txt` and `sitemap.xml` are written by
+`vite.config.ts` from the list of pages the build itself has, so a language added to `LOCALES`
+brings its reference page into the sitemap with no one remembering to; the addresses in them, the
+canonical link on every page and the link-preview tags all come from `src/shared/lib/site.ts`,
+which is the one file naming where the site lives. The same config strips the comments out of each
+page on the way to `dist/` — `index.html` explains itself at length, and those notes are two thirds
+of what a crawler downloads. `e2e/metadata.spec.ts` asks the built site for all of it.
+
 Two prerequisites are settings rather than files, so they have to be done by hand once:
 
 1. In **Settings → Pages → Build and deployment**, change **Source** from "Deploy from a branch" to
