@@ -16,11 +16,11 @@ program driving it all in the editor to the right](public/images/screenshot.png)
 ## How it works
 
 Your program declares an `init` function that runs once and, if it wants one, an `update` function
-that runs repeatedly. Each of the 32 levels — 19 in chapter one, 13 in a second chapter on how real
-lift systems are run — sets a target: transport 15 people in 60 seconds, or 100 people using no more
-than 63 elevator moves, or 50 people with none of them taking longer than 21 seconds to deliver. You
-keep rewriting until it clears them. The sandbox sets none: it is a building of your own size you can
-leave running.
+that runs repeatedly. Every level sets a target — transport 15 people in 60 seconds, or 100 people
+using no more than 63 elevator moves, or 50 people with none of them taking longer than 21 seconds
+to deliver — and you keep rewriting until it clears them. Chapter one is the original's levels;
+chapter two is about how real lift systems are run. The sandbox sets no target at all: it is a
+building of your own size you can leave running.
 
 Type in the editor beside the building and press **Start**. There is nothing to apply first: your
 code is saved to `localStorage` as you type, and every run reads whatever is in the editor at the
@@ -41,9 +41,9 @@ the simulation is TypeScript with unit tests, and a pile of long-standing upstre
 What it adds, all of it additive — no level got easier or harder:
 
 - **A learning track** and **a jump list for the levels**, with nothing locked behind anything.
-- **A second chapter**: thirteen levels on how real lift systems are run — morning and evening
-  peaks, cars that serve only part of the building, and passengers who name the floor they want
-  instead of pressing a call button.
+- **A second chapter** on how real lift systems are run: morning and evening peaks, cars that serve
+  only part of the building, and passengers who name the floor they want instead of pressing a call
+  button.
 - **Repeatable runs.** `#seed=…` brings the same passengers back to every restart.
 - **A sandbox building** you size yourself: floors, elevators, capacities, spawn rate.
 - **More API.** `isFull()`, `isEmpty()`, `isApproachingFloor(n)`, `servedFloors()` and
