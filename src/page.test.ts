@@ -6,7 +6,7 @@ import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
 
 import pageSource from "../index.html?raw";
-import viteConfig, { stripComments } from "../vite.config.ts";
+import viteConfig, { stripComments, verificationTags } from "../vite.config.ts";
 import { docsPageFile, renderDocsPage } from "./docs-page/render.ts";
 import { Elevator } from "./game/elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
@@ -497,6 +497,33 @@ describe("the comments the build takes out", () => {
     expect(stripped).toContain(`"<!-- kept -->"`);
     expect(stripped).not.toContain("<!-- gone -->");
     expect(stripped).toContain("<p>text</p>");
+  });
+});
+
+/** Which page gets the tag is a question for the built site; `e2e/metadata.spec.ts` asks it. */
+describe("the Search Console tag the build adds", () => {
+  const tag = (content: string): unknown => [
+    { tag: "meta", attrs: { name: "google-site-verification", content }, injectTo: "head" },
+  ];
+
+  it("adds nothing when the variable is unset or blank", () => {
+    expect(verificationTags(undefined)).toEqual([]);
+    expect(verificationTags("  \n")).toEqual([]);
+  });
+
+  it("takes the token as given", () => {
+    expect(verificationTags(" abc_DEF-123\n")).toEqual(tag("abc_DEF-123"));
+  });
+
+  it("takes the whole line Search Console shows", () => {
+    expect(
+      verificationTags(`<meta name="google-site-verification" content="abc_DEF-123" />`),
+    ).toEqual(tag("abc_DEF-123"));
+  });
+
+  it("fails the build rather than write markup it was handed", () => {
+    expect(() => verificationTags(`x"><script>`)).toThrow(/not a Search Console token/);
+    expect(() => verificationTags(`<meta content="a b">`)).toThrow(/not a Search Console token/);
   });
 });
 

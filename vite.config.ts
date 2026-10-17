@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import type { Plugin } from "vite";
+import type { HtmlTagDescriptor, Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
 import packageJson from "./package.json" with { type: "json" };
@@ -231,6 +231,53 @@ function commentFreePages(): Plugin {
   };
 }
 
+/** A Search Console token: what Google issues is letters, digits, `-` and `_`. */
+const VERIFICATION_TOKEN = /^[\w-]+$/;
+
+/**
+ * The tag Search Console verifies the site's owner by, from the value of the
+ * `GOOGLE_SITE_VERIFICATION` variable. Either the token or the whole `<meta>`
+ * line Search Console shows is accepted, so the line can be pasted as given.
+ * Exported for `src/page.test.ts`.
+ *
+ * @param value The variable as set; unset or blank adds no tag.
+ * @returns The tags to add to the game's page.
+ */
+export function verificationTags(value: string | undefined): HtmlTagDescriptor[] {
+  const raw = value?.trim() ?? "";
+  if (raw === "") {
+    return [];
+  }
+  const token = /\bcontent\s*=\s*["']([^"']*)["']/i.exec(raw)?.[1] ?? raw;
+  if (!VERIFICATION_TOKEN.test(token)) {
+    throw new Error(`GOOGLE_SITE_VERIFICATION is not a Search Console token: ${raw}`);
+  }
+  return [
+    {
+      tag: "meta",
+      attrs: { name: "google-site-verification", content: token },
+      injectTo: "head",
+    },
+  ];
+}
+
+/**
+ * Puts the Search Console tag on the game's page, the one Google checks. Taken
+ * from the environment, so the token lives in a CI variable and not the repo.
+ *
+ * @returns The plugin.
+ */
+function searchConsoleVerification(): Plugin {
+  return {
+    name: "elevator-saga-search-console-verification",
+    transformIndexHtml(html, context) {
+      return context.path === "/index.html"
+        ? { html, tags: verificationTags(process.env["GOOGLE_SITE_VERIFICATION"]) }
+        : html;
+    },
+  };
+}
+
 /**
  * The reference pages, which exist as no file: `src/docs-page/render.ts` builds
  * each from the catalogs at `src/i18n/docs-*.ts`.
@@ -279,7 +326,13 @@ function referencePages(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [licenseNotices(), crawlerFiles(), commentFreePages(), referencePages()],
+  plugins: [
+    licenseNotices(),
+    crawlerFiles(),
+    searchConsoleVerification(),
+    commentFreePages(),
+    referencePages(),
+  ],
   resolve: {
     // Mirrors tsconfig.json's path aliases; Vite/esbuild/Vitest never read tsconfig.
     alias: [

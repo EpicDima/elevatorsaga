@@ -85,6 +85,18 @@ test("serves the file Google verifies the site's owner by", async ({ page }) => 
   );
 });
 
+test("puts the Search Console tag on the game's page and no other", async ({ page }) => {
+  // The token comes from the environment, which playwright.config.ts sets for the build.
+  const tag = 'meta[name="google-site-verification"]';
+  await page.goto("/");
+  await expect(page.locator(tag)).toHaveAttribute("content", "e2e-search-console-token");
+
+  for (const path of ["/documentation.html", "/documentation.ru.html"]) {
+    await page.goto(path);
+    await expect(page.locator(tag), path).toHaveCount(0);
+  }
+});
+
 test("serves robots.txt, and a sitemap whose every page is really there", async ({ page }) => {
   // Nothing links to either file, so a build that stopped emitting them would go unnoticed
   // everywhere else; and a sitemap listing an address that 404s is worse than no sitemap.

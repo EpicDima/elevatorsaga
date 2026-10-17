@@ -56,6 +56,8 @@ export default defineConfig({
     // whose `tsc --noEmit` half belongs to `npm run typecheck` and answers
     // nothing these tests ask.
     command: `npx vite build && npm run preview -- --port ${String(PORT)} --strictPort`,
+    // A stand-in token, so e2e/metadata.spec.ts can see where the build puts the tag.
+    env: { GOOGLE_SITE_VERIFICATION: "e2e-search-console-token" },
     url: BASE_URL,
     // A Vite build takes a while on a cold cache.
     timeout: 180_000,
