@@ -109,3 +109,36 @@ test("serves the Russian help page, and links the two together both ways", async
 
   expect(pageErrors).toEqual([]);
 });
+
+test("takes a reader who came from the game back to the level they left", async ({ page }) => {
+  await page.goto("/#level=5");
+  await page.evaluate(() => {
+    location.href = "documentation.html";
+  });
+  await page.locator('a[href="#events"]').first().click();
+  await page.locator('a[hreflang="ru"]').click();
+  await expect(page).toHaveURL(/documentation\.ru\.html$/);
+
+  await page.getByRole("link", { name: "Вернуться к игре" }).click();
+
+  await expect(page).toHaveURL(/\/\/[^/]+\/#level=5$/);
+});
+
+test("closes a help tab the game opened, which leaves the game in view", async ({
+  context,
+  page,
+}) => {
+  await page.goto("/#level=5");
+  const [help] = await Promise.all([
+    context.waitForEvent("page"),
+    page.getByRole("link", { name: "Help" }).click({ modifiers: ["ControlOrMeta"] }),
+  ]);
+  await help.waitForLoadState();
+
+  // Listened for first: the tab can close before the click itself returns.
+  const closed = help.waitForEvent("close");
+  await help.getByRole("link", { name: "Back to the game" }).click();
+
+  await closed;
+  await expect(page).toHaveURL(/\/\/[^/]+\/#level=5$/);
+});
