@@ -41,8 +41,8 @@ export default tseslint.config(
     },
   },
   {
-    // The one part of `src/` that isn't browser-facing: the benchmark command
-    // and its tests, type-checked with the rest of the simulation it imports.
+    // Node-side code under `src/`: the benchmark command and the screenshot's
+    // PNG encoder, with their tests.
     files: ["src/cli/**/*.ts"],
     languageOptions: {
       globals: { ...globals.node },

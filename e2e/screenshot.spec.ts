@@ -4,8 +4,11 @@
  * with `npm run screenshot` after a visual change, then commit the result.
  */
 
+import { writeFile } from "node:fs/promises";
+
 import { expect, test } from "@playwright/test";
 
+import { toPalettePng } from "../src/cli/palette-png.ts";
 import { DEV_TEST_CODE } from "../src/ui/default-code.ts";
 import { seedLevelCode, startButton, statistic, statisticValue } from "./game-page.ts";
 
@@ -66,7 +69,9 @@ test.describe("README screenshot", () => {
     // time the system UI face has loaded.
     await page.evaluate(() => document.fonts.ready);
 
-    await page.screenshot({ path: OUTPUT_PATH, fullPage: true, animations: "disabled" });
+    // A third of the size as a 256-color palette, with no visible difference.
+    const capture = await page.screenshot({ fullPage: true, animations: "disabled" });
+    await writeFile(OUTPUT_PATH, toPalettePng(capture));
 
     await expect(await statistic(page, "Transported")).not.toHaveText("0");
   });

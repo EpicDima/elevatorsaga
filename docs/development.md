@@ -50,7 +50,7 @@ src/
   app/        the fitness benchmark and the worker it runs in
   ui/         the CodeMirror integration, which sits outside the layers on
               purpose, plus a few utility modules not yet moved into shared/
-  cli/        the benchmark as a terminal command
+  cli/        the benchmark as a terminal command, and the screenshot's PNG encoder
   docs-page/  the reference page's shape, and the renderer that turns it and
               the docs catalogs into one HTML file per locale; run by the
               build, as cli/ is run by a terminal -- these two are the parts
@@ -136,7 +136,9 @@ excluded from the suite and run on its own with `npm run screenshot`; nothing in
 lives under `public/` because it is also the site's `og:image`: Vite copies that directory to the
 root of `dist/`, so the picture at the top of this file and the one in a link preview are the same
 file. The run it captures is drawn from a pinned seed, so recapturing after a change to the look of
-the game shows that change rather than a fresh crowd; the spec says which seed and why.
+the game shows that change rather than a fresh crowd; the spec says which seed and why. The spec
+stores the capture through `src/cli/palette-png.ts` as a 256-color palette PNG, a third of the size
+of Chromium's own with no visible difference, so a recapture needs no separate optimizing step.
 
 Before opening a pull request, run what CI runs: `npm run typecheck`, `npm run lint`,
 `npm run format:check`, `npm test`, `npm run build` and `npm run test:e2e`. CI runs the same five
