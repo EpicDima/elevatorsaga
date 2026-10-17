@@ -208,12 +208,13 @@ jobs:
       # Built again rather than carried from `check`, so re-running this job
       # republishes from source. `vite build` skips the typecheck `check` has
       # already run on these bytes.
-      # Search Console's token, from Settings -> Secrets and variables -> Actions
-      # -> Variables. Unset, the page goes out without the tag.
+      # Search engines' verification tokens, from Settings -> Secrets and
+      # variables -> Actions -> Variables. Unset, the page goes out without the tag.
       - name: Build the site
         run: npx vite build
         env:
           GOOGLE_SITE_VERIFICATION: ${{ vars.GOOGLE_SITE_VERIFICATION }}
+          YANDEX_VERIFICATION: ${{ vars.YANDEX_VERIFICATION }}
 
       - name: Upload the built site
         uses: actions/upload-pages-artifact@v5

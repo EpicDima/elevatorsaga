@@ -73,15 +73,22 @@ test("serves a shell with prose in it and none of the notes around it", async ({
   expect(shell).not.toContain("<!--");
 });
 
-test("puts the Search Console tag on the game's page and no other", async ({ page }) => {
-  // The token comes from the environment, which playwright.config.ts sets for the build.
-  const tag = 'meta[name="google-site-verification"]';
+test("puts the verification tags on the game's page and no other", async ({ page }) => {
+  // The tokens come from the environment, which playwright.config.ts sets for the build.
+  const tags = {
+    "google-site-verification": "e2e-google-token",
+    "yandex-verification": "e2e-yandex-token",
+  };
   await page.goto("/");
-  await expect(page.locator(tag)).toHaveAttribute("content", "e2e-search-console-token");
+  for (const [name, content] of Object.entries(tags)) {
+    await expect(page.locator(`meta[name="${name}"]`)).toHaveAttribute("content", content);
+  }
 
   for (const path of ["/documentation.html", "/documentation.ru.html"]) {
     await page.goto(path);
-    await expect(page.locator(tag), path).toHaveCount(0);
+    for (const name of Object.keys(tags)) {
+      await expect(page.locator(`meta[name="${name}"]`), path).toHaveCount(0);
+    }
   }
 });
 

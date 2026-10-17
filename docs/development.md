@@ -192,12 +192,13 @@ brings its reference page into the sitemap with no one remembering to; the addre
 canonical link on every page and the link-preview tags all come from `src/shared/lib/site.ts`,
 which is the one file naming where the site lives. The same config strips the comments out of each
 page on the way to `dist/` — `index.html` explains itself at length, and those notes are two thirds
-of what a crawler downloads. Search Console verifies the domain by a tag on the game page: the
-repository variable `GOOGLE_SITE_VERIFICATION` (**Settings → Secrets and variables → Actions →
-Variables**) holds the `content` of the tag it issued, and the deploy build puts
-`<meta name="google-site-verification">` in that page's `<head>`. Unset, the page goes out without
-it, and Search Console un-verifies the site at its next check. `e2e/metadata.spec.ts` asks the built
-site for all of it.
+of what a crawler downloads. Google Search Console and Yandex Webmaster verify the domain by a tag
+on the game page. The repository variables `GOOGLE_SITE_VERIFICATION` and `YANDEX_VERIFICATION`
+(**Settings → Secrets and variables → Actions → Variables**) each hold the `content` of the tag
+issued, and the deploy build puts `<meta name="google-site-verification">` and
+`<meta name="yandex-verification">` in that page's `<head>`. A variable unset leaves its tag out,
+and that search engine un-verifies the site at its next check. `e2e/metadata.spec.ts` asks the
+built site for all of it.
 
 Two prerequisites are settings rather than files, so they have to be done by hand once:
 

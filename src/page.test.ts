@@ -501,25 +501,44 @@ describe("the comments the build takes out", () => {
 });
 
 /** Which page gets the tag is a question for the built site; `e2e/metadata.spec.ts` asks it. */
-describe("the Search Console tag the build adds", () => {
-  const tag = (content: string): unknown => [
-    { tag: "meta", attrs: { name: "google-site-verification", content }, injectTo: "head" },
-  ];
-
-  it("adds nothing when the variable is unset or blank", () => {
-    expect(verificationTags(undefined)).toEqual([]);
-    expect(verificationTags("  \n")).toEqual([]);
+describe("the verification tags the build adds", () => {
+  const tag = (name: string, content: string): unknown => ({
+    tag: "meta",
+    attrs: { name, content },
+    injectTo: "head",
   });
 
-  it("takes the token as given", () => {
-    expect(verificationTags(" abc_DEF-123\n")).toEqual(tag("abc_DEF-123"));
+  it("adds nothing when the variables are unset or blank", () => {
+    expect(verificationTags({})).toEqual([]);
+    expect(verificationTags({ GOOGLE_SITE_VERIFICATION: "  \n", YANDEX_VERIFICATION: "" })).toEqual(
+      [],
+    );
+  });
+
+  it("adds a tag for each search engine whose token is set, as given", () => {
+    expect(verificationTags({ GOOGLE_SITE_VERIFICATION: " abc_DEF-123\n" })).toEqual([
+      tag("google-site-verification", "abc_DEF-123"),
+    ]);
+    expect(
+      verificationTags({
+        GOOGLE_SITE_VERIFICATION: "abc_DEF-123",
+        YANDEX_VERIFICATION: "0f9e8d7c",
+      }),
+    ).toEqual([
+      tag("google-site-verification", "abc_DEF-123"),
+      tag("yandex-verification", "0f9e8d7c"),
+    ]);
   });
 
   it("fails the build rather than write markup it was handed", () => {
-    expect(() => verificationTags(`x"><script>`)).toThrow(/not a Search Console token/);
+    expect(() => verificationTags({ YANDEX_VERIFICATION: `x"><script>` })).toThrow(
+      /YANDEX_VERIFICATION is not a verification token/,
+    );
     expect(() =>
-      verificationTags(`<meta name="google-site-verification" content="abc_DEF-123" />`),
-    ).toThrow(/not a Search Console token/);
+      verificationTags({
+        GOOGLE_SITE_VERIFICATION: `<meta name="google-site-verification" content="abc_DEF-123" />`,
+      }),
+    ).toThrow(/GOOGLE_SITE_VERIFICATION is not a verification token/);
   });
 });
 

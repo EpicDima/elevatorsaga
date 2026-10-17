@@ -231,47 +231,50 @@ function commentFreePages(): Plugin {
   };
 }
 
-/** A Search Console token: what Google issues is letters, digits, `-` and `_`. */
+/** A verification token: what Google and Yandex issue is letters, digits, `-` and `_`. */
 const VERIFICATION_TOKEN = /^[\w-]+$/;
 
+/** Each search engine's proof of ownership: the variable holding its token, and the tag carrying it. */
+const SITE_VERIFICATIONS = [
+  { variable: "GOOGLE_SITE_VERIFICATION", meta: "google-site-verification" },
+  { variable: "YANDEX_VERIFICATION", meta: "yandex-verification" },
+] as const;
+
 /**
- * The tag Search Console verifies the site's owner by, from the value of the
- * `GOOGLE_SITE_VERIFICATION` variable: the `content` of the tag it issues.
- * Exported for `src/page.test.ts`.
+ * The tags search engines verify the site's owner by, one for each variable
+ * set to the `content` of the tag its search engine issued. Exported for
+ * `src/page.test.ts`.
  *
- * @param value The variable as set; unset or blank adds no tag.
+ * @param env The environment; a variable unset or blank adds no tag.
  * @returns The tags to add to the game's page.
  */
-export function verificationTags(value: string | undefined): HtmlTagDescriptor[] {
-  const token = value?.trim() ?? "";
-  if (token === "") {
-    return [];
-  }
-  if (!VERIFICATION_TOKEN.test(token)) {
-    throw new Error(`GOOGLE_SITE_VERIFICATION is not a Search Console token: ${token}`);
-  }
-  return [
-    {
-      tag: "meta",
-      attrs: { name: "google-site-verification", content: token },
-      injectTo: "head",
-    },
-  ];
+export function verificationTags(
+  env: Readonly<Record<string, string | undefined>>,
+): HtmlTagDescriptor[] {
+  return SITE_VERIFICATIONS.flatMap(({ variable, meta }) => {
+    const token = env[variable]?.trim() ?? "";
+    if (token === "") {
+      return [];
+    }
+    if (!VERIFICATION_TOKEN.test(token)) {
+      throw new Error(`${variable} is not a verification token: ${token}`);
+    }
+    return [{ tag: "meta", attrs: { name: meta, content: token }, injectTo: "head" as const }];
+  });
 }
 
 /**
- * Puts the Search Console tag on the game's page, the one Google checks. Taken
- * from the environment, so the token lives in a CI variable and not the repo.
+ * Puts the search engines' verification tags on the game's page, the one they
+ * check. Taken from the environment, so the tokens live in CI variables and not
+ * the repo.
  *
  * @returns The plugin.
  */
-function searchConsoleVerification(): Plugin {
+function siteVerification(): Plugin {
   return {
-    name: "elevator-saga-search-console-verification",
+    name: "elevator-saga-site-verification",
     transformIndexHtml(html, context) {
-      return context.path === "/index.html"
-        ? { html, tags: verificationTags(process.env["GOOGLE_SITE_VERIFICATION"]) }
-        : html;
+      return context.path === "/index.html" ? { html, tags: verificationTags(process.env) } : html;
     },
   };
 }
@@ -327,7 +330,7 @@ export default defineConfig({
   plugins: [
     licenseNotices(),
     crawlerFiles(),
-    searchConsoleVerification(),
+    siteVerification(),
     commentFreePages(),
     referencePages(),
   ],
