@@ -37,11 +37,10 @@ export class MovableBusyError extends Error {
 /**
  * An object with a position, an optional parent, and an optional running task.
  *
- * @typeParam E - Extra events the subclass emits, on top of {@link MovableEvents}.
+ * @typeParam E - Extra events the subclass emits, on top of {@link MovableEvents};
+ * defaults to those, which adds none.
  */
-export class Movable<E extends EventArgsMap = Record<never, never>> extends Observable<
-  MovableEvents & E
-> {
+export class Movable<E extends EventArgsMap = MovableEvents> extends Observable<MovableEvents & E> {
   /** Position relative to {@link parent}, or world position when unparented. */
   x = 0.0;
   /** Position relative to {@link parent}, or world position when unparented. Grows downward. */
