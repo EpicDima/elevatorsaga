@@ -494,6 +494,8 @@ describe("presentLevelSwitcher", () => {
     it("keeps focus on the tile at the same position when the grid is rebuilt", () => {
       const { parent, options } = setUp();
       const presenter = presentLevelSwitcher(parent, options);
+      // A closed menu is hidden, and nothing inside a hidden element takes focus.
+      requireElement(".task-open", parent).click();
       const target = requireElement(".tasklink", parent);
       target.focus();
       const focusedIndex = queryAll(".tasklink", parent).indexOf(target);
@@ -510,6 +512,7 @@ describe("presentLevelSwitcher", () => {
       parent.innerHTML = levelSwitcherTemplate();
       document.body.append(parent);
       const presenter = presentLevelSwitcher(parent, { getInput: () => input });
+      requireElement(".task-open", parent).click();
       const flat = queryAll(".tasklink", parent);
       // The sandbox tile is always last and always a real, focusable link.
       const sandboxTile = flat[flat.length - 1];

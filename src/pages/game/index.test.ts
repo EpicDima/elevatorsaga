@@ -2025,6 +2025,8 @@ describe("App focus", () => {
   it("keeps focus in the navigation row when a level is taken from it", () => {
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1"));
+    // A closed menu is hidden, and nothing inside a hidden element takes focus.
+    requireElement(".task-open", elements.levelSwitcher).click();
     requireElement('[aria-label="Level 1-2"]', elements.levelSwitcher).focus();
 
     app.handleRoute(...routeFor("#level=2"));

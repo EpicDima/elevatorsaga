@@ -233,7 +233,8 @@ describe("presentDocsModal search", () => {
   });
 
   it("the clear button clears the query, restores the rows and focuses the input", () => {
-    const { dialog } = setUp();
+    const { dialog, modal } = setUp();
+    modal.open();
     search(dialog, "zzz-nothing-matches-zzz");
     dialog.querySelector<HTMLButtonElement>(".docsclear")?.click();
     const input = dialog.querySelector<HTMLInputElement>(".docs-find");

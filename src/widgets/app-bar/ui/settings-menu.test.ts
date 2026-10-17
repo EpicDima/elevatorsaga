@@ -270,6 +270,8 @@ describe("presentAppBarSettings", () => {
     it("puts focus back on the control the player was holding", () => {
       // Dropping focus to <body> would strand a keyboard player in an open popover with nothing reachable.
       const { parent, controller } = setUp(SEED);
+      // A closed popover is hidden, and nothing inside a hidden element takes focus.
+      requireElement(".setopen", parent).click();
       const field = requireElement(".seedvalue", parent);
       field.focus();
 
@@ -284,7 +286,9 @@ describe("presentAppBarSettings", () => {
       // The control the player was holding is gone rather than replaced, so focus falls
       // back to the page instead of onto a row this block no longer draws.
       const { parent, controller } = setUp(SEED);
+      requireElement(".setopen", parent).click();
       requireElement(".seedvalue", parent).focus();
+      expect(document.activeElement).toBe(requireElement(".seedvalue", parent));
 
       controller.setSeed(null);
 
