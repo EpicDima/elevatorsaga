@@ -111,14 +111,3 @@ input {
   outline-offset: 2px;
   border-radius: var(--ds-r-sm);
 }
-
-dl {
-  color: var(--ds-text);
-}
-
-dl dd {
-  margin-block-end: 1em;
-  margin-inline-start: 1em;
-  font: 15px var(--font-body);
-  max-inline-size: 40%;
-}

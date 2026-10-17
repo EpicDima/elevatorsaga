@@ -17,6 +17,7 @@ import { RU_MESSAGES } from "#i18n/ru.ts";
 import { PREVIEW_IMAGE, siteUrl } from "#shared/lib/site.ts";
 import { iconMarkup } from "#shared/ui/icon.ts";
 
+import { highlightJavaScript } from "../ui/code-highlight.ts";
 import { DOCS_PAGE, type ApiTable, type Block } from "./structure.ts";
 
 /** The reference page's own text, in every language it is written in. */
@@ -95,10 +96,10 @@ function prose(locale: Locale, key: DocsMessageKey): string {
  * An example, in a block a reader can copy from.
  *
  * @param code - The example.
- * @returns A `<pre><code>` block holding it.
+ * @returns A `<pre><code>` block holding it, colored as the game's help dialog colors code.
  */
 function codeBlock(code: string): string {
-  return `<pre><code>${escapeHtml(code)}</code></pre>`;
+  return `<pre><code>${highlightJavaScript(code)}</code></pre>`;
 }
 
 /**
@@ -118,8 +119,8 @@ function rowExample(locale: Locale, row: ApiTable["rows"][number]): string {
 /**
  * One API table.
  *
- * The column widths are set by a `<colgroup>` rather than by the cells, so the
- * explanation column keeps its width whether or not the table carries types.
+ * The stylesheet lays it out as a grid, so every part names its table role
+ * itself: some browsers drop the implicit one once `display` changes.
  *
  * @param locale - Which language.
  * @param table - The table.
@@ -127,41 +128,38 @@ function rowExample(locale: Locale, row: ApiTable["rows"][number]): string {
  */
 function renderTable(locale: Locale, table: ApiTable): string {
   const typed = table.rows.some((row) => row.type !== undefined);
-  const columns = typed
-    ? `<col class="doccol-name" /><col class="doccol-type" /><col class="doccol-explanation" /><col />`
-    : `<col class="doccol-name" /><col class="doccol-explanation-wide" /><col />`;
-  const headings = [
-    message(locale, `docs.table.${table.column}`),
-    ...(typed ? [message(locale, "docs.table.type")] : []),
-    message(locale, "docs.table.explanation"),
-    message(locale, "docs.table.example"),
+  const headings: (readonly [part: string, text: string])[] = [
+    ["name", message(locale, `docs.table.${table.column}`)],
+    ...(typed ? [["type", message(locale, "docs.table.type")] as const] : []),
+    ["text", message(locale, "docs.table.explanation")],
+    ["example", message(locale, "docs.table.example")],
   ];
   const head = headings
-    .map((heading) => `<th scope="col">${escapeHtml(heading)}</th>`)
+    .map(
+      ([part, text]) =>
+        `<th scope="col" role="columnheader" class="doc-${part}">${escapeHtml(text)}</th>`,
+    )
     .join("\n              ");
   const rows = table.rows
     .map((row) => {
+      const type =
+        row.type === undefined ? "" : escapeHtml(message(locale, `docs.type.${row.type}`));
       const cells = [
-        `<td>${escapeHtml(row.name)}</td>`,
-        ...(typed
-          ? [
-              `<td>${row.type === undefined ? "" : escapeHtml(message(locale, `docs.type.${row.type}`))}</td>`,
-            ]
-          : []),
-        `<td><small>${prose(locale, row.key)}</small></td>`,
-        `<td>${rowExample(locale, row)}</td>`,
+        `<td role="cell" class="doc-name">${escapeHtml(row.name)}</td>`,
+        ...(typed ? [`<td role="cell" class="doc-type">${type}</td>`] : []),
+        `<td role="cell" class="doc-text"><small>${prose(locale, row.key)}</small></td>`,
+        `<td role="cell" class="doc-example">${rowExample(locale, row)}</td>`,
       ];
-      return `            <tr>\n              ${cells.join("\n              ")}\n            </tr>`;
+      return `            <tr role="row">\n              ${cells.join("\n              ")}\n            </tr>`;
     })
     .join("\n");
-  return `        <table class="doctable">
-          <colgroup>${columns}</colgroup>
-          <thead>
-            <tr>
+  return `        <table class="doctable" role="table">
+          <thead role="rowgroup">
+            <tr role="row">
               ${head}
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
 ${rows}
           </tbody>
         </table>`;
@@ -232,7 +230,7 @@ export function renderDocsPage(locale: Locale): string {
     // Named in the language it leads to, which is how a reader who needs it
     // recognizes it while the page around them is still in another language.
     (candidate) =>
-      `          <a href="${docsPageFile(candidate)}" lang="${candidate}" hreflang="${candidate}">` +
+      `          <a class="btn" href="${docsPageFile(candidate)}" lang="${candidate}" hreflang="${candidate}">` +
       `${escapeHtml(LOCALE_NAMES[candidate])}</a>`,
   );
   return `<!doctype html>
@@ -264,12 +262,12 @@ ${alternateLinks()}
     <meta name="twitter:card" content="summary_large_image" />
     <script type="module" src="/src/docs.ts"></script>
   </head>
-  <body>
-    <div class="container narrow">
+  <body class="docs-page">
+    <div class="sheet">
       <header class="header">
-        <h1>Elevator Saga <em class="emphasis-color">${t("docs.page.tagline")}</em></h1>
+        <h1>Elevator Saga <em>${t("docs.page.tagline")}</em></h1>
         <nav aria-label="${t("docs.nav.label")}">
-          <a href="./">${t("docs.nav.back")}</a>
+          <a class="btn" href="./">${t("docs.nav.back")}</a>
 ${others.join("\n")}
         </nav>
       </header>

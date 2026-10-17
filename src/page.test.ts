@@ -645,15 +645,32 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
     expect(docs.querySelectorAll("h1")).toHaveLength(1);
   });
 
-  it("gives every table a row-wrapped header with scoped columns", () => {
+  it("gives every table a row-wrapped header with scoped columns, and its roles spelled out", () => {
     const tables = [...docs.querySelectorAll("table.doctable")];
     expect(tables.length).toBeGreaterThan(0);
     for (const table of tables) {
       const headerCells = [...table.querySelectorAll("thead tr th")];
       expect(headerCells.length).toBeGreaterThan(0);
       expect(headerCells.every((cell) => cell.getAttribute("scope") === "col")).toBe(true);
-      expect(table.querySelector("colgroup")).not.toBeNull();
       expect(table.querySelector("[width]")).toBeNull();
+      // The stylesheet lays these out as grids, which costs the implicit table roles.
+      const roles: [string, string][] = [
+        ["table", "table"],
+        ["thead, tbody", "rowgroup"],
+        ["tr", "row"],
+        ["th", "columnheader"],
+        ["td", "cell"],
+      ];
+      for (const [selector, role] of roles) {
+        const parts = [table, ...table.querySelectorAll(selector)].filter((part) =>
+          part.matches(selector),
+        );
+        expect(parts.length, selector).toBeGreaterThan(0);
+        expect(
+          parts.every((part) => part.getAttribute("role") === role),
+          selector,
+        ).toBe(true);
+      }
       // Other checks here only read the first cell of a row, so a row missing a <td> would
       // otherwise go unnoticed.
       for (const row of table.querySelectorAll("tbody tr")) {

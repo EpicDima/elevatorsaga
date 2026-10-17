@@ -1,139 +1,240 @@
-.container {
-  max-inline-size: calc(var(--shell-width) + 2 * var(--shell-gutter));
-  margin-inline: auto;
-  padding: 20px var(--shell-gutter) 40px;
-  background-color: var(--ds-bg);
+/* The reference pages, dressed as the game's help dialog: its panel, head bar, type, and rows. */
+
+.docs-page .sheet {
+  width: min(880px, 100% - 48px);
+  margin: 24px auto;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-panel);
+  box-shadow: var(--ds-shadow);
 }
 
-.container.narrow {
-  --shell-width: 960px;
-}
-
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.header h1 {
-  margin: 0;
-  padding: 0;
-  line-height: 50px;
-}
-
-/* wrap: three links in Russian overflow a 320px viewport, failing WCAG 1.4.10. */
-.header nav {
+.docs-page .header {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ds-line);
 }
 
-.header nav a {
-  padding-inline: 4px;
-  font-size: 20px;
-  line-height: 32px;
+.docs-page .header h1 {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
 }
 
-.help {
-  margin-block: 20px 30px;
+.docs-page .header h1 em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--ds-text-muted);
 }
 
-.help p {
-  max-inline-size: 75%;
+/* wrap: the buttons drop under the title rather than overflow a 320px viewport (WCAG 1.4.10). */
+.docs-page .header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.footer {
-  margin-block-start: 20px;
+.docs-page .header nav .btn {
+  font-weight: 400;
+  text-decoration: none;
 }
 
-.footer p {
-  margin-block: 0.4em 0.3em;
+.docs-page .help {
+  padding: 4px 14px 14px;
+}
+
+.docs-page .help h2 {
+  margin: 0;
+  padding: 22px 0 4px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.docs-page .help h2:first-child {
+  padding-top: 14px;
+}
+
+/* `--ds-text-muted`, not `--ds-text-faint`: faint falls short of WCAG 1.4.3's 4.5:1 for real text. */
+.docs-page .help h3,
+.docs-page .doctable thead th {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.docs-page .help h3 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 12px 0 6px;
+  background: var(--ds-panel);
+}
+
+.docs-page .help p,
+.docs-page .help dd,
+.docs-page .doctable small {
+  max-width: 74ch;
   font-size: 13px;
+  line-height: 1.65;
+  color: var(--ds-text-muted);
 }
 
-.doctable {
-  margin-block: 10px 20px;
-  border: none;
+.docs-page .help p {
+  margin: 6px 0 8px;
+}
+
+/* The catalogs mark names and labels this way; the dialog prints the same as `<b>`. */
+.docs-page span.emphasis-color {
   color: var(--ds-text);
+  font-weight: 600;
 }
 
-.doctable th,
-.doctable td {
+.docs-page .help pre {
+  margin: 10px 0;
+}
+
+/* Wraps rather than scrolling sideways, which would hide a line's tail at any width. */
+.docs-page pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.docs-page .help dl {
+  margin: 0;
+}
+
+.docs-page .help dt pre {
+  margin-bottom: 6px;
+}
+
+.docs-page .help dd {
+  margin: 0 0 14px;
+}
+
+/* Each member reads as one of the dialog's opened rows: name on the left, text and example beside it. */
+.docs-page .doctable,
+.docs-page .doctable thead,
+.docs-page .doctable tbody {
+  display: block;
+  margin: 0;
+  border-collapse: collapse;
+}
+
+/* The type column stays even where a table has none, so every table's text starts at the same edge. */
+.docs-page .doctable tr {
+  display: grid;
+  grid-template-areas:
+    "name type text"
+    ". . example";
+  grid-template-columns: 168px 64px minmax(0, 1fr);
+  gap: 0 12px;
+  align-items: baseline;
+  padding: 8px 0 12px;
+  border-top: 1px solid var(--ds-line);
+}
+
+.docs-page .doctable thead tr {
+  padding: 12px 0 6px;
+  border-top: none;
+}
+
+.docs-page .doctable th,
+.docs-page .doctable td {
+  padding: 0;
   text-align: start;
-  border-block-end: 1px solid var(--ds-line);
 }
 
-.doctable tr td:first-child {
-  padding-inline-end: 5px;
-  color: var(--ds-text);
+.docs-page .doc-name {
+  grid-area: name;
+  overflow-wrap: anywhere;
 }
 
-.doctable td {
-  font: 13px var(--font-mono);
+.docs-page td.doc-name {
+  font: 12.5px/1.65 var(--ds-font-mono);
+  color: var(--ds-code-fn);
 }
 
-.doctable td pre {
-  margin-block: 0;
+.docs-page .doc-type {
+  grid-area: type;
 }
 
-/* Legacy column widths, inherited from the original `width` attributes. */
-.doccol-name {
-  inline-size: 150px;
+.docs-page td.doc-type {
+  font-size: 12px;
+  color: var(--ds-text-muted);
 }
 
-.doccol-type {
-  inline-size: 90px;
+.docs-page .doc-text {
+  grid-area: text;
 }
 
-.doccol-explanation {
-  inline-size: 190px;
+.docs-page .doctable small {
+  display: block;
 }
 
-.doccol-explanation-wide {
-  inline-size: 280px;
+.docs-page .doc-example {
+  grid-area: example;
 }
 
-@media (max-width: 1260px) {
-  :root {
-    --shell-gutter: 10px;
-  }
+.docs-page .doc-example pre {
+  margin: 8px 0 0;
+}
+
+/* The row's own name cell already labels both, so only these two headings are left to show. */
+.docs-page .doctable thead .doc-type,
+.docs-page .doctable thead .doc-example {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.docs-page .footer {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--ds-line);
+}
+
+.docs-page .footer p {
+  margin: 2px 0;
+  font-size: 12px;
+  color: var(--ds-text-muted);
 }
 
 @media (max-width: 760px) {
-  .header h1 {
-    font-size: 1.6em;
-    line-height: 1.3;
+  .docs-page .sheet {
+    width: auto;
+    margin: 0;
+    border-width: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 
-  .help p,
-  dl dd {
-    max-inline-size: 100%;
+  .docs-page .doctable tr {
+    grid-template-areas:
+      "name type"
+      "text text"
+      "example example";
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
-  /*
-   * The legacy pixel column widths overflow a 320px screen, so the table switches to a
-   * fixed layout: automatic layout won't shrink a cell narrower than its longest unbreakable
-   * code line, which is why the rules below force names and examples to wrap instead.
-   */
-  .doctable {
-    inline-size: 100%;
-    table-layout: fixed;
+  .docs-page .doctable thead .doc-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
-  .doccol-name,
-  .doccol-type,
-  .doccol-explanation,
-  .doccol-explanation-wide {
-    inline-size: auto;
-  }
-
-  .doctable td:first-child {
-    overflow-wrap: anywhere;
-  }
-
-  /* Wraps rather than scrolling sideways: an example line is wider than a 320px screen. */
-  pre code {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
+  .docs-page .doc-text {
+    margin-top: 4px;
   }
 }
