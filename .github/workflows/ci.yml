@@ -19,7 +19,7 @@ jobs:
   # One Node leg, the same one `e2e` and `deploy` use, and the one `engines`
   # asks for. Nothing here is version-specific enough to pay for a second.
   check:
-    name: Checks (Node 26)
+    name: Checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
