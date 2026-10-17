@@ -515,15 +515,11 @@ describe("the Search Console tag the build adds", () => {
     expect(verificationTags(" abc_DEF-123\n")).toEqual(tag("abc_DEF-123"));
   });
 
-  it("takes the whole line Search Console shows", () => {
-    expect(
-      verificationTags(`<meta name="google-site-verification" content="abc_DEF-123" />`),
-    ).toEqual(tag("abc_DEF-123"));
-  });
-
   it("fails the build rather than write markup it was handed", () => {
     expect(() => verificationTags(`x"><script>`)).toThrow(/not a Search Console token/);
-    expect(() => verificationTags(`<meta content="a b">`)).toThrow(/not a Search Console token/);
+    expect(() =>
+      verificationTags(`<meta name="google-site-verification" content="abc_DEF-123" />`),
+    ).toThrow(/not a Search Console token/);
   });
 });
 

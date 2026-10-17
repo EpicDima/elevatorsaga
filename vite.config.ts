@@ -236,21 +236,19 @@ const VERIFICATION_TOKEN = /^[\w-]+$/;
 
 /**
  * The tag Search Console verifies the site's owner by, from the value of the
- * `GOOGLE_SITE_VERIFICATION` variable. Either the token or the whole `<meta>`
- * line Search Console shows is accepted, so the line can be pasted as given.
+ * `GOOGLE_SITE_VERIFICATION` variable: the `content` of the tag it issues.
  * Exported for `src/page.test.ts`.
  *
  * @param value The variable as set; unset or blank adds no tag.
  * @returns The tags to add to the game's page.
  */
 export function verificationTags(value: string | undefined): HtmlTagDescriptor[] {
-  const raw = value?.trim() ?? "";
-  if (raw === "") {
+  const token = value?.trim() ?? "";
+  if (token === "") {
     return [];
   }
-  const token = /\bcontent\s*=\s*["']([^"']*)["']/i.exec(raw)?.[1] ?? raw;
   if (!VERIFICATION_TOKEN.test(token)) {
-    throw new Error(`GOOGLE_SITE_VERIFICATION is not a Search Console token: ${raw}`);
+    throw new Error(`GOOGLE_SITE_VERIFICATION is not a Search Console token: ${token}`);
   }
   return [
     {

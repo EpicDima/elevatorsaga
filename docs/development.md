@@ -197,9 +197,8 @@ of what a crawler downloads. One file there is neither built nor formatted:
 `public/googlee79b527f86e1502f.html` is the line Google issued to prove the domain is ours, and it
 is in `.prettierignore` because it is an `.html` file that is not HTML — reformatting it would
 un-verify the site. The same proof can come as a tag instead: set the repository variable
-`GOOGLE_SITE_VERIFICATION` (**Settings → Secrets and variables → Actions → Variables**) to the token
-Search Console issues for its HTML-tag method, or to the whole `<meta>` line it shows, and the
-deploy build puts `<meta name="google-site-verification">` in the game page's `<head>`. Unset, the
+`GOOGLE_SITE_VERIFICATION` (**Settings → Secrets and variables → Actions → Variables**) to the
+`content` of the tag Search Console issues for its HTML-tag method, and the deploy build puts `<meta name="google-site-verification">` in the game page's `<head>`. Unset, the
 page goes out without it. `e2e/metadata.spec.ts` asks the built site for all of it.
 
 Two prerequisites are settings rather than files, so they have to be done by hand once:
