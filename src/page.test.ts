@@ -168,6 +168,12 @@ describe("index.html", () => {
     expect(EN_MESSAGES["page.tagline"].length).toBeGreaterThan(200);
   });
 
+  it("links every reference page, for a crawler that runs nothing", () => {
+    // The game opens its docs as a dialog, so these are the pages' only links from it.
+    const targets = [...page.querySelectorAll("header a")].map((link) => link.getAttribute("href"));
+    expect(targets).toEqual(LOCALES.map(docsPageFile));
+  });
+
   it.each(FIRST_PAINT)(
     "paints the page in the %s palette before the stylesheet",
     (scheme, selector, palette) => {
