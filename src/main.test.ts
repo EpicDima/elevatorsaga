@@ -92,18 +92,14 @@ function installShell(): void {
   document.documentElement.replaceWith(document.importNode(parsed.documentElement, true));
 }
 
-/** Lets whatever the last step started finish; a task rather than a microtask, since how many ticks the entry point takes is not this test's business. */
-function settle(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
-}
-
 /** Puts the page shell up and runs the entry point over it, as a browser load does. */
 async function boot(): Promise<void> {
   installShell();
   // A fresh module graph per boot, so `main()` runs again and no state survives from the last one.
   vi.resetModules();
   await import("./main.ts");
-  await settle();
+  // The build spans several tasks, and the app bar replacing the static header is its last step.
+  await vi.waitFor(() => requireElement("header.appbar"), { interval: 1 });
 }
 
 /** The live editor mounted in the pane. */

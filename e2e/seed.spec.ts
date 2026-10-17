@@ -200,8 +200,9 @@ test("prints the seed and a whole URL to the console as a run starts", async ({ 
 
   await page.goto("/#level=4,seed=issue-61");
 
+  // The first run starts a few tasks into the build, after the page's load event.
+  await expect.poll(() => logs.find((line) => line.includes("issue-61"))).toBeDefined();
   const seedLine = logs.find((line) => line.includes("issue-61"));
-  expect(seedLine).toBeDefined();
   // Absolute: a console line can't be copied as a link, so it must work pasted elsewhere.
   expect(seedLine).toContain(`${new URL(page.url()).origin}/#level=4,seed=issue-61`);
 });

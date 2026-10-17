@@ -67,14 +67,20 @@ body.app > main {
 }
 
 /*
- * The static shell's header holds the app bar's height until main.ts swaps the
- * bar in, so the stage below does not jump. Without scripting it stays whole.
+ * Until main.ts swaps the app bar in, the static header holds the bar's height and
+ * <main> stays invisible, since the game is built over several tasks and should
+ * show whole. Invisible rather than undisplayed, so what the build measures is real.
+ * Without scripting both stay as written.
  */
 @media (scripting: enabled) {
   body.app > header:not(.appbar) {
     flex: none;
     block-size: var(--ds-bar-h);
     overflow: hidden;
+  }
+
+  body.app > header:not(.appbar) ~ main {
+    visibility: hidden;
   }
 }
 

@@ -52,7 +52,7 @@ for (const { name, path } of PAGES) {
 test("the game fits its own 1040x600 floor", async ({ page }) => {
   await page.setViewportSize({ width: 1040, height: 600 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.locator(".floor").first()).toBeVisible();
 
   const overflow = await page.evaluate(() => {
     const root = document.documentElement;

@@ -93,6 +93,7 @@ test("writes the figures the way a reader of the new language writes them", asyn
 test("remembers the language for the next visit, and only when it was chosen", async ({ page }) => {
   // Startup alone must not write to storage; only an explicit choice does.
   await page.goto("/#level=4");
+  await expect(page.locator("header.appbar")).toBeVisible();
   expect(await page.evaluate((key) => localStorage.getItem(key), LOCALE_STORAGE_KEY)).toBeNull();
 
   await (await languagePicker(page)).selectOption("ru");

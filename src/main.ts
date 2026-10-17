@@ -60,12 +60,21 @@ declare global {
   }
 }
 
-/** Builds the game and starts it. */
+/** Ends the current task, so the browser can take input between the steps of the build. */
+function nextTask(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/**
+ * Builds the game and starts it, in a few tasks rather than one long one. The stylesheet keeps
+ * `<main>` hidden until the app bar replaces the static header, so no half-built frame shows.
+ */
 async function main(): Promise<void> {
   // Awaited before anything is drawn, so the shell and the game are never in two languages
   // at once. Also relabels the shortcut keys for the platform, since a `<kbd data-mod-key>`
   // can sit inside a message the shell rewrites — rewriting and relabeling must stay together.
   await applyPreferredLocale(document, navigator.userAgent);
+  await nextTask();
 
   // The editor pane's chrome must exist before CodeMirror mounts into it, but the callbacks
   // below need `editor`/`app`, which don't exist yet. Two mutable cells break the circle: the
@@ -132,6 +141,7 @@ async function main(): Promise<void> {
     event.preventDefault();
     editor.focus();
   });
+  await nextTask();
 
   // Built here rather than found by requireElement: the app bar it belongs in isn't
   // assembled until further down, but App's constructor only needs to write into it and
@@ -181,6 +191,8 @@ async function main(): Promise<void> {
       defaultTimeScale: () => readStoredTimeScale(localStorage) ?? DEFAULT_TIME_SCALE,
     },
   );
+
+  await nextTask();
 
   // Order matters: dialogs first since nothing depends on them, the workspace next since the
   // app bar's settings need its setLayoutMode, the app bar third since it needs the workspace
