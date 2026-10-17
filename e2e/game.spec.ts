@@ -174,22 +174,33 @@ test("colors the passenger whose time the statistics panel is reporting", async 
   await page.goto("/#level=1,timescale=16");
   await startButton(page).click();
 
-  // Everything read in one evaluation, since the world keeps moving between
-  // round trips to the browser: exactly one passenger is ever marked, and
-  // yellow (--ds-car-attention) is specifically the boarded color, not the waiting --ds-accent.
-  await expect
-    .poll(
-      async () =>
-        building(page).evaluate((where) => {
+  // Sampled on every frame inside the page: at 16x the level is won in about
+  // three seconds, and the marked passenger's ride can fall between two polls.
+  // Exactly one passenger is ever marked, and yellow (--ds-car-attention) is
+  // specifically the boarded color, not the waiting --ds-accent.
+  const boarded = await building(page).evaluate(
+    (where) =>
+      new Promise((resolve) => {
+        const deadline = performance.now() + 30_000;
+        const sample = (): void => {
           const marked = where.querySelectorAll(".person.is-waiting-long");
           const only = marked[0];
-          return {
+          const seen = {
             inACrowd: where.querySelectorAll(".person").length > 1,
             marked: marked.length,
             color: only === undefined ? null : getComputedStyle(only).color,
           };
-        }),
-      { timeout: 30_000 },
-    )
-    .toEqual({ inACrowd: true, marked: 1, color: "rgb(255, 255, 0)" });
+          if (
+            (seen.inACrowd && seen.color === "rgb(255, 255, 0)") ||
+            performance.now() > deadline
+          ) {
+            resolve(seen);
+          } else {
+            requestAnimationFrame(sample);
+          }
+        };
+        sample();
+      }),
+  );
+  expect(boarded).toEqual({ inACrowd: true, marked: 1, color: "rgb(255, 255, 0)" });
 });
