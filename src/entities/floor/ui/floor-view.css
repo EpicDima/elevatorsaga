@@ -43,10 +43,11 @@
   color: var(--ds-accent-hi);
 }
 
+/* 6px puts the two lamps' centers 24px apart, which is what WCAG 2.5.8 asks of targets this small. */
 .calls {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
 }
 
 /* The border can't help carry contrast (--ds-line-strong is well under 3:1 here), so the glyph alone carries --ds-text-muted. */
