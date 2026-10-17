@@ -5,8 +5,8 @@ import type { HtmlTagDescriptor, Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
 import packageJson from "./package.json" with { type: "json" };
-import { docsPageFile, renderDocsPage } from "./src/docs-page/render.ts";
-import { LOCALES, type Locale } from "./src/i18n/locale.ts";
+import { renderDocsPage } from "./src/docs-page/render.ts";
+import { LOCALES, docsPageFile, type Locale } from "./src/i18n/locale.ts";
 import { renderRobots, renderSitemap, SITEMAP_FILE } from "./src/shared/lib/site.ts";
 
 /**

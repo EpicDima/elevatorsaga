@@ -29,6 +29,17 @@ export const LOCALE_NAMES: Readonly<Record<Locale, string>> = {
   ru: "Русский",
 };
 
+/**
+ * The file a locale's reference page is served from. The default locale keeps
+ * the bare name; every other one is suffixed with its own tag.
+ *
+ * @param locale - Which language.
+ * @returns The file name, relative to the site root.
+ */
+export function docsPageFile(locale: Locale): string {
+  return locale === DEFAULT_LOCALE ? "documentation.html" : `documentation.${locale}.html`;
+}
+
 /** Whether a string names a locale the game has a catalog for. */
 export function isLocale(value: string): value is Locale {
   return (LOCALES as readonly string[]).includes(value);

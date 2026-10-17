@@ -12,7 +12,7 @@
 import { EN_DOCS_MESSAGES, type DocsCatalog, type DocsMessageKey } from "#i18n/docs-en.ts";
 import { RU_DOCS_MESSAGES } from "#i18n/docs-ru.ts";
 import { EN_MESSAGES } from "#i18n/en.ts";
-import { DEFAULT_LOCALE, LOCALES, LOCALE_NAMES, type Locale } from "#i18n/locale.ts";
+import { LOCALES, LOCALE_NAMES, docsPageFile, type Locale } from "#i18n/locale.ts";
 import { RU_MESSAGES } from "#i18n/ru.ts";
 import { PREVIEW_IMAGE, siteUrl } from "#shared/lib/site.ts";
 import { iconMarkup } from "#shared/ui/icon.ts";
@@ -59,19 +59,6 @@ const SPEED_ICONS: Readonly<Record<string, string>> = {
  */
 function escapeHtml(value: string): string {
   return value.replace(/&/gu, "&amp;").replace(/</gu, "&lt;").replace(/>/gu, "&gt;");
-}
-
-/**
- * The file a locale's page is served from.
- *
- * The default locale keeps the bare name, so the address the game has always
- * linked to stays what it was; every other locale is suffixed with its own tag.
- *
- * @param locale - Which language.
- * @returns The file name, relative to the site root.
- */
-export function docsPageFile(locale: Locale): string {
-  return locale === DEFAULT_LOCALE ? "documentation.html" : `documentation.${locale}.html`;
 }
 
 /**

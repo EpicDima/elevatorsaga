@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import pageSource from "../index.html?raw";
 import viteConfig, { stripComments, verificationTags } from "../vite.config.ts";
-import { docsPageFile, renderDocsPage } from "./docs-page/render.ts";
+import { renderDocsPage } from "./docs-page/render.ts";
 import { Elevator } from "./game/elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
 import { Floor } from "./game/floor.ts";
@@ -19,7 +19,7 @@ import { EN_DOCS_MESSAGES, type DocsMessageKey } from "./i18n/docs-en.ts";
 import { RU_DOCS_MESSAGES } from "./i18n/docs-ru.ts";
 import { EN_MESSAGES } from "./i18n/en.ts";
 import { setLocale, DEFAULT_LOCALE } from "./i18n/index.ts";
-import { LOCALES } from "./i18n/locale.ts";
+import { LOCALES, docsPageFile } from "./i18n/locale.ts";
 import { RU_MESSAGES } from "./i18n/ru.ts";
 import {
   type ApiCompletion,
