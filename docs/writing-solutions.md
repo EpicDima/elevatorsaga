@@ -203,6 +203,5 @@ node src/cli/bench.ts solution.js --seeds 42 --json | jq '.scenarios[].result.av
 for f in solutions/*.js; do node src/cli/bench.ts "$f" --seeds 1,2,3; done
 ```
 
-Running the TypeScript entry point directly is Node's own type stripping, which is on by default
-from Node 22.18 and 24. On an earlier 22.x, `node --experimental-strip-types src/cli/bench.ts` does
-the same thing.
+Running the TypeScript entry point directly is Node's own type stripping, on by default in the
+Node 26 this project asks for.

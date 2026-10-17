@@ -3,7 +3,7 @@
 
   // The two pin presets match package.json's dependency blocks by name, which is
   // the shape it already has. `config:js-app` would pin by wildcard instead, and
-  // reach past npm to rewrite `actions/checkout@v7` and `node-version: "24"`.
+  // reach past npm to rewrite `actions/checkout@v7` and `node-version: "26"`.
   extends: ["config:recommended", ":pinDependencies", ":pinDevDependencies", ":configMigration"],
 
   timezone: "Europe/Moscow",

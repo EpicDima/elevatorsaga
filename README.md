@@ -60,7 +60,7 @@ Bringing a solution over from the original? Read
 
 ## Quick start
 
-Node 22 or newer.
+Node 26 or newer.
 
 ```sh
 npm ci
