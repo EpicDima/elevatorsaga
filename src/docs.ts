@@ -2,6 +2,9 @@
 
 import "./styles/index.css";
 
+import { bindBackToGame, browserHost } from "./pages/docs/model/back-to-game.ts";
+import { requireElement } from "./shared/lib/dom.ts";
 import { labelModifierKeys } from "./ui/shortcuts.ts";
 
 labelModifierKeys(document, navigator.userAgent);
+bindBackToGame(requireElement('.header nav a[href="./"]'), browserHost(window));

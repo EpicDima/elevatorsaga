@@ -47,4 +47,19 @@ describe("the reference page's entry point", () => {
 
     expect(modifierKeys()).toEqual(["Ctrl", "Ctrl"]);
   });
+
+  it("sends the link back to the game the reader left", async () => {
+    const traverseTo = vi.fn();
+    const left = { url: new URL("./#level=5", location.href).href, index: 0, key: "game" };
+    const here = { url: location.href, index: 1, key: "docs" };
+    vi.stubGlobal("navigation", { currentEntry: here, entries: () => [left, here], traverseTo });
+    await boot(WINDOWS_USER_AGENT);
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+
+    document.querySelector('.header nav a[href="./"]')?.dispatchEvent(click);
+
+    expect(traverseTo).toHaveBeenCalledWith("game");
+    expect(click.defaultPrevented).toBe(true);
+    vi.unstubAllGlobals();
+  });
 });
