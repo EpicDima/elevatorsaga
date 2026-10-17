@@ -631,7 +631,8 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
 
   it("links back to the game", () => {
     const targets = [...docs.querySelectorAll("a")].map((link) => link.getAttribute("href"));
-    expect(targets).toContain("index.html");
+    // The address the game's canonical link names, not a second spelling of it.
+    expect(targets).toContain("./");
   });
 
   it("links to the license notices as well, being served from the same place", () => {
@@ -1033,7 +1034,7 @@ describe("documentation.html and documentation.ru.html, as one document in two l
     }
     // Built from the level's id rather than hardcoded, so renaming level one fails here instead
     // of leaving a dead address.
-    const href = `index.html#level=${firstLevel.id}`;
+    const href = `./#level=${firstLevel.id}`;
     for (const { file, document } of DOCUMENTATION_PAGES) {
       const links = [...document.querySelectorAll(`a[href="${href}"]`)];
       expect(links, file).toHaveLength(1);
@@ -1315,7 +1316,7 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
       message(reference.language, "docs.page.description"),
     );
     expectSays(docs.querySelector("h1 em"), reference, "docs.page.tagline");
-    expectSays(docs.querySelector("header nav a[href='index.html']"), reference, "docs.nav.back");
+    expectSays(docs.querySelector("header nav a[href='./']"), reference, "docs.nav.back");
     expect(docs.querySelector("header nav")?.getAttribute("aria-label")).toBe(
       message(reference.language, "docs.nav.label"),
     );

@@ -282,7 +282,7 @@ ${alternateLinks()}
       <header class="header">
         <h1>Elevator Saga <em class="emphasis-color">${t("docs.page.tagline")}</em></h1>
         <nav aria-label="${t("docs.nav.label")}">
-          <a href="index.html">${t("docs.nav.back")}</a>
+          <a href="./">${t("docs.nav.back")}</a>
 ${others.join("\n")}
         </nav>
       </header>
