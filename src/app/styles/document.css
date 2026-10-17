@@ -66,6 +66,18 @@ body.app > main {
   min-block-size: 0;
 }
 
+/*
+ * The static shell's header holds the app bar's height until main.ts swaps the
+ * bar in, so the stage below does not jump. Without scripting it stays whole.
+ */
+@media (scripting: enabled) {
+  body.app > header:not(.appbar) {
+    flex: none;
+    block-size: var(--ds-bar-h);
+    overflow: hidden;
+  }
+}
+
 h1,
 h2,
 h3,
