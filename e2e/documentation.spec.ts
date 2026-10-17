@@ -75,7 +75,7 @@ test("sends a beginner from the help page into the learning track", async ({ pag
 
   // A router that can't read the level address falls back to the track's
   // first level anyway, so landing on this title is what actually proves it opened.
-  await expect(page).toHaveURL(/\/index\.html#level=tutorial-1$/);
+  await expect(page).toHaveURL(/\/\/[^/]+\/#level=tutorial-1$/);
   await expect(
     page.getByRole("heading", { level: 2, name: "The elevator that goes nowhere" }),
   ).toBeVisible();
