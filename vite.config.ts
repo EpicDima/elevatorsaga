@@ -1,7 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import type { HtmlTagDescriptor, Plugin } from "vite";
+import { minifySync, type HtmlTagDescriptor, type Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
 import packageJson from "./package.json" with { type: "json" };
@@ -212,21 +212,94 @@ export function stripComments(html: string): string {
   return out + strip(html.slice(read));
 }
 
+/** A line's indentation, and any spaces trailing it. */
+const LINE_PADDING = /(?<=\n)[ \t]+|[ \t]+(?=\n)/g;
+
+/** A tag, whose quoted attribute values may hold a `>`. */
+const TAG = /<[^"'>]*(?:(?:"[^"]*"|'[^']*')[^"'>]*)*>/g;
+
+/** Inside a tag: a quoted value, kept as written, or a line's padding. */
+const TAG_PADDING = /("[^"]*"|'[^']*')|(?<=\n)[ \t]+|[ \t]+(?=\n)/g;
+
+/** Markup with each line's padding gone, but every attribute value as written. */
+function squeezeMarkup(markup: string): string {
+  let out = "";
+  let read = 0;
+  for (const tag of markup.matchAll(TAG)) {
+    out += markup.slice(read, tag.index).replace(LINE_PADDING, "");
+    out += tag[0].replace(TAG_PADDING, (_, quoted?: string) => quoted ?? "");
+    read = tag.index + tag[0].length;
+  }
+  return out + markup.slice(read).replace(LINE_PADDING, "");
+}
+
+/** A classic inline script: no attributes, so neither a module nor data. */
+const INLINE_SCRIPT = /^<script>([\s\S]*)<\/script>$/;
+
+/** The structured-data block, split around its JSON. */
+const STRUCTURED_DATA = /^(<script type="application\/ld\+json">)([\s\S]*)(<\/script>)$/;
+
+/** One {@link VERBATIM} region, with its inline script minified and its JSON compacted. */
+function compactVerbatim(region: string): string {
+  const script = INLINE_SCRIPT.exec(region);
+  if (script) {
+    const { code, errors } = minifySync("inline.js", script[1] ?? "", {
+      compress: true,
+      mangle: true,
+    });
+    if (errors.length > 0)
+      throw new Error(`An inline script does not minify: ${errors[0]?.message ?? ""}`);
+    return `<script>${code.trim()}</script>`;
+  }
+  const data = STRUCTURED_DATA.exec(region);
+  if (data) return `${data[1] ?? ""}${JSON.stringify(JSON.parse(data[2] ?? ""))}${data[3] ?? ""}`;
+  return region;
+}
+
 /**
- * `index.html` explains itself at length to whoever edits it, and those comments
- * are two thirds of the file a crawler fetches. This takes them out of the build
- * and leaves the source, and the dev server, as they are.
+ * Takes each line's indentation out of a page and minifies its inline script
+ * and structured data. Whitespace inside `<pre>`, `<textarea>` and `<style>`
+ * and every attribute value are left as written, and elsewhere a line break
+ * still separates what it did.
+ * Exported for `src/page.test.ts`.
+ *
+ * @param html The page, its comments already gone.
+ * @returns The page as the build writes it out.
+ */
+export function squeezePage(html: string): string {
+  let out = "";
+  let read = 0;
+  for (const match of html.matchAll(VERBATIM)) {
+    out += squeezeMarkup(html.slice(read, match.index)) + compactVerbatim(match[0]);
+    read = match.index + match[0].length;
+  }
+  return out + squeezeMarkup(html.slice(read));
+}
+
+/** The one file under `public/` with notes in it for whoever edits it. */
+const FAVICON_FILE = "favicon.svg";
+
+/**
+ * `index.html` explains itself at length to whoever edits it, and those notes
+ * and the indentation are most of the file a crawler fetches; the favicon
+ * carries a note too. This takes both out of the build and leaves the source,
+ * and the dev server, as they are.
  *
  * @returns The plugin.
  */
-function commentFreePages(): Plugin {
+function compactPages(): Plugin {
   return {
-    name: "elevator-saga-comment-free-pages",
+    name: "elevator-saga-compact-pages",
     apply: "build",
     transformIndexHtml: {
       // After Vite's own pass, so the tags it injects are covered too.
       order: "post",
-      handler: stripComments,
+      handler: (html) => squeezePage(stripComments(html)),
+    },
+    // After `public/` is copied in, which is when the favicon is there to rewrite.
+    writeBundle(options) {
+      const file = join(options.dir ?? "dist", FAVICON_FILE);
+      writeFileSync(file, squeezePage(stripComments(readFileSync(file, "utf8"))).trim() + "\n");
     },
   };
 }
@@ -327,13 +400,7 @@ function referencePages(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [
-    licenseNotices(),
-    crawlerFiles(),
-    siteVerification(),
-    commentFreePages(),
-    referencePages(),
-  ],
+  plugins: [licenseNotices(), crawlerFiles(), siteVerification(), compactPages(), referencePages()],
   resolve: {
     // Mirrors tsconfig.json's path aliases; Vite/esbuild/Vitest never read tsconfig.
     alias: [

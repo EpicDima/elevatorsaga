@@ -46,6 +46,14 @@ test("serves a favicon the browser can actually draw", async ({ page }) => {
   expect(drawn).toEqual({ root: "svg", title: "Elevator Saga", shapes: 3 });
 });
 
+test("serves the favicon without the notes its source keeps", async ({ request }) => {
+  const served = await (await request.get("/favicon.svg")).text();
+
+  expect(served).toContain("<svg");
+  expect(served).not.toContain("<!--");
+  expect(served).not.toMatch(/\n[ \t]/);
+});
+
 test("serves the image its link preview promises", async ({ page }) => {
   await page.goto("/");
 

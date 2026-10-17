@@ -6,7 +6,7 @@ import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
 
 import pageSource from "../index.html?raw";
-import viteConfig, { stripComments, verificationTags } from "../vite.config.ts";
+import viteConfig, { squeezePage, stripComments, verificationTags } from "../vite.config.ts";
 import { renderDocsPage } from "./docs-page/render.ts";
 import { Elevator } from "./game/elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
@@ -117,10 +117,10 @@ function storageHolding(stored: string | null): Storage {
   };
 }
 
-/** The theme index.html's head script settles on, run as a script against given globals. */
-function firstPaintTheme(storage: Storage, prefersDark: boolean): string {
+/** The theme a page's head script settles on, run as a script against given globals. */
+function firstPaintTheme(storage: Storage, prefersDark: boolean, shell: Document = page): string {
   const documentElement = { dataset: {} as Record<string, string> };
-  runInNewContext(page.querySelector("head script:not([src])")?.textContent ?? "", {
+  runInNewContext(shell.querySelector("head script:not([src])")?.textContent ?? "", {
     localStorage: storage,
     matchMedia: (query: string) => {
       expect(query).toBe("(prefers-color-scheme: dark)");
@@ -497,6 +497,84 @@ describe("the comments the build takes out", () => {
     expect(stripped).toContain(`"<!-- kept -->"`);
     expect(stripped).not.toContain("<!-- gone -->");
     expect(stripped).toContain("<p>text</p>");
+  });
+});
+
+describe("the whitespace the build takes out", () => {
+  /** Every element in order, with its attributes as written and its text with whitespace collapsed; scripts by kind only. */
+  function shape(html: string): string[] {
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    return [...parsed.querySelectorAll("*")].map((element) => {
+      const attributes = [...element.attributes].map(({ name, value }) => `${name}=${value}`);
+      const text =
+        element.tagName === "SCRIPT"
+          ? ""
+          : [...element.childNodes]
+              .filter((node) => node.nodeType === Node.TEXT_NODE)
+              .map((node) => node.textContent ?? "")
+              .join("")
+              .replace(/\s+/g, " ")
+              .trim();
+      return [element.tagName, ...attributes, text].join(" ");
+    });
+  }
+
+  /** What every `<pre>` on a page holds, exactly. */
+  function preformatted(html: string): string[] {
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    return [...parsed.querySelectorAll("pre")].map((pre) => pre.innerHTML);
+  }
+
+  const shell = stripComments(pageSource);
+  const squeezed = squeezePage(shell);
+  const squeezedPage = new DOMParser().parseFromString(squeezed, "text/html");
+
+  it("changes no element, attribute or word of the shell", () => {
+    expect(shape(squeezed)).toEqual(shape(shell));
+    expect(squeezed.length).toBeLessThan(shell.length * 0.9);
+  });
+
+  it("keeps the shell's structured data, compacted", () => {
+    const data = (document: Document): unknown =>
+      JSON.parse(document.querySelector('script[type="application/ld+json"]')?.textContent ?? "");
+    expect(data(squeezedPage)).toEqual(data(page));
+    expect(squeezed).not.toMatch(/ld\+json">\s/);
+  });
+
+  it("minifies the theme script without changing what it settles on", () => {
+    const script = squeezedPage.querySelector("head script:not([src])")?.textContent ?? "";
+    expect(script).not.toContain("\n");
+    for (const stored of [null, "system", "light", "dark", "sepia"]) {
+      for (const prefersDark of [true, false]) {
+        const storage = storageHolding(stored);
+        expect(firstPaintTheme(storage, prefersDark, squeezedPage)).toBe(
+          firstPaintTheme(storage, prefersDark),
+        );
+      }
+    }
+  });
+
+  it("leaves the reference pages' code samples exactly as they are", () => {
+    for (const { file, language } of DOCUMENTATION_PAGES) {
+      const rendered = renderDocsPage(language);
+      const page = squeezePage(rendered);
+      expect(preformatted(page), file).toEqual(preformatted(rendered));
+      expect(shape(page), file).toEqual(shape(rendered));
+      expect(page.length, file).toBeLessThan(rendered.length);
+    }
+  });
+
+  it("keeps an attribute value that runs over lines as written", () => {
+    const html = `<div>\n    <p\n      title="one\n      two"\n    >text</p>\n  </div>`;
+    expect(squeezePage(html)).toBe(`<div>\n<p\ntitle="one\n      two"\n>text</p>\n</div>`);
+  });
+
+  it("leaves a favicon a browser will still parse, drawing the same", () => {
+    const icon = squeezePage(stripComments(faviconSource));
+    const parsed = new DOMParser().parseFromString(icon, "image/svg+xml");
+    expect(parsed.querySelector("parsererror")).toBeNull();
+    expect(icon).not.toContain("<!--");
+    expect(shape(icon)).toEqual(shape(faviconSource));
   });
 });
 
