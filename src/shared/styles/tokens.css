@@ -2,8 +2,6 @@
 
 :root {
   /* Geometry; floor size mirrors src/game/world.ts. */
-  --shell-width: 1220px;
-  --shell-gutter: 0px;
   /* Unread by any rule here, but named by src/pages/game/model/route.ts as the sandbox's build width. */
   --building-width: 938px;
   --floor-height: 50px;
