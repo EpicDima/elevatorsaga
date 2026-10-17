@@ -43,7 +43,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
     "Перевезено",
   );
-  await expect(page.getByRole("button", { name: "Справка" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Справка" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Уровень 1-4" })).toBeVisible();
   await expect(startButton(page, "Пауза")).toBeVisible();
   // exact: true, because the dice button's own label also contains "заново" and accessible-name

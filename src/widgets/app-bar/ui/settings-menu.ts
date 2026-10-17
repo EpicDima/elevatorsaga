@@ -9,7 +9,8 @@ import { buildLayoutSwitchSkeleton, presentLayoutSwitch } from "#features/switch
 import type { LayoutModeId, LayoutSwitchLabels } from "#features/switch-layout/index.ts";
 import { buildThemeSwitchSkeleton, presentThemeSwitch } from "#features/switch-theme/index.ts";
 import type { ThemeSwitchLabels } from "#features/switch-theme/index.ts";
-import { t } from "#i18n/index.ts";
+import { getLocale, t } from "#i18n/index.ts";
+import { docsPageFile } from "#i18n/locale.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
@@ -41,7 +42,7 @@ export function appBarSettingsTemplate(seed: SeedLinkData | null): string {
   const originalLabel = t("game.appBar.sourceOriginalLabel");
   const copyright = t("game.appBar.sourceCopyright.html");
 
-  return markup`<button type="button" class="ghost docsopen" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></button><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock" data-set-block="language"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div><div data-set-block="seed">${raw(seedPanelTemplate(seed))}</div><div class="setblock" data-set-block="hotkeys"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock" data-set-block="source"><span class="cap">${sourceCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${raw(copyright)}</p></div></div></div>`;
+  return markup`<a class="ghost docsopen" href="${docsPageFile(getLocale())}" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></a><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock" data-set-block="language"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div><div data-set-block="seed">${raw(seedPanelTemplate(seed))}</div><div class="setblock" data-set-block="hotkeys"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock" data-set-block="source"><span class="cap">${sourceCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${raw(copyright)}</p></div></div></div>`;
 }
 
 /** What {@link presentAppBarSettings} needs in order to drive the toolbar it fills in. */
@@ -174,7 +175,13 @@ export function presentAppBarSettings(
 
   createDisclosure(setOpen, setMenu);
 
-  docsOpen.addEventListener("click", () => {
+  // A link to the reference page, so a crawler finds it and a modified click opens it in a tab;
+  // a plain click opens the dialog instead.
+  docsOpen.addEventListener("click", (event) => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    event.preventDefault();
     options.onOpenDocs();
   });
   // The popover stays open under the dialog, so closing the dialog lands back in settings.
@@ -216,6 +223,7 @@ export function presentAppBarSettings(
       const languageCaption = t("page.language.label");
 
       docsOpen.title = docsLabel;
+      docsOpen.setAttribute("href", docsPageFile(getLocale()));
       docsLabelEl.textContent = docsLabel;
       setOpen.title = settingsLabel;
       setOpen.setAttribute("aria-label", settingsLabel);

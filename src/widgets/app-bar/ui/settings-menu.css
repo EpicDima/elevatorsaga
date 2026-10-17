@@ -152,6 +152,15 @@
   color: var(--ds-text-muted);
 }
 
+/* A link that looks like the settings button beside it, so the page's `<a>` rules are undone. */
+.docsopen {
+  font-weight: normal;
+}
+
+.docsopen:hover {
+  text-decoration: none;
+}
+
 /*
  * `font-weight: normal` and the hover `text-decoration: none` override this page's global `<a>`
  * rules (bold, underline on hover) — `a:hover` alone would still outrank a bare `.setlink`.

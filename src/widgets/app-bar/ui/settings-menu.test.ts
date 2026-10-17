@@ -49,7 +49,11 @@ describe("appBarSettingsTemplate", () => {
     const parent = document.createElement("div");
     parent.innerHTML = appBarSettingsTemplate(null);
 
-    expect(requireElement(".docsopen", parent).getAttribute("aria-haspopup")).toBe("dialog");
+    const docsOpen = requireElement(".docsopen", parent);
+    expect(docsOpen.getAttribute("aria-haspopup")).toBe("dialog");
+    // A real link to the reference page, which is how a crawler reaches it from the game.
+    expect(docsOpen.tagName).toBe("A");
+    expect(docsOpen.getAttribute("href")).toBe("documentation.html");
     const setOpen = requireElement(".setopen", parent);
     expect(setOpen.getAttribute("aria-expanded")).toBe("false");
     expect(setOpen.getAttribute("aria-haspopup")).toBe("true");
@@ -185,10 +189,33 @@ describe("presentAppBarSettings", () => {
     const onOpenDocs = vi.fn();
     const { parent } = setUp(null, { onOpenDocs });
 
-    requireElement(".docsopen", parent).click();
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+    requireElement(".docsopen", parent).dispatchEvent(click);
 
     expect(onOpenDocs).toHaveBeenCalledTimes(1);
+    expect(click.defaultPrevented).toBe(true);
   });
+
+  it.each(["ctrlKey", "metaKey", "shiftKey", "altKey"] as const)(
+    "leaves a click with %s to the link, opening the page rather than the dialog",
+    (modifier) => {
+      const onOpenDocs = vi.fn();
+      const { parent } = setUp(null, { onOpenDocs });
+      let prevented: boolean | undefined;
+      parent.addEventListener("click", (event) => {
+        prevented = event.defaultPrevented;
+        // jsdom cannot navigate; what matters is that the presenter left the default alone.
+        event.preventDefault();
+      });
+
+      requireElement(".docsopen", parent).dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true, [modifier]: true }),
+      );
+
+      expect(onOpenDocs).not.toHaveBeenCalled();
+      expect(prevented).toBe(false);
+    },
+  );
 
   it("leaves the popover open when keysOpen is clicked, so its dialog is a step deeper in", () => {
     const onOpenHotkeys = vi.fn();
@@ -319,6 +346,9 @@ describe("presentAppBarSettings", () => {
 
         expect(requireElement(".docsopen", parent).getAttribute("title")).toBe("Справка");
         expect(requireElement(".docsopen .lbl", parent).textContent).toBe("Справка");
+        expect(requireElement(".docsopen", parent).getAttribute("href")).toBe(
+          "documentation.ru.html",
+        );
         const setOpen = requireElement(".setopen", parent);
         expect(setOpen.getAttribute("title")).toBe("Настройки");
         expect(setOpen.getAttribute("aria-label")).toBe("Настройки");
